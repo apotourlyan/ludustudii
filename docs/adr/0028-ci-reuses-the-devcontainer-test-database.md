@@ -1,6 +1,6 @@
 # 0028. CI reuses the devcontainer test database and tool versions
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-07
 - Tags: back-end, tooling
 
