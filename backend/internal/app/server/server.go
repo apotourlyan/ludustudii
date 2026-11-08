@@ -18,8 +18,9 @@ import (
 type Options struct {
 	// OnDrain is called when the first SIGINT or SIGTERM arrives, while the
 	// server is still serving. Use it to start failing readiness so load
-	// balancers stop sending new traffic here before shutdown begins. It may
-	// be nil.
+	// balancers stop sending new traffic here before shutdown begins. It runs
+	// before the drain delay with a context that is never cancelled, so it
+	// must return promptly. It may be nil.
 	OnDrain func(context.Context)
 	// DrainDelay is how long the server keeps serving after OnDrain, so load
 	// balancers can notice the failed readiness and route traffic elsewhere.
