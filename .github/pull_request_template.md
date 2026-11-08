@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What changed and why. -->
+<!-- What changed and why. If this fixes an issue, add "Fixes #N". -->
 
 ## How it was verified
 
