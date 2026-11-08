@@ -99,6 +99,48 @@ linters:
               desc: services must remain independent of application wiring
             - pkg: github.com/apotourlyan/ludustudii/internal/infra
               desc: services must remain independent of infrastructure
+        # The shared front and the process lifecycle serve any composition of
+        # surfaces, so they must not know any surface. Their tests follow the
+        # same rule, so the packages are tested without a surface.
+        front:
+          files: ["**/internal/app/router/*.go", "**/internal/app/server/*.go"]
+          deny:
+            - pkg: github.com/apotourlyan/ludustudii/internal/app
+              desc: router and server must remain independent of the composition root and surfaces
+            - pkg: github.com/apotourlyan/ludustudii/internal/services
+              desc: router and server must remain independent of services
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/health
+              desc: router and server must remain independent of the probes surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/spa
+              desc: router and server must remain independent of the client app surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/apidocs
+              desc: router and server must remain independent of the API reference surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/rdb
+              desc: router and server must remain independent of the database
+        # Each surface is built on its own and mounted by the composition root,
+        # so a surface knows neither the root, the shared front nor another
+        # surface. It takes its own parts from the root, so it neither loads
+        # configuration nor connects to the database itself. Their tests
+        # follow the same rule.
+        surfaces:
+          files:
+            - "**/internal/app/api/*.go"
+            - "**/internal/infra/health/*.go"
+            - "**/internal/infra/spa/*.go"
+            - "**/internal/infra/apidocs/*.go"
+          deny:
+            - pkg: github.com/apotourlyan/ludustudii/internal/app
+              desc: surfaces must remain independent of the composition root, the shared front and the API surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/health
+              desc: surfaces must remain independent of the probes surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/spa
+              desc: surfaces must remain independent of the client app surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/apidocs
+              desc: surfaces must remain independent of the API reference surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/env
+              desc: surfaces take their parts from the composition root and must not load configuration
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/rdb
+              desc: surfaces take their parts from the composition root and must not connect to the database
         testkit:
           files: ["!$test"]
           deny:
