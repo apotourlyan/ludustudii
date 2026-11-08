@@ -36,7 +36,7 @@ untangling the startup code first.
   place, the API surface (`internal/app/api`).
 - depguard enforces these boundaries, in code and tests: the front and the
   lifecycle import no surface, and no surface imports another surface, the
-  front or the composition root.
+  front, the composition root, the configuration or the database package.
 
 Observable behavior is unchanged: one listener, the same paths, statuses,
 headers and logs.

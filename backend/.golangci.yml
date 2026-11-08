@@ -119,7 +119,9 @@ linters:
               desc: router and server must remain independent of the database
         # Each surface is built on its own and mounted by the composition root,
         # so a surface knows neither the root, the shared front nor another
-        # surface. Their tests follow the same rule.
+        # surface. It takes its own parts from the root, so it neither loads
+        # configuration nor connects to the database itself. Their tests
+        # follow the same rule.
         surfaces:
           files:
             - "**/internal/app/api/*.go"
@@ -135,6 +137,10 @@ linters:
               desc: surfaces must remain independent of the client app surface
             - pkg: github.com/apotourlyan/ludustudii/internal/infra/apidocs
               desc: surfaces must remain independent of the API reference surface
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/env
+              desc: surfaces take their parts from the composition root and must not load configuration
+            - pkg: github.com/apotourlyan/ludustudii/internal/infra/rdb
+              desc: surfaces take their parts from the composition root and must not connect to the database
         testkit:
           files: ["!$test"]
           deny:
