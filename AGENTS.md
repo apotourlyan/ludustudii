@@ -58,7 +58,9 @@ backend source paths and `PKG` values below are relative to `backend/`.
   - `docs`: new docs or doc amendments;
   - `tools`: new tooling or tool enhancement.
 - List the issues you created under "Follow-ups" in the pull request
-  description.
+  description, one bare reference per line (`- #N`). GitHub shows the title
+  and state next to the reference, so don't repeat the title, label or a
+  summary.
 - On an issue you were asked to fix, you may comment with findings, such as
   a different root cause, a scope change or a split-off follow-up. Don't
   edit its title or body; the maintainer owns the description.

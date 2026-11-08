@@ -12,4 +12,4 @@
 
 ## Follow-ups
 
-<!-- Issues created while working on this change (for example `#12`), or "None". -->
+<!-- Issues created while working on this change, one `- #N` per line (GitHub shows the title), or "None". -->
