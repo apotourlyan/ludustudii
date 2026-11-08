@@ -1,6 +1,6 @@
 # 0029. HTTP surfaces composed in one place
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-08
 - Tags: back-end, architecture
 
