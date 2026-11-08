@@ -38,7 +38,51 @@ backend source paths and `PKG` values below are relative to `backend/`.
   force-push. The maintainer reviews and squash-merges.
 - Commits are authored by the maintainer only. Don't add `Co-authored-by`
   trailers, "Generated with" lines, or any other agent attribution to commit
-  messages or pull request text.
+  messages, pull request text, issues or issue comments.
+
+## Issues
+
+- Findings outside the scope of the current task (from review or noticed
+  while working) become issues, not changes in the current pull request.
+  File only concrete, verified problems with file and line pointers; put
+  ideas and speculation in the pull request description instead. Security
+  findings are the exception; see the last rule.
+- Before creating an issue, search for duplicates
+  (`gh issue list --state all --search '<keywords>'`).
+- Create issues with `gh issue create` and a body that follows the fields of
+  `.github/ISSUE_TEMPLATE/follow-up.yml` (`### Found in`, `### Problem`,
+  `### Suggested fix`, `### Done when`), and exactly one label. Title the
+  issue `type: summary`, using the commit type from "Git workflow" that the
+  fix will use.
+- Each label maps to commit types. Where a label has several, pick the one
+  that matches the type of work:
+  - `bug` (doesn't work, should be fixed): `fix`;
+  - `feat` (new feature or feature enhancement): `feat`;
+  - `debt` (works, should be refactored): `refactor`, or `test` for test
+    code;
+  - `docs` (new docs or doc amendments): `docs`;
+  - `tools` (new tooling or tool enhancement): `build`, `ci` or `dev`.
+- List the issues you created under "Follow-ups" in the pull request
+  description, one per line as `- <label>: #N` (for example `- bug: #4`).
+  GitHub shows the title and state next to the reference, so don't repeat
+  the title or add a summary.
+- On an issue you were asked to fix, you may comment with findings, such as
+  a different root cause, a scope change or a split-off follow-up. Don't
+  edit its title or body; the maintainer owns the description.
+- You may edit and comment on issues you created in the current task. Never
+  edit or comment on any other issue.
+- Never close an issue. Issues close only when a pull request that says
+  `Fixes #N` is merged. If an issue you created turns out to be wrong or a
+  duplicate, comment why and leave it to the maintainer.
+- When asked to fix issue N:
+  - read it with `gh issue view N`;
+  - pick the commit type for the work from the label mapping above, and use
+    it for the branch `<type>/N-short-name` and the pull request title
+    `<type>: summary`;
+  - put `Fixes #N` in the pull request description.
+- Never put security vulnerabilities you find, suspected or confirmed, in
+  any GitHub text: issues, pull requests, comments or commit messages.
+  Report them to the maintainer in chat instead.
 
 ## Test file naming
 

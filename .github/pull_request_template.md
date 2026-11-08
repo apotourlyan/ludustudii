@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What changed and why. -->
+<!-- What changed and why. If this fixes an issue, add "Fixes #N". -->
 
 ## How it was verified
 
@@ -9,3 +9,7 @@
 ## ADRs affected
 
 <!-- ADRs this change follows, amends or supersedes, or "None". -->
+
+## Follow-ups
+
+<!-- Issues created while working on this change, one `- <label>: #N` per line (for example `- bug: #4`), or "None". -->

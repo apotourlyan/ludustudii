@@ -1,0 +1,32 @@
+name: Follow-up
+description: A concrete, verified problem found outside the scope of the current change.
+body:
+  - type: input
+    id: found-in
+    attributes:
+      label: Found in
+      description: The pull request, file or area where this was found.
+      placeholder: "#12, backend/internal/infra/health/state.go"
+    validations:
+      required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong or missing, with file and line pointers.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix
+      description: How it could be fixed, if known.
+    validations:
+      required: false
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: A checkable outcome that shows the problem is resolved.
+    validations:
+      required: true
