@@ -355,9 +355,7 @@ description, and the issue closes when the maintainer merges it.
 
 1. Create a fine-grained token limited to this repository, with
    **Pull requests: Read and write**, **Issues: Read and write** and
-   **Contents: Read-only**. The read-only
-   Contents permission is deliberate: the token can open pull requests but
-   cannot push or merge.
+   **Contents: Read-only**.
 2. Save it to `~/.config/ludustudii/gh_token` (`chmod 600`) and export it from
    `~/.profile`:
 
