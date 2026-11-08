@@ -27,7 +27,9 @@ untangling the startup code first.
   mux, the middleware chain and the central error handler, and mounts whatever
   surfaces it is given. Surfaces declare quiet paths themselves.
 - **The lifecycle knows no surface.** `internal/app/server` serves, drains and
-  shuts down any handler. It only needs something to mark stopping.
+  shuts down any handler. Its only link to readiness is an optional drain hook
+  (`Options.OnDrain`), which the composition root sets to mark readiness
+  stopping.
 - **One composition root per binary.** `internal/app` is the only package that
   knows every surface. It loads configuration and dependencies, decides which
   surfaces this binary serves, and runs them. Services still register in one
