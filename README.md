@@ -62,8 +62,9 @@ Stores contain no inline SQL strings. Package boundaries are enforced by `depgua
 - `kit` must not import `infra`, `services` or `app`.
 - `services` must not import `infra` or `app`.
 - `app/router` and `app/server` must not import the rest of `app`, `services`,
-  any surface (`health`, `spa`, `apidocs`) or `rdb`.
-- `app/api` must not import the rest of `app` or the other surfaces.
+  any surface (`health`, `spa`, `apidocs`) or `rdb`, including from their tests.
+- The surfaces (`app/api`, `health`, `spa`, `apidocs`) must not import the rest
+  of `app` or each other, including from their tests.
 - `testkit` may only be imported from test files.
 
 #### Surfaces and startup

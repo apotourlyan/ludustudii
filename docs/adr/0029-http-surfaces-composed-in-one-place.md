@@ -32,8 +32,9 @@ untangling the startup code first.
   knows every surface. It loads configuration and dependencies, decides which
   surfaces this binary serves, and runs them. Services still register in one
   place, the API surface (`internal/app/api`).
-- depguard enforces these boundaries: the front and the lifecycle import no
-  surface, and the API surface imports no other surface.
+- depguard enforces these boundaries, in code and tests: the front and the
+  lifecycle import no surface, and no surface imports another surface, the
+  front or the composition root.
 
 Observable behavior is unchanged: one listener, the same paths, statuses,
 headers and logs.
