@@ -40,6 +40,40 @@ backend source paths and `PKG` values below are relative to `backend/`.
   trailers, "Generated with" lines, or any other agent attribution to commit
   messages or pull request text.
 
+## Issues
+
+- Findings outside the scope of the current task (from review or noticed
+  while working) become issues, not changes in the current pull request.
+  File only concrete, verified problems with file and line pointers; put
+  ideas and speculation in the pull request description instead.
+- Before creating an issue, search for duplicates
+  (`gh issue list --state all --search '<keywords>'`).
+- Create issues with `gh issue create` and a body that follows the fields of
+  `.github/ISSUE_TEMPLATE/follow-up.yml` (`### Found in`, `### Problem`,
+  `### Suggested fix`, `### Done when`). Use a title in the `type: summary`
+  style and exactly one label:
+  - `bug`: doesn't work, should be fixed;
+  - `feat`: new feature or feature enhancement;
+  - `debt`: works, should be refactored;
+  - `docs`: new docs or doc amendments;
+  - `tools`: new tooling or tool enhancement.
+- List the issues you created under "Follow-ups" in the pull request
+  description.
+- On an issue you were asked to fix, you may comment with findings, such as
+  a different root cause, a scope change or a split-off follow-up. Don't
+  edit its title or body; the maintainer owns the description.
+- Never close, edit or comment on any other issue, except ones you created in
+  the current task.
+- Issues close only when a pull request that says `Fixes #N` is merged.
+- When asked to fix issue N:
+  - read it with `gh issue view N`;
+  - create the branch `fix/N-short-name`, with the prefix matching the label
+    (`bug` → `fix/`, `feat/`, `docs/`, `debt` → `refactor/` or `test/`,
+    `tools` → `build/`, `ci/` or `dev/`);
+  - put `Fixes #N` in the pull request description.
+- Never put security vulnerabilities in public issues; report them to the
+  maintainer instead.
+
 ## Test file naming
 
 - Unit tests use `<name>_test.go` with `//go:build unit`.

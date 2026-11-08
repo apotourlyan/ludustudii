@@ -9,3 +9,7 @@
 ## ADRs affected
 
 <!-- ADRs this change follows, amends or supersedes, or "None". -->
+
+## Follow-ups
+
+<!-- Issues created while working on this change (for example `#12`), or "None". -->

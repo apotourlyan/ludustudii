@@ -347,9 +347,15 @@ change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`.
 
 Agents open pull requests with `gh`, authenticated by `GH_TOKEN`, which the
 devcontainer reads from your machine (`remoteEnv` in `devcontainer.json`).
+Out-of-scope findings become issues from the
+[Follow-up template](.github/ISSUE_TEMPLATE/follow-up.yml) and are listed
+under "Follow-ups" in the pull request instead of being fixed there (see
+`AGENTS.md`, Issues). A pull request that fixes an issue says `Fixes #N` in its
+description, and the issue closes when the maintainer merges it.
 
 1. Create a fine-grained token limited to this repository, with
-   **Pull requests: Read and write** and **Contents: Read-only**. The read-only
+   **Pull requests: Read and write**, **Issues: Read and write** and
+   **Contents: Read-only**. The read-only
    Contents permission is deliberate: the token can open pull requests but
    cannot push or merge.
 2. Save it to `~/.config/ludustudii/gh_token` (`chmod 600`) and export it from
@@ -365,7 +371,7 @@ devcontainer reads from your machine (`remoteEnv` in `devcontainer.json`).
    `gh auth status` inside the container should report the token.
 
 Without `GH_TOKEN`, everything else works; agents just can't open pull
-requests.
+requests or issues.
 
 ### Database migrations
 
