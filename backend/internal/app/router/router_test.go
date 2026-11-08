@@ -139,25 +139,16 @@ func TestMiddleware_FinalResponseLogging(t *testing.T) {
 			if rec.Code != tc.status {
 				t.Fatalf("status: %d, want %d", rec.Code, tc.status)
 			}
-			count := 0
-			for line := range strings.Lines(logs.String()) {
-				var record map[string]any
-				if err := json.Unmarshal([]byte(line), &record); err != nil {
-					t.Fatal(err)
-				}
-				if record["msg"] != "request" {
-					continue
-				}
-				count++
-				if record["status"] != float64(tc.status) || record["level"] != tc.level || record["route"] != tc.route {
-					t.Fatalf("record: %+v", record)
-				}
-				if record["request_id"] != rec.Header().Get("X-Request-Id") {
-					t.Fatal("request ID missing from context")
-				}
+			records := requestRecords(t, logs.String())
+			if len(records) != 1 {
+				t.Fatalf("request records: %d, want 1", len(records))
 			}
-			if count != 1 {
-				t.Fatalf("request records: %d, want 1", count)
+			record := records[0]
+			if record["status"] != float64(tc.status) || record["level"] != tc.level || record["route"] != tc.route {
+				t.Fatalf("record: %+v", record)
+			}
+			if record["request_id"] != rec.Header().Get("X-Request-Id") {
+				t.Fatal("request ID missing from context")
 			}
 			if tc.name == "committed error" && strings.Contains(logs.String(), "Unhandled error") {
 				t.Fatal("committed error was logged")
