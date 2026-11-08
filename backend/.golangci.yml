@@ -100,9 +100,10 @@ linters:
             - pkg: github.com/apotourlyan/ludustudii/internal/infra
               desc: services must remain independent of infrastructure
         # The shared front and the process lifecycle serve any composition of
-        # surfaces, so they must not know any surface.
+        # surfaces, so they must not know any surface. Their tests follow the
+        # same rule, so the packages are tested without a surface.
         front:
-          files: ["**/internal/app/router/*.go", "**/internal/app/server/*.go", "!$test"]
+          files: ["**/internal/app/router/*.go", "**/internal/app/server/*.go"]
           deny:
             - pkg: github.com/apotourlyan/ludustudii/internal/app
               desc: router and server must remain independent of the composition root and surfaces

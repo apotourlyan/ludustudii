@@ -5,16 +5,9 @@ package server
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"testing"
 	"time"
-
-	"github.com/apotourlyan/ludustudii/internal/infra/health"
 )
-
-type pingFunc func(context.Context) error
-
-func (f pingFunc) PingContext(ctx context.Context) error { return f(ctx) }
 
 type shutdownFunc func(context.Context) error
 
@@ -25,24 +18,18 @@ func TestDrain_CallsOnDrainBeforeDelay(t *testing.T) {
 	for _, delay := range []time.Duration{0, 40 * time.Millisecond} {
 		t.Run(delay.String(), func(t *testing.T) {
 			t.Parallel()
-			state := health.NewState(slog.New(slog.DiscardHandler), pingFunc(func(context.Context) error { return nil }))
-			marked := make(chan time.Time, 1)
-			onDrain := func(ctx context.Context) {
-				state.MarkStopping(ctx)
-				marked <- time.Now()
+			calls := 0
+			var calledAt time.Time
+			drain(func(context.Context) {
+				calls++
+				calledAt = time.Now()
+			}, delay)
+			returnedAt := time.Now()
+			if calls != 1 {
+				t.Fatalf("OnDrain calls: %d, want 1", calls)
 			}
-			done := make(chan struct{})
-			go func() {
-				drain(onDrain, delay)
-				close(done)
-			}()
-			markedAt := <-marked
-			if state.Check(t.Context()) {
-				t.Error("instance still available during drain")
-			}
-			<-done
-			if time.Since(markedAt) < delay {
-				t.Error("drain returned before its delay elapsed after OnDrain")
+			if waited := returnedAt.Sub(calledAt); waited < delay {
+				t.Errorf("drain returned %v after OnDrain, want at least %v", waited, delay)
 			}
 		})
 	}
