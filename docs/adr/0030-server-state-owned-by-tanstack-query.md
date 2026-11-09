@@ -37,7 +37,8 @@ services.
   parallel when it needs several queries, using each query's normal
   staleness: cached data that is fresh is returned at once; stale or
   invalidated data is fetched before the page renders. Loaders don't
-  override `staleTime`. Components read the data with
+  override `staleTime` and don't return the data, so the router keeps no
+  copy of it. Components read the data with
   `useSuspenseQuery`, so it is always defined. Each route's
   `pendingComponent` and `errorComponent` handle the other states. A
   part of a page that must fail on its own gets its own error boundary.

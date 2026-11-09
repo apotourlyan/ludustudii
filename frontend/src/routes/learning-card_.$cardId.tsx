@@ -6,9 +6,11 @@ import { LearningCardForm } from '@/components/learning-card-form'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/learning-card_/$cardId')({
+  // Fill the query cache without returning the data, so the router keeps no
+  // second copy as loaderData.
   loader: async ({ context: { queryClient }, params: { cardId } }) => {
     try {
-      return await queryClient.query(lcardQueries.detail(cardId))
+      await queryClient.query(lcardQueries.detail(cardId))
     } catch (error) {
       // A missing card can't be retried into existence, so it isn't an error.
       // For this GET, a 400 can only mean a malformed card ID in the path.
