@@ -33,6 +33,9 @@ const router = createRouter({
   // Run loaders on every navigation and preload; caching is the query
   // cache's job, not the router's.
   defaultPreloadStaleTime: 0,
+  // Wait for those loaders instead of rendering the previous data and
+  // reloading in the background, so stale data is fetched before rendering.
+  defaultStaleReloadMode: 'blocking',
   defaultPendingComponent: RoutePending,
   defaultErrorComponent: RouteError,
 })
