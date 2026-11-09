@@ -1,6 +1,6 @@
 # 0030. Server state owned by TanStack Query, organized by backend service
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-09
 - Tags: front-end, architecture, api
 
