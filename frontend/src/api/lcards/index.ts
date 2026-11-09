@@ -6,7 +6,8 @@ export type {
   LearningCard,
   UpdateLearningCardRequest,
 } from './requests'
-export { lcardQueries } from './queries'
+// lcardKeys is for other services' mutations that invalidate learning cards.
+export { lcardKeys, lcardQueries } from './queries'
 export {
   useCreateLearningCard,
   useDeleteLearningCard,
