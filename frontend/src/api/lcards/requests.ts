@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { HttpError } from '../http-error'
 
 export interface CreateLearningCardRequest {
   title: string
@@ -35,21 +35,13 @@ export async function createLearningCard(
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to create learning card: ${response.statusText}`)
+    throw new HttpError(
+      response.status,
+      `Failed to create learning card: ${response.statusText}`,
+    )
   }
 
   return response.json()
-}
-
-export function useCreateLearningCard() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: createLearningCard,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lcards'] })
-    },
-  })
 }
 
 export async function updateLearningCard({
@@ -68,22 +60,17 @@ export async function updateLearningCard({
   })
 
   if (response.status === 412) {
-    throw new Error("This card has changed. Reload it before saving your edits.")
+    throw new HttpError(
+      response.status,
+      'This card has changed. Reload it before saving your edits.',
+    )
   }
   if (!response.ok) {
-    throw new Error(`Failed to update learning card: ${response.statusText}`)
+    throw new HttpError(
+      response.status,
+      `Failed to update learning card: ${response.statusText}`,
+    )
   }
-}
-
-export function useUpdateLearningCard() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: updateLearningCard,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lcards'] })
-    },
-  })
 }
 
 // Expected delete endpoint contract: DELETE /api/lcards/:id returns no content.
@@ -97,41 +84,30 @@ export async function deleteLearningCard({
   })
 
   if (response.status === 412) {
-    throw new Error("This card has changed. Reload it before deleting.")
+    throw new HttpError(
+      response.status,
+      'This card has changed. Reload it before deleting.',
+    )
   }
   if (!response.ok) {
-    throw new Error(`Failed to delete learning card: ${response.statusText}`)
+    throw new HttpError(
+      response.status,
+      `Failed to delete learning card: ${response.statusText}`,
+    )
   }
-}
-
-export function useDeleteLearningCard() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: deleteLearningCard,
-    onSuccess: (_data, { id }) => {
-      // Drop the deleted card's cache entry so it is not refetched into a 404.
-      queryClient.removeQueries({ queryKey: ['lcards', id], exact: true })
-      queryClient.invalidateQueries({ queryKey: ['lcards'] })
-    },
-  })
 }
 
 export async function getLearningCard(id: string): Promise<LearningCard> {
   const response = await fetch(`/api/lcards/${encodeURIComponent(id)}`)
 
   if (!response.ok) {
-    throw new Error(`Failed to load learning card: ${response.statusText}`)
+    throw new HttpError(
+      response.status,
+      `Failed to load learning card: ${response.statusText}`,
+    )
   }
 
   return response.json()
-}
-
-export function useLearningCard(id: string) {
-  return useQuery({
-    queryKey: ['lcards', id],
-    queryFn: () => getLearningCard(id),
-  })
 }
 
 // Expected list endpoint contract: GET /api/lcards returns
@@ -141,7 +117,10 @@ export async function getLearningCards(signal?: AbortSignal): Promise<LearningCa
   const response = await fetch('/api/lcards', { signal })
 
   if (!response.ok) {
-    throw new Error(`Failed to load learning cards: ${response.statusText}`)
+    throw new HttpError(
+      response.status,
+      `Failed to load learning cards: ${response.statusText}`,
+    )
   }
 
   const page: unknown = await response.json()
@@ -155,11 +134,4 @@ export async function getLearningCards(signal?: AbortSignal): Promise<LearningCa
   }
 
   return page.items
-}
-
-export function useLearningCards() {
-  return useQuery({
-    queryKey: ['lcards', 'list'],
-    queryFn: ({ signal }) => getLearningCards(signal),
-  })
 }

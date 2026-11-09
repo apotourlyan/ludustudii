@@ -5,7 +5,7 @@ import {
   useCreateLearningCard,
   useUpdateLearningCard,
   type LearningCard,
-} from '@/api/learning-cards'
+} from '@/api/lcards'
 import { LearningCardDisplay } from '@/components/learning-card-view'
 import { Button } from '@/components/ui/button'
 import {
