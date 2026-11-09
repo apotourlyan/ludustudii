@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardAction,
@@ -53,16 +53,13 @@ export function LearningCardView({ card }: { card: LearningCard }) {
         action={
           <div className="flex gap-2">
             {/* A link, so the router preloads the card while the pointer hovers it. */}
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={
-                <Link to="/learning-card/$cardId" params={{ cardId: card.id }} />
-              }
+            <Link
+              to="/learning-card/$cardId"
+              params={{ cardId: card.id }}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Update
-            </Button>
+            </Link>
             <DeleteLearningCardButton card={card} />
           </div>
         }
