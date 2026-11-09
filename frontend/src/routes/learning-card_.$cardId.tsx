@@ -11,7 +11,8 @@ export const Route = createFileRoute('/learning-card_/$cardId')({
       return await queryClient.query(lcardQueries.detail(cardId))
     } catch (error) {
       // A missing card can't be retried into existence, so it isn't an error.
-      if (error instanceof HttpError && error.status === 404) {
+      // For this GET, a 400 can only mean a malformed card ID in the path.
+      if (error instanceof HttpError && (error.status === 400 || error.status === 404)) {
         throw notFound()
       }
       throw error
