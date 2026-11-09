@@ -1,11 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import Markdown, { type Components } from 'react-markdown'
-import { useNavigate } from '@tanstack/react-router'
-import {
-  useDeleteLearningCard,
-  useLearningCard,
-  type LearningCard,
-} from '@/api/learning-cards'
+import { Link } from '@tanstack/react-router'
+import { useDeleteLearningCard, type LearningCard } from '@/api/lcards'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardAction,
@@ -49,61 +45,21 @@ const markdownComponents: Components = {
   hr: () => <Separator className="my-4" />,
 }
 
-type LearningCardViewProps =
-  | { cardId: string; card?: never }
-  | { card: LearningCard; cardId?: never }
-
-export function LearningCardView(props: LearningCardViewProps) {
-  if (props.card) {
-    return <LearningCardContent card={props.card} />
-  }
-
-  return <LearningCardById cardId={props.cardId} />
-}
-
-function LearningCardById({ cardId }: { cardId: string }) {
-  const learningCard = useLearningCard(cardId)
-
-  if (learningCard.isSuccess) {
-    return <LearningCardContent card={learningCard.data} />
-  }
-
-  return (
-    <div className="mx-auto max-w-xl p-6">
-      <Card>
-        <CardContent>
-          {learningCard.isPending ? (
-            <span className="text-muted-foreground">Loading...</span>
-          ) : (
-            <FieldError>{learningCard.error.message}</FieldError>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function LearningCardContent({ card }: { card: LearningCard }) {
-  const navigate = useNavigate()
-
+export function LearningCardView({ card }: { card: LearningCard }) {
   return (
     <div className="mx-auto max-w-xl p-6">
       <LearningCardDisplay
         card={card}
         action={
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                navigate({
-                  to: '/learning-card/$cardId',
-                  params: { cardId: card.id },
-                })
-              }
+            {/* A link, so the router preloads the card while the pointer hovers it. */}
+            <Link
+              to="/learning-card/$cardId"
+              params={{ cardId: card.id }}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Update
-            </Button>
+            </Link>
             <DeleteLearningCardButton card={card} />
           </div>
         }

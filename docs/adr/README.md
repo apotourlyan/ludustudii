@@ -70,3 +70,4 @@ Records in force. Superseded records are kept as history in
 | [0027](0027-liveness-and-readiness-probes.md) | Liveness and readiness probes | Accepted | back-end, operations, observability |
 | [0028](0028-ci-reuses-the-devcontainer-test-database.md) | CI reuses the devcontainer test database and tool versions | Accepted | back-end, tooling |
 | [0029](0029-http-surfaces-composed-in-one-place.md) | HTTP surfaces composed in one place | Accepted | back-end, architecture |
+| [0030](0030-server-state-owned-by-tanstack-query.md) | Server state owned by TanStack Query, organized by backend service | Accepted | front-end, architecture, api |

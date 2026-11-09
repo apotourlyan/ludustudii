@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useVirtualizer, type VirtualizerOptions } from '@tanstack/react-virtual'
-import { useLearningCards, type LearningCard } from '@/api/learning-cards'
+import { lcardQueries, type LearningCard } from '@/api/lcards'
 import { LearningCardView } from '@/components/learning-card-view'
-import { Button } from '@/components/ui/button'
 import {
   Carousel,
   CarouselContent,
@@ -12,10 +12,9 @@ import {
   CarouselPrevious,
   useCarousel,
 } from '@/components/ui/carousel'
-import { FieldError } from '@/components/ui/field'
 
 export function LearningCardsOverview() {
-  const cards = useLearningCards()
+  const { data: cards } = useSuspenseQuery(lcardQueries.list())
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -26,23 +25,12 @@ export function LearningCardsOverview() {
         </Link>
       </div>
 
-      {cards.isPending && <p role="status" className="text-muted-foreground">Loading cards...</p>}
-      {cards.isError && (
-        <div className="space-y-3" role="alert">
-          <FieldError>{cards.error.message}</FieldError>
-          <Button variant="outline" onClick={() => cards.refetch()} disabled={cards.isFetching}>
-            {cards.isFetching ? 'Retrying...' : 'Try again'}
-          </Button>
-        </div>
-      )}
-      {cards.isSuccess && (
-        cards.data.length === 0 ? (
-          <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
-        ) : (
-          <Carousel opts={{ align: 'start', loop: false }} aria-label="Learning cards">
-            <VirtualCards cards={cards.data} />
-          </Carousel>
-        )
+      {cards.length === 0 ? (
+        <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
+      ) : (
+        <Carousel opts={{ align: 'start', loop: false }} aria-label="Learning cards">
+          <VirtualCards cards={cards} />
+        </Carousel>
       )}
     </main>
   )
