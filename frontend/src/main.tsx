@@ -30,7 +30,8 @@ const router = createRouter({
   routeTree,
   context: { queryClient },
   defaultPreload: 'intent',
-  // Always run loaders; the query cache alone decides whether data is fresh.
+  // Run loaders on every navigation and preload; caching is the query
+  // cache's job, not the router's.
   defaultPreloadStaleTime: 0,
   defaultPendingComponent: RoutePending,
   defaultErrorComponent: RouteError,

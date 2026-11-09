@@ -33,16 +33,19 @@ services.
 - **Modules own usage**: which data a screen needs, when to prefetch, and
   what a mutation does in the UI (navigation, conflict dialogs, wording).
 - **Routes load, components read.** A route's loader prefetches the data the
-  page needs with `ensureQueryData`, in parallel when it needs several
-  queries. Components read it with `useSuspenseQuery`, so the data is always
-  defined. Each route's `pendingComponent` and `errorComponent` handle the
+  page needs with `queryClient.query({ ...options, staleTime: 'static' })`,
+  in parallel when it needs several queries: it fetches what isn't cached and
+  returns cached data as is. Components read it with `useSuspenseQuery`, so
+  the data is always defined, and its observer refetches stale data in the
+  background. Each route's `pendingComponent` and `errorComponent` handle the
   other states. A part of a page that must fail on its own gets its own error
   boundary.
 - **Data that changes inside a page goes in the URL.** Filters, pages and
   selections are search params, so a change is a navigation that the loader
   handles, not a component suspending in place.
 - **One `QueryClient`**, created in the app shell and passed to the router's
-  context. Client errors (4xx) are not retried.
+  context. Client errors (4xx) are not retried. The router runs loaders on
+  every navigation and preload and leaves caching to the query cache.
 
 ## Alternatives considered
 
@@ -64,6 +67,9 @@ services.
 - Stale data refetches in the background without suspending. A failed
   background refetch keeps the old data instead of replacing the page with an
   error.
+- A loader serves cached data without waiting for the background refetch,
+  so a form draft can start from an outdated `version`. After a conflict
+  (412), the data must be refetched before the user tries again.
 - Mutations still handle their own pending and error states; suspense
   covers reads only.
 - When a mutation in one service changes data another service derives

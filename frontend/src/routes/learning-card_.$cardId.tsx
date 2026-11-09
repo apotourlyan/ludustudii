@@ -4,8 +4,9 @@ import { lcardQueries } from '@/api/lcards'
 import { LearningCardForm } from '@/components/learning-card-form'
 
 export const Route = createFileRoute('/learning-card_/$cardId')({
+  // 'static' returns cached data as is; useSuspenseQuery refetches it if stale.
   loader: ({ context: { queryClient }, params: { cardId } }) =>
-    queryClient.ensureQueryData(lcardQueries.detail(cardId)),
+    queryClient.query({ ...lcardQueries.detail(cardId), staleTime: 'static' }),
   component: LearningCardEditRoute,
 })
 
