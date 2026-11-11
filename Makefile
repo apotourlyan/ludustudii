@@ -4,6 +4,9 @@ SHELL := /bin/bash
 # Variables
 BINARY_NAME := ludustudii
 FRONTEND_DIR := frontend
+# Generators that need TypeScript 5's JavaScript API; the client app uses
+# TypeScript 7 (ADR 0031).
+FRONTEND_TOOLS_DIR := $(FRONTEND_DIR)/tools
 BACKEND_DIR := backend
 GO_TOOL := go -C $(BACKEND_DIR) tool -modfile=tools/go.mod
 BUILD_DIR := backend/bin
@@ -12,6 +15,7 @@ SCALAR_SRC := $(FRONTEND_DIR)/node_modules/@scalar/api-reference/dist/browser/st
 SCALAR_EMBED := backend/internal/infra/apidocs/dist/assets/scalar.js.gz
 SPEC_SRC := $(shell find backend/apispec -name '*.yml')
 SPEC_BUNDLE := backend/internal/infra/apidocs/dist/openapi.json
+API_TYPES := $(FRONTEND_DIR)/src/api/schema.gen.ts
 MAIN_REL_DIR := ./cmd/server/api
 # go -C runs migration commands from the backend module.
 MIGRATIONS_DIR := migrations
@@ -57,6 +61,34 @@ spec-bundle: $(SPEC_BUNDLE)
 # it unchanged and .DELETE_ON_ERROR keeps it.
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
+
+.PHONY: frontend-deps api-types api-types-check frontend-typecheck
+
+## frontend-deps: Installs the locked dependencies of the client app and its generators
+frontend-deps:
+	cd $(FRONTEND_DIR) && npm ci
+	cd $(FRONTEND_TOOLS_DIR) && npm ci
+
+## api-types: Regenerates the client app's API types from the bundled OpenAPI spec
+api-types: $(SPEC_BUNDLE)
+	@[ -d $(FRONTEND_TOOLS_DIR)/node_modules ] || \
+		{ echo "api-types: $(FRONTEND_TOOLS_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	cd $(FRONTEND_TOOLS_DIR) && npx --no-install openapi-typescript \
+		$(CURDIR)/$(SPEC_BUNDLE) --output $(CURDIR)/$(API_TYPES)
+
+## api-types-check: Fails if regenerating the client app's API types changes them
+# Like generate-check, it leaves the regenerated file on disk for review.
+api-types-check:
+	@before=$$({ sha256sum < $(API_TYPES); } 2>/dev/null); \
+		$(MAKE) --no-print-directory api-types >/dev/null || exit 1; \
+		[ "$$before" = "$$(sha256sum < $(API_TYPES))" ] || \
+		{ echo "api-types-check: $(API_TYPES) is stale; run 'make api-types' and commit the regenerated output"; exit 1; }
+
+## frontend-typecheck: Type-checks the client app
+frontend-typecheck:
+	@[ -d $(FRONTEND_DIR)/node_modules ] || \
+		{ echo "frontend-typecheck: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'"; exit 1; }
+	cd $(FRONTEND_DIR) && npm run --silent typecheck
 
 .PHONY: dev
 
@@ -222,6 +254,8 @@ check:
 	$(MAKE) lint
 	$(MAKE) tidy-check
 	$(MAKE) generate-check
+	$(MAKE) api-types-check
+	$(MAKE) frontend-typecheck
 	$(MAKE) test-unit
 	$(MAKE) test-integration
 
@@ -231,6 +265,8 @@ check:
 # Go: backend/go.mod is the source for the devcontainer's golang: image tag
 # (any -variant suffix ignored) and backend/tools/go.mod. golangci-lint: the
 # installed binary must match GOLANGCI_LINT_VERSION, compared without a leading v.
+# Node: engines.node in frontend/package.json (for example 26.x) is the source
+# for the major version of the devcontainer's node feature and the installed node.
 versions-check:
 	@status=0; \
 	go_line() { awk '$$1 == "go" { print $$2; exit }' "$$1"; }; \
@@ -249,6 +285,22 @@ versions-check:
 	lint=$$(golangci-lint version --short 2>/dev/null); \
 	if [ "$${lint#v}" != "$${pin#v}" ]; then \
 		echo "golangci-lint: installed '$${lint:-none}', want '$${pin#v}' (GOLANGCI_LINT_VERSION); run 'make install-golangci-lint'"; \
+		status=1; \
+	fi; \
+	engines=$$(sed -n '/"engines"[[:space:]]*:/,/}/s/^[[:space:]]*"node"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' $(FRONTEND_DIR)/package.json); \
+	node_want=$${engines%%.*}; \
+	if [[ ! $$node_want =~ ^[0-9]+$$ ]]; then \
+		echo "$(FRONTEND_DIR)/package.json: engines.node '$${engines:-none}', want a major version such as '26.x'"; \
+		exit 1; \
+	fi; \
+	feature=$$(sed -n '/devcontainers\/features\/node:/,/}/s/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .devcontainer/devcontainer.json); \
+	if [ "$${feature%%.*}" != "$$node_want" ]; then \
+		echo ".devcontainer/devcontainer.json: node feature version '$${feature:-none}', want major '$$node_want' (from $(FRONTEND_DIR)/package.json engines.node)"; \
+		status=1; \
+	fi; \
+	node=$$(node --version 2>/dev/null); node=$${node#v}; \
+	if [ "$${node%%.*}" != "$$node_want" ]; then \
+		echo "node: installed '$${node:-none}', want major '$$node_want' (from $(FRONTEND_DIR)/package.json engines.node)"; \
 		status=1; \
 	fi; \
 	exit $$status

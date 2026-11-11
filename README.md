@@ -339,9 +339,18 @@ Each tool version has one source, which the devcontainer and CI both read:
 | --- | --- | --- |
 | Go | `go` line in `backend/go.mod` | `make versions-check` fails when the devcontainer's `golang:` image tag or `backend/tools/go.mod` disagrees |
 | golangci-lint | `GOLANGCI_LINT_VERSION` in the `Makefile` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
+| Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
-change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`.
+change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
+Node, change `engines.node` and the devcontainer's node feature in one commit,
+then rebuild the devcontainer.
+
+The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
+API, while the client app uses TypeScript 7, so it lives in its own package,
+`frontend/tools/`, with exact pins and its own lockfile
+([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
+`make frontend-deps` installs the locked dependencies of both packages.
 
 ### GitHub CLI in the devcontainer
 
@@ -462,6 +471,10 @@ The spec is split across `backend/apispec/openapi.yml`, `paths/` and
 - `make spec-bundle` regenerates the bundle when a spec file changed. Air runs
   it on every rebuild during `make dev`.
 - A unit test fails if the committed bundle is stale.
+- `make api-types` generates the client app's types,
+  `frontend/src/api/schema.gen.ts`, from the bundle. The file is committed;
+  `make api-types-check` fails when it is stale. After a spec change, run
+  `make api-types` and commit the bundle and the types together.
 
 The reference UI is the Scalar standalone script, taken from
 `frontend/node_modules`, gzipped and embedded only when building with the
@@ -522,12 +535,17 @@ tooling is kept out of `go.mod`.
 | `make pr-title-check-test` | Run `pr-title-check` against a table of valid and invalid titles and fail on an unexpected result. |
 | `make tidy-check` | Fail if the app or tool module's `go.mod` or `go.sum` needs tidying. |
 | `make generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
+| `make api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
+| `make frontend-typecheck` | Type-check the client app. |
+| `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
 
 `make check` runs `versions-check`, `fmt-check`, `test-tags-check`,
-`pr-title-check-test`, `lint`, `tidy-check`, `generate-check`, `test-unit` and
-`test-integration` sequentially, stopping at the first failure.
+`pr-title-check-test`, `lint`, `tidy-check`, `generate-check`,
+`api-types-check`, `frontend-typecheck`, `test-unit` and `test-integration`
+sequentially, stopping at the first failure. It needs the frontend
+dependencies (`make frontend-deps`).
 
 `make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.
@@ -556,12 +574,11 @@ GitHub Actions runs the same gate as a developer
 | [`pr-title.yml`](.github/workflows/pr-title.yml) | Every pull request when it is opened, reopened, pushed to or edited, so fixing the title re-runs it | `make pr-title-check` with the pull request title, which must be `type: summary` within 64 characters |
 | [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln` |
 
-The CI job installs Go from `backend/go.mod` and golangci-lint with
-`make install-golangci-lint`. It starts only `db_test` from
-`.devcontainer/docker-compose.yml` (`docker compose up -d --wait db_test`) and
-points `DB_TEST_CONNECTION` at `localhost:5433`. It doesn't install frontend
-dependencies, so the Scalar bundle isn't embedded and the API docs tests take
-their "no script" path; nothing else in `make check` needs them.
+The CI job installs Go from `backend/go.mod`, Node from `engines.node` in
+`frontend/package.json`, golangci-lint with `make install-golangci-lint`, and
+the frontend dependencies with `make frontend-deps`. It starts only `db_test`
+from `.devcontainer/docker-compose.yml` (`docker compose up -d --wait db_test`)
+and points `DB_TEST_CONNECTION` at `localhost:5433`.
 
 A failing `ci.yml` run means the change isn't done. To run the vulnerability
 scan by hand, open **Actions → Vulnerability scan → Run workflow**, or run

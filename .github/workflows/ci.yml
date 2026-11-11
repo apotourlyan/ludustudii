@@ -36,8 +36,22 @@ jobs:
             backend/go.sum
             backend/tools/go.sum
 
+      # engines.node in frontend/package.json is the single source for the
+      # Node version; make versions-check compares the devcontainer against it.
+      - name: Set up Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: frontend/package.json
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            frontend/tools/package-lock.json
+
       - name: Install golangci-lint
         run: make install-golangci-lint
+
+      - name: Install frontend dependencies
+        run: make frontend-deps
 
       # Only db_test starts; its healthcheck makes --wait block until
       # Postgres accepts connections.
