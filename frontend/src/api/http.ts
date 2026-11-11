@@ -1,4 +1,4 @@
-import createClient, { type Client } from 'openapi-fetch'
+import createClient, { type Client, type Middleware } from 'openapi-fetch'
 import type { components } from './schema.gen'
 
 type ErrorResponse = components['schemas']['ErrorResponse']
@@ -46,7 +46,22 @@ function describe(failure: ApiFailure): string {
 // Creates the client for one backend service from its generated paths type
 // and its base URL in apiBaseUrls.
 export function createApiClient<Paths extends {}>(baseUrl: string): Client<Paths> {
-  return createClient<Paths>({ baseUrl })
+  const client = createClient<Paths>({ baseUrl })
+  client.use(networkFailures)
+  return client
+}
+
+// openapi-fetch calls onError only when the fetch call itself rejects, so a
+// TypeError here is the network failing, not a TypeError thrown while building
+// the request. Any other rejection, such as the AbortError of a cancelled
+// query, is rethrown unchanged, so TanStack Query still sees the cancellation.
+const networkFailures: Middleware = {
+  onError({ error }) {
+    if (error instanceof TypeError) {
+      return new ApiError({ kind: 'network' }, { cause: error })
+    }
+    return undefined
+  },
 }
 
 // The part of an openapi-fetch result that unwrap reads.
@@ -57,22 +72,10 @@ interface FetchResult<T> {
 }
 
 // Waits for a request made with a client from createApiClient and returns its
-// data, or throws an ApiError. fetch rejects with a TypeError when the network
-// fails, which becomes a network ApiError. Any other rejection, such as the
-// AbortError of a cancelled query, is rethrown unchanged, so TanStack Query
-// still sees the cancellation.
+// data, or throws an ApiError for an HTTP error response. Network failures
+// already reject with an ApiError (see networkFailures).
 export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
-  let result: FetchResult<T>
-  try {
-    result = await request
-  } catch (error) {
-    if (error instanceof TypeError) {
-      throw new ApiError({ kind: 'network' }, { cause: error })
-    }
-    throw error
-  }
-
-  const { data, error, response } = result
+  const { data, error, response } = await request
   if (!response.ok) {
     const body = isErrorResponse(error) ? error : undefined
     throw new ApiError({
