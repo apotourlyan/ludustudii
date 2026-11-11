@@ -20,32 +20,31 @@ const ifMatch = (version: number) => `"${version}"`
 
 export function createLearningCard(
   body: CreateLearningCardRequest,
-  signal?: AbortSignal,
 ): Promise<CreateLearningCardResponse> {
-  return unwrap(client.POST('/api/lcards', { body, signal }))
+  return unwrap(client.POST('/api/lcards', { body }))
 }
 
-export async function updateLearningCard(
-  { id, version, title, description }: UpdateLearningCardRequest,
-  signal?: AbortSignal,
-): Promise<void> {
+export async function updateLearningCard({
+  id,
+  version,
+  title,
+  description,
+}: UpdateLearningCardRequest): Promise<void> {
   await unwrap(
     client.PUT('/api/lcards/{id}', {
       params: { path: { id }, header: { 'If-Match': ifMatch(version) } },
       body: { title, description },
-      signal,
     }),
   )
 }
 
-export async function deleteLearningCard(
-  { id, version }: Pick<LearningCard, 'id' | 'version'>,
-  signal?: AbortSignal,
-): Promise<void> {
+export async function deleteLearningCard({
+  id,
+  version,
+}: Pick<LearningCard, 'id' | 'version'>): Promise<void> {
   await unwrap(
     client.DELETE('/api/lcards/{id}', {
       params: { path: { id }, header: { 'If-Match': ifMatch(version) } },
-      signal,
     }),
   )
 }
