@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
-import { HttpError } from '@/api/http-error'
+import { ApiError } from '@/api/http'
 import { RouteError } from '@/components/route-error'
 import { RoutePending } from '@/components/route-pending'
 import { routeTree } from './routeTree.gen.js'
@@ -10,18 +10,28 @@ import './styles/global.css'
 
 // How long fetched data counts as fresh before a read refetches it.
 const QUERY_STALE_TIME_MS = 30_000
-// Retries after the first failure, for failures other than client errors.
+// Retries after the first failure, for failures that a retry can fix.
 const QUERY_MAX_RETRIES = 2
 
-const isClientError = (error: unknown) =>
-  error instanceof HttpError && error.status >= 400 && error.status < 500
+// Only network failures and server errors (5xx) are retried (ADR 0031).
+// Client errors, aborts and anything that isn't an ApiError fail at once.
+const isRetryable = (error: unknown) =>
+  error instanceof ApiError && (error.kind === 'network' || error.status >= 500)
 
+// By default TanStack Query pauses requests while the browser reports being
+// offline, which leaves a loading page up until the connection returns.
+// 'always' sends them anyway, so going offline fails like any other network
+// failure: retried as above, then reported.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      networkMode: 'always',
       staleTime: QUERY_STALE_TIME_MS,
       retry: (failureCount, error) =>
-        !isClientError(error) && failureCount < QUERY_MAX_RETRIES,
+        isRetryable(error) && failureCount < QUERY_MAX_RETRIES,
+    },
+    mutations: {
+      networkMode: 'always',
     },
   },
 })

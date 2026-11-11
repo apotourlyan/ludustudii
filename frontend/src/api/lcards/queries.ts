@@ -19,6 +19,6 @@ export const lcardQueries = {
   detail: (id: string) =>
     queryOptions({
       queryKey: lcardKeys.detail(id),
-      queryFn: () => getLearningCard(id),
+      queryFn: ({ signal }) => getLearningCard(id, signal),
     }),
 }
