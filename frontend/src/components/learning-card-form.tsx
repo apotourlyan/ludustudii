@@ -6,6 +6,7 @@ import {
   useUpdateLearningCard,
   type LearningCard,
 } from '@/api/lcards'
+import { errorMessage } from '@/components/error-message'
 import { LearningCardDisplay } from '@/components/learning-card-view'
 import { Button } from '@/components/ui/button'
 import {
@@ -192,7 +193,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
 
               {mutation.isError && (
                 <FieldError>
-                  {mutation.error.message}
+                  {errorMessage(
+                    mutation.error,
+                    isEditing ? 'save your edits' : 'create the card',
+                  )}
                 </FieldError>
               )}
 

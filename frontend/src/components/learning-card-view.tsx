@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { errorMessage } from '@/components/error-message'
 import { FieldError } from '@/components/ui/field'
 import { Separator } from '@/components/ui/separator'
 
@@ -92,7 +93,9 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
             This action cannot be undone. The card will be permanently removed.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {deleteCard.isError && <FieldError>{deleteCard.error.message}</FieldError>}
+        {deleteCard.isError && (
+          <FieldError>{errorMessage(deleteCard.error, 'delete the card')}</FieldError>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteCard.isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction

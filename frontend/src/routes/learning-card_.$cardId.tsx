@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { HttpError } from '@/api/http-error'
+import { ApiError } from '@/api/http'
 import { lcardQueries } from '@/api/lcards'
 import { LearningCardForm } from '@/components/learning-card-form'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,7 +14,11 @@ export const Route = createFileRoute('/learning-card_/$cardId')({
     } catch (error) {
       // A missing card can't be retried into existence, so it isn't an error.
       // For this GET, a 400 can only mean a malformed card ID in the path.
-      if (error instanceof HttpError && (error.status === 400 || error.status === 404)) {
+      if (
+        error instanceof ApiError &&
+        error.failure.kind === 'http' &&
+        (error.failure.status === 400 || error.failure.status === 404)
+      ) {
         throw notFound()
       }
       throw error

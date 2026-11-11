@@ -15,6 +15,8 @@ echo "Go tools installed successfully!"
 
 echo "Installing frontend dependencies..."
 (cd frontend && npm install)
+# The API type generator's package, with its exact pins (ADR 0031).
+(cd frontend/tools && npm ci)
 echo "Frontend dependencies installed successfully!"
 
 echo "Installing PostgreSQL client..."

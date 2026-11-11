@@ -2,6 +2,7 @@
 # Frontend (React / Vite)
 # ==========================================
 frontend/node_modules/
+frontend/tools/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local

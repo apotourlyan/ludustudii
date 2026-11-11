@@ -1,0 +1,10 @@
+{
+  "name": "ludustudii-frontend-tools",
+  "private": true,
+  "description": "Code generators that need TypeScript 5's JavaScript API, kept apart from the client app's TypeScript 7 (ADR 0031).",
+  "type": "module",
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}
