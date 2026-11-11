@@ -16,7 +16,8 @@ const QUERY_MAX_RETRIES = 2
 // Only network failures and server errors (5xx) are retried (ADR 0031).
 // Client errors, aborts and anything that isn't an ApiError fail at once.
 const isRetryable = (error: unknown) =>
-  error instanceof ApiError && (error.kind === 'network' || error.status >= 500)
+  error instanceof ApiError &&
+  (error.failure.kind === 'network' || error.failure.status >= 500)
 
 // By default TanStack Query pauses requests while the browser reports being
 // offline, which leaves a loading page up until the connection returns.

@@ -6,13 +6,14 @@ import { ApiError } from '@/api/http'
 // "save your edits".
 export function errorMessage(error: unknown, action: string): string {
   if (error instanceof ApiError) {
-    if (error.kind === 'network') {
+    const { failure } = error
+    if (failure.kind === 'network') {
       return "Can't reach the server. Check your connection and try again."
     }
-    if (error.status === 412) {
+    if (failure.status === 412) {
       return `This card has changed. Reload it before you ${action}.`
     }
-    if (error.status === 404) {
+    if (failure.status === 404) {
       return "This card doesn't exist. It may have been deleted."
     }
   }

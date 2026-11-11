@@ -16,8 +16,8 @@ export const Route = createFileRoute('/learning-card_/$cardId')({
       // For this GET, a 400 can only mean a malformed card ID in the path.
       if (
         error instanceof ApiError &&
-        error.kind === 'http' &&
-        (error.status === 400 || error.status === 404)
+        error.failure.kind === 'http' &&
+        (error.failure.status === 400 || error.failure.status === 404)
       ) {
         throw notFound()
       }

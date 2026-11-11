@@ -19,19 +19,18 @@ export type ApiFailure =
       readonly requestId: string | undefined
     }
 
-export type ApiError = Error & ApiFailure
-
-// A class can't declare its instances as a union, so the constructor is typed
-// to return one: after `instanceof ApiError`, checking `kind` narrows to the
-// HTTP fields. The message is for developers only; user-facing wording is
-// chosen by the client app from the failure, never from the message.
-export const ApiError = class ApiError extends Error {
-  constructor(failure: ApiFailure, options?: ErrorOptions) {
+// A failed request. Readers check `failure.kind` to reach the HTTP fields.
+// The message is for developers only; user-facing wording is chosen by the
+// client app from the failure, never from the message.
+export class ApiError extends Error {
+  constructor(
+    readonly failure: ApiFailure,
+    options?: ErrorOptions,
+  ) {
     super(describe(failure), options)
     this.name = 'ApiError'
-    Object.assign(this, failure)
   }
-} as new (failure: ApiFailure, options?: ErrorOptions) => ApiError
+}
 
 function describe(failure: ApiFailure): string {
   if (failure.kind === 'network') {
