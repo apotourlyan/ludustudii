@@ -1,6 +1,6 @@
 # 0030. Server state owned by TanStack Query, organized by backend service
 
-- Status: Accepted
+- Status: Accepted, Amended by [0031](0031-generated-api-types-and-typed-fetch-client.md) (retries: only network failures and server errors are retried)
 - Date: 2026-11-09
 - Tags: front-end, architecture, api
 

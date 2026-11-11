@@ -1,6 +1,6 @@
 # 0031. Generated API types and a typed fetch client
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 - Tags: front-end, api, tooling
 
@@ -36,8 +36,8 @@ output with TypeScript's API need TypeScript 5.
   ([0028](0028-ci-reuses-the-devcontainer-test-database.md)).
 - **`openapi-fetch` is the only HTTP client.** Paths, parameters, bodies and
   responses are checked against the generated types. A shared factory in
-  `src/api/http.ts` creates one client per service, and every request passes
-  the query's abort signal.
+  `src/api/http.ts` creates one client per service, and every query passes
+  its abort signal to its request.
 - **Failures become one typed `ApiError`**: a network failure, or an HTTP
   error carrying the status, the error `code`, the field errors and the
   `X-Request-Id`. An aborted request stays an abort. Only network failures
