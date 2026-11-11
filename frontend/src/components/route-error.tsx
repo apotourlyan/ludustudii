@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import { useRouter, type ErrorComponentProps } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import { errorMessage } from '@/components/error-message'
 import { Card, CardContent } from '@/components/ui/card'
 import { FieldError } from '@/components/ui/field'
 
@@ -16,7 +17,7 @@ export function RouteError({ error }: ErrorComponentProps) {
     queryErrorResetBoundary.reset()
   }, [queryErrorResetBoundary])
 
-  const message = error instanceof Error ? error.message : String(error)
+  const message = errorMessage(error, 'load this page')
 
   return (
     <div className="mx-auto max-w-xl p-6">
