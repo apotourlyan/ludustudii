@@ -87,7 +87,7 @@ api-types-check:
 ## frontend-typecheck: Type-checks the client app
 frontend-typecheck:
 	@[ -d $(FRONTEND_DIR)/node_modules ] || \
-		{ echo "frontend-typecheck: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'"; exit 1; }
+		{ echo "frontend-typecheck: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	cd $(FRONTEND_DIR) && npm run --silent typecheck
 
 .PHONY: dev
