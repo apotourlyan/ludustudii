@@ -361,9 +361,10 @@ make dev-mock     # Vite dev server only; a fake backend answers /api in the bro
 Open http://localhost:5173. [MSW](https://mswjs.io) intercepts the client
 app's API requests and answers them from in-memory fakes in
 `frontend/src/api/<service>/fake/`, so no Go server, database or migrations
-are needed. The fake follows the spec and the backend's behavior that the
-client app can trigger: versions, `ETag` and `If-Match` (412 and 428), field
-validation, opaque cursors and error codes
+are needed. The fake implements only what the client app's flows depend on:
+state across requests, versions with `ETag` and `If-Match` (404 before 412),
+malformed IDs, opaque cursors and minimal validation (trimmed, required,
+maximum length). It doesn't reproduce the backend's input parsing
 ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
 the fake has no handler for fails as a network error, with the request named
 in the console, instead of reaching a server. The mock mode doesn't proxy to

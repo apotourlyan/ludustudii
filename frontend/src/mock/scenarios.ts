@@ -3,7 +3,7 @@
 // browser, so tests can use the same scenarios in Node.
 import { delay, http, HttpResponse, type RequestHandler } from 'msw'
 import { apiBaseUrls } from '@/api/config'
-import { requestId } from '@/api/fake/http'
+import { requestIdHeader } from '@/api/fake/http'
 import { resetFakeStores } from '@/api/fake'
 import { makeCards, sampleCards } from '@/api/lcards/fake/factories'
 import { cardStore } from '@/api/lcards/fake/store'
@@ -54,10 +54,10 @@ export function applyScenario(name: ScenarioName): RequestHandler[] {
 // reports a failure it can't describe.
 export function failingHandlers(): RequestHandler[] {
   return apiPaths.map((path) =>
-    http.all(path, ({ request }) =>
+    http.all(path, () =>
       HttpResponse.json(
         { code: 'unexpected_error' },
-        { status: 500, headers: { 'X-Request-Id': requestId(request) } },
+        { status: 500, headers: requestIdHeader() },
       ),
     ),
   )
