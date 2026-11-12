@@ -33,9 +33,10 @@ export async function startFakeBackend(): Promise<void> {
   network.configure({
     handlers: [...latencyHandlers(delayMs), ...applyScenario(scenario), ...fakeHandlers],
     // An API request no handler answers is a gap in the fake: fail it
-    // loudly instead of passing it on to a backend that isn't there.
-    // Everything else (the app's modules, fonts, Vite's own requests)
-    // passes through.
+    // loudly instead of passing it on to a backend that isn't there. MSW
+    // logs an error and answers 500 with the thrown error as its body,
+    // which isn't the API's error shape. Everything else (the app's
+    // modules, fonts, Vite's own requests) passes through.
     onUnhandledFrame: ({ frame, defaults }) => {
       // Checked by protocol rather than with instanceof HttpNetworkFrame,
       // which fails if the worker's frames come from another copy of MSW.
