@@ -378,8 +378,22 @@ Query parameters on the URL the app loads with choose the data:
 | `delay=<ms>` | Adds that many milliseconds to every API response, for example `?scenario=many&delay=2000` |
 
 The fake's state lives in the page's memory: changes survive navigation
-inside the app, and reloading the page starts the scenario over. Production
-builds contain neither MSW's worker nor the fake.
+inside the app, and reloading the page starts the scenario over. Each tab
+runs its own fake, so a change made in one tab is invisible to another. To
+produce a `412`, open a card's editor, change the card from the browser
+console, then save:
+
+```js
+const id = location.pathname.split('/').pop()
+const card = await (await fetch(`/api/lcards/${id}`)).json()
+await fetch(`/api/lcards/${id}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json', 'If-Match': `"${card.version}"` },
+  body: JSON.stringify({ title: 'Changed elsewhere', description: card.description }),
+})
+```
+
+Production builds contain neither MSW's worker nor the fake.
 
 ### GitHub CLI in the devcontainer
 
