@@ -17,31 +17,23 @@ const MANY_CARDS = 150
 export const scenarios = {
   // A small library of realistic cards.
   default: () => {
-    resetFakeStores()
     cardStore.seed(sampleCards())
     return []
   },
   // No cards.
-  empty: () => {
-    resetFakeStores()
-    return []
-  },
+  empty: () => [],
   // More cards than fit on one page.
   many: () => {
-    resetFakeStores()
     cardStore.seed(
       makeCards(MANY_CARDS, (index) => ({
         title: `Card ${index + 1} of ${MANY_CARDS}`,
-        description: `Card number **${index + 1}**, created after card ${index}.`,
+        description: `Card number **${index + 1}**; a higher number is a newer card.`,
       })),
     )
     return []
   },
   // Every API request fails with a server error.
-  failing: () => {
-    resetFakeStores()
-    return failingHandlers()
-  },
+  failing: () => failingHandlers(),
 } satisfies Record<string, () => RequestHandler[]>
 
 export type ScenarioName = keyof typeof scenarios
@@ -51,8 +43,10 @@ export function isScenarioName(name: string): name is ScenarioName {
 }
 
 // Resets every fake store, seeds it for the scenario and returns the
-// handlers the scenario needs ahead of the fake's own.
+// handlers the scenario needs ahead of the fake's own. Scenarios start from
+// empty stores, so none inherits another's cards.
 export function applyScenario(name: ScenarioName): RequestHandler[] {
+  resetFakeStores()
   return scenarios[name]()
 }
 
