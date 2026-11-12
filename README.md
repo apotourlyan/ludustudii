@@ -381,7 +381,10 @@ Query parameters on the URL the app loads with choose the data:
 | `delay=<ms>` | Adds that many milliseconds to every API response, for example `?scenario=many&delay=2000` |
 
 The fake's state lives in the page's memory: changes survive navigation
-inside the app, and reloading the page starts the scenario over. Each tab
+inside the app, and reloading the page starts over from the parameters in
+the address bar. In-app links drop them, so a reload after navigating starts
+the default scenario. Seeded cards get new IDs on every load, so a card's
+URL, such as its editor, shows "doesn't exist" after a reload. Each tab
 runs its own fake, so a change made in one tab is invisible to another. To
 produce a `412`, open a card's editor, change the card from the browser
 console, then save:

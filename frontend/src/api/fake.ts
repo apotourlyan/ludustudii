@@ -10,7 +10,7 @@ export const fakeHandlers: readonly RequestHandler[] = [
   ...lcardsHandlers(apiBaseUrls.lcards),
 ]
 
-// Empties every fake store, as at startup.
+// Empties every fake store.
 export function resetFakeStores(): void {
   cardStore.reset()
 }
