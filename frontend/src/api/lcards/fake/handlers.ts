@@ -20,7 +20,8 @@
 //   - 400 bind_error (malformed JSON, non-object bodies, fields of the wrong
 //     type, trailing data). The fake throws on what it can't read, so MSW
 //     fails the request instead of answering it wrongly. Unknown fields are
-//     ignored, as the spec says, although the backend rejects them;
+//     ignored, as the spec's request body description says; the backend
+//     rejects them with bind_error, and the spec is to be corrected (#16);
 //   - 405 method_not_allowed and 404 for unknown /api paths: those requests
 //     match no handler and fail as unhandled.
 //
