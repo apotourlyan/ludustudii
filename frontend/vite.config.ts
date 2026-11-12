@@ -3,8 +3,13 @@ import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
+import { msw } from 'msw/vite'
 
-export default defineConfig({
+// The mode of `npm run dev:mock`, where a fake backend answers the client
+// app's API requests in the browser (ADR 0032).
+const MOCK_MODE = 'mock'
+
+export default defineConfig(({ mode }) => ({
   plugins: [
     tanstackRouter({
       target: 'react',
@@ -12,6 +17,8 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    // Serves MSW's worker and its virtual:msw module, only in the mock mode.
+    mode === MOCK_MODE && msw(),
   ],
   resolve: {
     alias: {
@@ -38,5 +45,4 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../backend/internal/infra/spa/dist'),
     emptyOutDir: true,
   },
-})
-
+}))

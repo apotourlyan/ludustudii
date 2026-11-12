@@ -352,6 +352,35 @@ API, while the client app uses TypeScript 7, so it lives in its own package,
 ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
 `make frontend-deps` installs the locked dependencies of both packages.
 
+### Running without the backend
+
+```sh
+make dev-mock     # Vite dev server only; a fake backend answers /api in the browser
+```
+
+Open http://localhost:5173. [MSW](https://mswjs.io) intercepts the client
+app's API requests and answers them from in-memory fakes in
+`frontend/src/api/<service>/fake/`, so no Go server, database or migrations
+are needed. The fake follows the spec and the backend's behavior that the
+client app can trigger: versions, `ETag` and `If-Match` (412 and 428), field
+validation, opaque cursors and error codes
+([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
+the fake has no handler for fails instead of reaching a server.
+
+Query parameters on the URL the app loads with choose the data:
+
+| Parameter | Effect |
+| --- | --- |
+| `scenario=default` | About eight cards with varied markdown (also when omitted) |
+| `scenario=empty` | No cards |
+| `scenario=many` | 150 cards, more than one page |
+| `scenario=failing` | Every API request answers `500 unexpected_error` |
+| `delay=<ms>` | Adds that many milliseconds to every API response, for example `?scenario=many&delay=2000` |
+
+The fake's state lives in the page's memory: changes survive navigation
+inside the app, and reloading the page starts the scenario over. Production
+builds contain neither MSW's worker nor the fake.
+
 ### GitHub CLI in the devcontainer
 
 Agents open pull requests with `gh`, authenticated by `GH_TOKEN`, which the

@@ -104,6 +104,13 @@ dev:
 		(cd $(FRONTEND_DIR) && npm run dev) & \
 		wait
 
+.PHONY: dev-mock
+
+## dev-mock: Runs the Vite dev server with a fake backend in the browser (no Go backend or database)
+## ---- Choose seeded data with ?scenario=default|empty|many|failing and add latency with ?delay=<ms>
+dev-mock:
+	cd $(FRONTEND_DIR) && npm run dev:mock
+
 .PHONY: logs logs-errors logs-req logs-slow logs-stats
 
 # Each target reads LOG_FILE line by line and skips lines that are not JSON
