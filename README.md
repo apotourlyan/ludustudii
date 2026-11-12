@@ -365,7 +365,9 @@ are needed. The fake follows the spec and the backend's behavior that the
 client app can trigger: versions, `ETag` and `If-Match` (412 and 428), field
 validation, opaque cursors and error codes
 ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
-the fake has no handler for fails instead of reaching a server.
+the fake has no handler for fails as a network error, with the request named
+in the console, instead of reaching a server. The mock mode doesn't proxy to
+the backend, so the API reference at `/docs` isn't available there.
 
 Query parameters on the URL the app loads with choose the data:
 

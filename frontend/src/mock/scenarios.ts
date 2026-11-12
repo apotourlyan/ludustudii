@@ -70,7 +70,9 @@ export function failingHandlers(): RequestHandler[] {
 }
 
 // Delays every API request by `ms` milliseconds, then lets the next handler
-// answer it. Put these before the handlers they should delay.
+// answer it. Put these before the handlers they should delay. MSW passes a
+// request no later handler answers on to the network, so end the list with
+// unhandledApiHandlers.
 export function latencyHandlers(ms: number): RequestHandler[] {
   if (ms <= 0) {
     return []
@@ -78,6 +80,19 @@ export function latencyHandlers(ms: number): RequestHandler[] {
   return apiPaths.map((path) =>
     http.all(path, async () => {
       await delay(ms)
+    }),
+  )
+}
+
+// Fails every API request that no earlier handler answered, which is a gap
+// in the fake, so it never reaches a server. Put these after every other
+// handler. The request fails as a network error would, and the console
+// names it.
+export function unhandledApiHandlers(): RequestHandler[] {
+  return apiPaths.map((path) =>
+    http.all(path, ({ request }) => {
+      console.error(`[fake backend] no handler for ${request.method} ${request.url}`)
+      return HttpResponse.error()
     }),
   )
 }

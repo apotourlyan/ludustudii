@@ -37,7 +37,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '0.0.0.0', // Listen on all network interfaces inside devcontainer
     port: 5173,
-    proxy: {
+    // No proxy in the mock mode, so even a request MSW lets through (while
+    // HMR swaps modules, say) never reaches a backend.
+    proxy: mode === MOCK_MODE ? undefined : {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
