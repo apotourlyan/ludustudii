@@ -26,7 +26,8 @@
 //     match no handler and fail as unhandled.
 //
 // Cursors are the store's own tokens. Unlike the backend, which accepts any
-// UUIDv7 as a cursor, the fake rejects every cursor it didn't hand out.
+// UUIDv7 as a cursor and in any letter case, the fake rejects every cursor
+// it didn't hand out exactly; the spec says to pass cursors unchanged.
 import { createOpenApiHttp } from 'openapi-msw'
 import type { paths } from '../../schema.gen'
 import {
