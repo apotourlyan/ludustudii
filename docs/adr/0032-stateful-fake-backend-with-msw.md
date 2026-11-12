@@ -25,17 +25,20 @@ error codes ([0025](0025-error-responses.md)).
 - **Each service has a fake in `src/api/<service>/fake/`**:
   - a hand-written, in-memory **store** that holds the state and its rules:
     IDs, versions, 412 on a stale version, not found, ordering and cursors;
-  - **handlers** that do the HTTP part over the store: parsing and
-    validating the request, error bodies and headers. They are typed with
-    `openapi-msw` against the generated types
-    ([0031](0031-generated-api-types-and-typed-fetch-client.md)), so a path,
-    parameter or response that no longer matches the spec fails the type
-    check;
+  - **handlers** that map requests to the store and the store's outcomes
+    to responses, typed with `openapi-msw` against the generated types
+    ([0031](0031-generated-api-types-and-typed-fetch-client.md)), so a
+    path, parameter or response that no longer matches the spec fails the
+    type check;
   - **factories** that build valid data for seeds and tests.
-- **The fake implements the contract's behavior that the client app can
-  trigger**, in the backend's order of checks. Responses the client app
-  can't cause (such as an oversized body or an unsupported media type) are
-  left out.
+- **The fake implements what the client app's flows depend on, and
+  nothing else:** state across requests, versions with 404 before 412 on
+  a stale version, a 400 for a malformed ID, opaque cursors in
+  newest-first order, and minimal input validation (trimmed, required,
+  maximum length). It doesn't reproduce the backend's input parsing,
+  canonicalization or order of checks; the backend's own tests cover
+  those. Any other response a test needs, such as a specific error, comes
+  from a per-test handler override, not from the fake.
 - **`src/api/fake.ts` assembles all services' handlers** with the same base
   URLs as the real clients. Fakes may call each other's stores to simulate
   backend events, optionally with a delay.
@@ -74,4 +77,5 @@ error codes ([0025](0025-error-responses.md)).
   with the real backend on the same requests, and a small set of end-to-end
   tests, cover that; the testing strategy is a separate record.
 - The fake stores are a second, simplified implementation of each service.
-  They stay in-memory and implement only what the client app can trigger.
+  They stay in-memory and implement only what the client app's flows
+  depend on.
