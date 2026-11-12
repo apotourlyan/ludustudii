@@ -26,14 +26,15 @@ export default defineConfig(({ mode }) => ({
     },
   },
   // Vite's dependency scan doesn't follow virtual:msw. In the mock mode, it
-  // is told what that module imports, so it's pre-bundled up front rather
-  // than found on the first load, which reloads the page. Elsewhere
-  // virtual:msw doesn't resolve, and the scan, which follows main.tsx's
-  // import of the mock start-up module anyway, skips it instead of failing.
+  // is told what that module imports, so MSW is pre-bundled up front, as
+  // one copy, rather than found on the first load, which reloads the page.
+  // Elsewhere virtual:msw doesn't resolve, and the scan, which follows
+  // main.tsx's import of the mock start-up module anyway, skips it and
+  // MSW, which those modes never load, instead of failing or bundling them.
   optimizeDeps:
     mode === MOCK_MODE
-      ? { include: ['msw/browser'] }
-      : { exclude: ['virtual:msw'] },
+      ? { include: ['msw/browser', 'msw/experimental'] }
+      : { exclude: ['virtual:msw', 'msw', 'openapi-msw'] },
   server: {
     host: '0.0.0.0', // Listen on all network interfaces inside devcontainer
     port: 5173,
