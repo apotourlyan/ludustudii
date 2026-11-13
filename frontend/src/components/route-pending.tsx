@@ -3,9 +3,7 @@
 export function RoutePending() {
   return (
     <div className="mx-auto max-w-xl p-6">
-      <span role="status" className="text-muted-foreground">
-        Loading...
-      </span>
+      <span role="status" className="text-muted-foreground">Loading...</span>
     </div>
-  );
+  )
 }

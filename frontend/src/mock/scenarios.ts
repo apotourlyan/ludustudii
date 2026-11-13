@@ -1,24 +1,24 @@
 // Seeded scenarios for the fake backend (ADR 0032), chosen in the mock mode
 // with the app URL's `scenario` parameter. Nothing here depends on the
 // browser, so tests can use the same scenarios in Node.
-import { delay, http, HttpResponse, type RequestHandler } from "msw";
-import { apiBaseUrls } from "@/api/config";
-import { requestIdHeader } from "@/api/fake/http";
-import { resetFakeStores } from "@/api/fake";
-import { makeCards, sampleCards } from "@/api/lcards/fake/factories";
-import { cardStore } from "@/api/lcards/fake/store";
+import { delay, http, HttpResponse, type RequestHandler } from 'msw'
+import { apiBaseUrls } from '@/api/config'
+import { requestIdHeader } from '@/api/fake/http'
+import { resetFakeStores } from '@/api/fake'
+import { makeCards, sampleCards } from '@/api/lcards/fake/factories'
+import { cardStore } from '@/api/lcards/fake/store'
 
 // Every service's API paths, for handlers that apply to every API request.
-const apiPaths = [...new Set(Object.values(apiBaseUrls))].map((base) => `${base}/api/*`);
+const apiPaths = [...new Set(Object.values(apiBaseUrls))].map((base) => `${base}/api/*`)
 
 // More cards than the largest page (100), so listing them takes pages.
-const MANY_CARDS = 150;
+const MANY_CARDS = 150
 
 export const scenarios = {
   // A small library of realistic cards.
   default: () => {
-    cardStore.seed(sampleCards());
-    return [];
+    cardStore.seed(sampleCards())
+    return []
   },
   // No cards.
   empty: () => [],
@@ -29,25 +29,25 @@ export const scenarios = {
         title: `Card ${index + 1} of ${MANY_CARDS}`,
         description: `Card number **${index + 1}**; a higher number is a newer card.`,
       })),
-    );
-    return [];
+    )
+    return []
   },
   // Every API request fails with a server error.
   failing: () => failingHandlers(),
-} satisfies Record<string, () => RequestHandler[]>;
+} satisfies Record<string, () => RequestHandler[]>
 
-export type ScenarioName = keyof typeof scenarios;
+export type ScenarioName = keyof typeof scenarios
 
 export function isScenarioName(name: string): name is ScenarioName {
-  return Object.hasOwn(scenarios, name);
+  return Object.hasOwn(scenarios, name)
 }
 
 // Resets every fake store, seeds it for the scenario and returns the
 // handlers the scenario needs ahead of the fake's own. Scenarios start from
 // empty stores, so none inherits another's cards.
 export function applyScenario(name: ScenarioName): RequestHandler[] {
-  resetFakeStores();
-  return scenarios[name]();
+  resetFakeStores()
+  return scenarios[name]()
 }
 
 // Answers every API request with 500 unexpected_error, the way the backend
@@ -55,9 +55,12 @@ export function applyScenario(name: ScenarioName): RequestHandler[] {
 export function failingHandlers(): RequestHandler[] {
   return apiPaths.map((path) =>
     http.all(path, () =>
-      HttpResponse.json({ code: "unexpected_error" }, { status: 500, headers: requestIdHeader() }),
+      HttpResponse.json(
+        { code: 'unexpected_error' },
+        { status: 500, headers: requestIdHeader() },
+      ),
     ),
-  );
+  )
 }
 
 // Delays every API request by `ms` milliseconds, then lets the next handler
@@ -66,13 +69,13 @@ export function failingHandlers(): RequestHandler[] {
 // unhandledApiHandlers.
 export function latencyHandlers(ms: number): RequestHandler[] {
   if (ms <= 0) {
-    return [];
+    return []
   }
   return apiPaths.map((path) =>
     http.all(path, async () => {
-      await delay(ms);
+      await delay(ms)
     }),
-  );
+  )
 }
 
 // Fails every API request that no earlier handler answered, which is a gap
@@ -82,8 +85,8 @@ export function latencyHandlers(ms: number): RequestHandler[] {
 export function unhandledApiHandlers(): RequestHandler[] {
   return apiPaths.map((path) =>
     http.all(path, ({ request }) => {
-      console.error(`[fake backend] no handler for ${request.method} ${request.url}`);
-      return HttpResponse.error();
+      console.error(`[fake backend] no handler for ${request.method} ${request.url}`)
+      return HttpResponse.error()
     }),
-  );
+  )
 }

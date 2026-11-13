@@ -1,8 +1,11 @@
 {
   "name": "ludustudii",
-  "version": "0.1.0",
   "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": "26.x"
+  },
   "scripts": {
     "dev": "vite",
     "dev:mock": "vite --mode mock",
@@ -48,8 +51,5 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
-  },
-  "engines": {
-    "node": "26.x"
   }
 }

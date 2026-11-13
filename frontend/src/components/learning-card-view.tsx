@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
-import Markdown, { type Components } from "react-markdown";
-import { Link } from "@tanstack/react-router";
-import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
+import { useState, type ReactNode } from 'react'
+import Markdown, { type Components } from 'react-markdown'
+import { Link } from '@tanstack/react-router'
+import { useDeleteLearningCard, type LearningCard } from '@/api/lcards'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,45 +12,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { errorMessage } from "@/components/error-message";
-import { FieldError } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/alert-dialog'
+import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { errorMessage } from '@/components/error-message'
+import { FieldError } from '@/components/ui/field'
+import { Separator } from '@/components/ui/separator'
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
-  h1: ({ node: _node, ...props }) => (
-    <h1 className="mt-4 mb-2 text-lg font-semibold first:mt-0" {...props} />
-  ),
-  h2: ({ node: _node, ...props }) => (
-    <h2 className="mt-4 mb-2 text-base font-semibold first:mt-0" {...props} />
-  ),
-  h3: ({ node: _node, ...props }) => (
-    <h3 className="mt-3 mb-1 text-sm font-semibold first:mt-0" {...props} />
-  ),
-  h4: ({ node: _node, ...props }) => (
-    <h4 className="mt-3 mb-1 font-semibold first:mt-0" {...props} />
-  ),
+  h1: ({ node: _node, ...props }) => <h1 className="mt-4 mb-2 text-lg font-semibold first:mt-0" {...props} />,
+  h2: ({ node: _node, ...props }) => <h2 className="mt-4 mb-2 text-base font-semibold first:mt-0" {...props} />,
+  h3: ({ node: _node, ...props }) => <h3 className="mt-3 mb-1 text-sm font-semibold first:mt-0" {...props} />,
+  h4: ({ node: _node, ...props }) => <h4 className="mt-3 mb-1 font-semibold first:mt-0" {...props} />,
   p: ({ node: _node, ...props }) => <p className="my-2 first:mt-0 last:mb-0" {...props} />,
-  a: ({ node: _node, ...props }) => (
-    <a className="text-primary underline underline-offset-2" {...props} />
-  ),
+  a: ({ node: _node, ...props }) => <a className="text-primary underline underline-offset-2" {...props} />,
   ul: ({ node: _node, ...props }) => <ul className="my-2 list-disc pl-5" {...props} />,
   ol: ({ node: _node, ...props }) => <ol className="my-2 list-decimal pl-5" {...props} />,
   li: ({ node: _node, ...props }) => <li className="my-0.5" {...props} />,
   blockquote: ({ node: _node, ...props }) => (
     <blockquote className="my-2 border-l-2 pl-3 text-muted-foreground" {...props} />
   ),
-  code: ({ node: _node, ...props }) => (
-    <code className="bg-muted px-1 py-0.5 font-mono" {...props} />
-  ),
+  code: ({ node: _node, ...props }) => <code className="bg-muted px-1 py-0.5 font-mono" {...props} />,
   pre: ({ node: _node, ...props }) => (
     <pre className="my-2 overflow-x-auto bg-muted p-3 font-mono [&>code]:p-0" {...props} />
   ),
   hr: () => <Separator className="my-4" />,
-};
+}
 
 export function LearningCardView({ card }: { card: LearningCard }) {
   return (
@@ -63,7 +57,7 @@ export function LearningCardView({ card }: { card: LearningCard }) {
             <Link
               to="/learning-card/$cardId"
               params={{ cardId: card.id }}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Update
             </Link>
@@ -72,21 +66,21 @@ export function LearningCardView({ card }: { card: LearningCard }) {
         }
       />
     </div>
-  );
+  )
 }
 
 function DeleteLearningCardButton({ card }: { card: LearningCard }) {
-  const [open, setOpen] = useState(false);
-  const deleteCard = useDeleteLearningCard();
+  const [open, setOpen] = useState(false)
+  const deleteCard = useDeleteLearningCard()
 
   return (
     <AlertDialog
       open={open}
       onOpenChange={(nextOpen) => {
         // Keep the dialog open until the request settles
-        if (deleteCard.isPending) return;
-        if (!nextOpen) deleteCard.reset();
-        setOpen(nextOpen);
+        if (deleteCard.isPending) return
+        if (!nextOpen) deleteCard.reset()
+        setOpen(nextOpen)
       }}
     >
       <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
@@ -100,7 +94,7 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {deleteCard.isError && (
-          <FieldError>{errorMessage(deleteCard.error, "delete the card")}</FieldError>
+          <FieldError>{errorMessage(deleteCard.error, 'delete the card')}</FieldError>
         )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteCard.isPending}>Cancel</AlertDialogCancel>
@@ -108,28 +102,25 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
             variant="destructive"
             disabled={deleteCard.isPending}
             onClick={() =>
-              deleteCard.mutate(
-                { id: card.id, version: card.version },
-                {
-                  onSuccess: () => setOpen(false),
-                },
-              )
+              deleteCard.mutate({ id: card.id, version: card.version }, {
+                onSuccess: () => setOpen(false),
+              })
             }
           >
-            {deleteCard.isPending ? "Deleting..." : "Delete"}
+            {deleteCard.isPending ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }
 
 export function LearningCardDisplay({
   card,
   action,
 }: {
-  card: Pick<LearningCard, "title" | "description">;
-  action?: ReactNode;
+  card: Pick<LearningCard, 'title' | 'description'>
+  action?: ReactNode
 }) {
   return (
     <Card className="min-w-0">
@@ -144,5 +135,5 @@ export function LearningCardDisplay({
         <Markdown components={markdownComponents}>{card.description}</Markdown>
       </CardContent>
     </Card>
-  );
+  )
 }
