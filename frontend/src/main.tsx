@@ -74,12 +74,14 @@ async function startMockMode() {
   }
 }
 
-startMockMode().then(() => {
-  ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </React.StrictMode>,
-  );
-});
+// The app renders only once the fake backend, if any, is running. A failed
+// start stops the module here, with the error in the console.
+await startMockMode();
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </React.StrictMode>,
+);
