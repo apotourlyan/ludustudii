@@ -1,6 +1,6 @@
 # 0033. Oxlint and oxfmt for the client app
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-13
 - Tags: front-end, tooling
 
