@@ -102,7 +102,7 @@ frontend-fmt-check:
 	@[ -d $(FRONTEND_DIR)/node_modules ] || \
 		{ echo "frontend-fmt-check: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	@cd $(FRONTEND_DIR) && npm run --silent fmt:check || \
-		{ echo "frontend-fmt-check: the files above need formatting; run 'make frontend-fmt'"; exit 1; }
+		{ echo "frontend-fmt-check: the files above need formatting; run 'make frontend-fmt'" >&2; exit 1; }
 
 .PHONY: dev
 
