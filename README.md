@@ -524,7 +524,9 @@ The spec is split across `backend/apispec/openapi.yml`, `paths/` and
 - `make api-types` generates the client app's types,
   `frontend/src/api/schema.gen.ts`, from the bundle. The file is committed;
   `make api-types-check` fails when it is stale. After a spec change, run
-  `make api-types` and commit the bundle and the types together.
+  `make api-types` and commit the bundle and the types together. If the
+  client app calls the endpoint, update its fake as well
+  ([Running without the backend](#running-without-the-backend)).
 
 The reference UI is the Scalar standalone script, taken from
 `frontend/node_modules`, gzipped and embedded only when building with the

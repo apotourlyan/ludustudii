@@ -125,6 +125,13 @@ the reference slice.
    - A package with integration tests needs `TestMain` calling `testkit.Run`.
    - When changing validation or normalization rules, extend the domain unit
      tests and sanitizer/validator fuzz contracts in `<svc>/contract/`.
+7. Client app: if it calls the endpoint, run `make api-types`, then add or
+   update the handler and store rules in `frontend/src/api/<svc>/fake/`,
+   with only what the client app's flows depend on
+   ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). This can
+   follow step 1, so UI work can start before the server side exists.
+   `make frontend-typecheck` fails when a fake handler no longer matches
+   the spec; behavior mismatches need checking by hand.
 
 ## Composing the server
 
