@@ -3,5 +3,5 @@
 // How this is configured at runtime is decided once a service moves to
 // another origin or behind a gateway (ADR 0031).
 export const apiBaseUrls = {
-  lcards: '',
-} as const
+  lcards: "",
+} as const;

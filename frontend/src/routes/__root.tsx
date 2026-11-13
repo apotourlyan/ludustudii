@@ -1,20 +1,19 @@
-import * as React from 'react'
-import type { QueryClient } from '@tanstack/react-query'
-import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import * as React from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { Link, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootComponent,
-})
+});
 
 // Conditionally load devtools only in development
-const TanStackRouterDevtools =
-  import.meta.env.PROD
-    ? () => null
-    : React.lazy(() =>
-        import('@tanstack/react-router-devtools').then((res) => ({
-          default: res.TanStackRouterDevtools,
-        })),
-      )
+const TanStackRouterDevtools = import.meta.env.PROD
+  ? () => null
+  : React.lazy(() =>
+      import("@tanstack/react-router-devtools").then((res) => ({
+        default: res.TanStackRouterDevtools,
+      })),
+    );
 
 function RootComponent() {
   return (
@@ -26,7 +25,7 @@ function RootComponent() {
       <Outlet />
       <React.Suspense>
         <TanStackRouterDevtools />
-      </React.Suspense>      
+      </React.Suspense>
     </React.Fragment>
-  )
+  );
 }
