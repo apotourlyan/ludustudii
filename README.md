@@ -605,9 +605,9 @@ tooling is kept out of `go.mod`.
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
-`generate-check`, `api-types-check`, `frontend-typecheck`, `test-unit` and
-`test-integration` sequentially, stopping at the first failure. It needs the
-frontend dependencies (`make frontend-deps`).
+`generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
+`test-unit` and `test-integration` sequentially, stopping at the first
+failure. It needs the frontend dependencies (`make frontend-deps`).
 
 `make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.

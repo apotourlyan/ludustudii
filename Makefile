@@ -286,6 +286,7 @@ check:
 	$(MAKE) generate-check
 	$(MAKE) api-types-check
 	$(MAKE) frontend-typecheck
+	$(MAKE) frontend-lint
 	$(MAKE) test-unit
 	$(MAKE) test-integration
 
