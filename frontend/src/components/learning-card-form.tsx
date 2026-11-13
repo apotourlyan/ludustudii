@@ -71,15 +71,24 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
       };
+      try {
+        if (card) {
+          await updateLearningCard.mutateAsync({
+            id: card.id,
+            version: editingVersion!,
+            ...input,
+          });
+        } else {
+          await createLearningCard.mutateAsync(input);
+        }
+      } catch {
+        // The mutation's state shows the failure below the fields, and the
+        // form keeps the user's input; nothing is left to report.
+        return;
+      }
       if (card) {
-        await updateLearningCard.mutateAsync({
-          id: card.id,
-          version: editingVersion!,
-          ...input,
-        });
         await navigate({ to: "/learning-cards" });
       } else {
-        await createLearningCard.mutateAsync(input);
         formApi.reset();
       }
     },
@@ -96,7 +105,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              form.handleSubmit();
+              // onSubmit handles a failed save itself, and the form's state
+              // shows the submission's progress, so the event handler has
+              // nothing to wait for.
+              void form.handleSubmit();
             }}
           >
             <FieldGroup>
