@@ -62,7 +62,7 @@ spec-bundle: $(SPEC_BUNDLE)
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
-.PHONY: frontend-deps api-types api-types-check frontend-typecheck
+.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check
 
 ## frontend-deps: Installs the locked dependencies of the client app and its generators
 frontend-deps:
@@ -89,6 +89,20 @@ frontend-typecheck:
 	@[ -d $(FRONTEND_DIR)/node_modules ] || \
 		{ echo "frontend-typecheck: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	cd $(FRONTEND_DIR) && npm run --silent typecheck
+
+## frontend-fmt: Formats the client app with oxfmt
+frontend-fmt:
+	@[ -d $(FRONTEND_DIR)/node_modules ] || \
+		{ echo "frontend-fmt: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	cd $(FRONTEND_DIR) && npm run --silent fmt
+
+## frontend-fmt-check: Fails if any file of the client app needs formatting
+# oxfmt lists the files it would change.
+frontend-fmt-check:
+	@[ -d $(FRONTEND_DIR)/node_modules ] || \
+		{ echo "frontend-fmt-check: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	@cd $(FRONTEND_DIR) && npm run --silent fmt:check || \
+		{ echo "frontend-fmt-check: the files above need formatting; run 'make frontend-fmt'" >&2; exit 1; }
 
 .PHONY: dev
 

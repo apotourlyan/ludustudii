@@ -11,6 +11,7 @@
         "openai.chatgpt",
         "anthropic.claude-code",
         "typescriptteam.native-preview",
+        "oxc.oxc-vscode",
         "github.vscode-github-actions"
       ],
       "settings": {
@@ -20,7 +21,15 @@
         "go.lintTool": "golangci-lint-v2",
         "go.lintFlags": ["--fast-only"],
         "go.lintOnSave": "package",
-        "go.testTags": "unit,integration,apidocs"
+        "go.testTags": "unit,integration,apidocs",
+        // Format on save with the pinned oxfmt in frontend/node_modules
+        // (ADR 0033), only for languages that occur nowhere but the client
+        // app: JSON and HTML elsewhere in the repository aren't oxfmt's to
+        // format, so the client app's are left to 'make frontend-fmt'.
+        "[javascript][javascriptreact][typescript][typescriptreact][css]": {
+          "editor.defaultFormatter": "oxc.oxc-vscode",
+          "editor.formatOnSave": true
+        }
       }
     }
   },

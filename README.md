@@ -340,11 +340,14 @@ Each tool version has one source, which the devcontainer and CI both read:
 | Go | `go` line in `backend/go.mod` | `make versions-check` fails when the devcontainer's `golang:` image tag or `backend/tools/go.mod` disagrees |
 | golangci-lint | `GOLANGCI_LINT_VERSION` in the `Makefile` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
 | Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
+| oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
 Node, change `engines.node` and the devcontainer's node feature in one commit,
-then rebuild the devcontainer.
+then rebuild the devcontainer. To upgrade oxfmt, which can change formatting,
+change its pin, run `npm install` in `frontend/` and `make frontend-fmt`, and
+commit the reformat on its own.
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -589,6 +592,8 @@ tooling is kept out of `go.mod`.
 | `make generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
 | `make api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
 | `make frontend-typecheck` | Type-check the client app. |
+| `make frontend-fmt` | Format the client app with oxfmt. |
+| `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
@@ -604,6 +609,13 @@ files on disk for review and ignores pre-existing edits that generation leaves u
 
 Lint uses the `unit,integration,apidocs` build tags so tests are included.
 The alternate `script_none.go` build is intentionally omitted from linting.
+
+oxfmt formats the client app with its defaults
+([ADR 0033](docs/adr/0033-oxlint-and-oxfmt-for-the-client-app.md)).
+`frontend/.oxfmtrc.json` sets no style options; it only ignores the generated
+files (`src/api/schema.gen.ts`, `src/routeTree.gen.ts`) and the lockfiles. In
+the devcontainer, the Oxc extension formats JavaScript, TypeScript and CSS
+files on save.
 
 #### Exclusion policy
 
