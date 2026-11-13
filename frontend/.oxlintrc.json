@@ -1,0 +1,122 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // ADR 0033. `make frontend-lint` runs Oxlint with this file; the options
+  // below apply in the editor too.
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "deny"
+  },
+  "plugins": ["typescript", "react", "jsx-a11y", "import", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "ignorePatterns": ["src/api/schema.gen.ts", "src/routeTree.gen.ts"],
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    // Not in the categories above. Fast Refresh keeps component state only
+    // in files that export nothing but components.
+    "react/only-export-components": "error",
+    // The automatic JSX runtime (react-jsx) needs no React in scope.
+    "react/react-in-jsx-scope": "off",
+    // Flags libraries the React Compiler can't memoize; the app doesn't use
+    // the compiler.
+    "react/incompatible-library": "off",
+    // useEffect callbacks return a cleanup on some paths and nothing on
+    // others, which is what React expects.
+    "typescript/consistent-return": "off",
+    // [...value].length counts code points on purpose, as the server does.
+    "typescript/no-misused-spread": "off",
+    // Side-effect imports of style sheets are how CSS is loaded.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
+  },
+  "overrides": [
+    {
+      // Route files export `Route` alongside the component it renders, as
+      // TanStack Router's file-based routing requires.
+      "files": ["src/routes/**"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      // Module boundaries outside the API layer (ADR 0033). The patterns
+      // match the alias and relative paths (./api/, ../api/, ../../api/...).
+      // A fake inside a service folder gets both messages. src/mock/ has its
+      // own copy below without the fakes pattern; an override replaces a
+      // rule's options instead of merging them.
+      "files": ["src/**"],
+      "excludeFiles": ["src/api/**", "src/mock/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "openapi-fetch",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(@|\\.|\\.\\.(/\\.\\.)*)/api/[^/]+/",
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The mock mode's start-up and scenarios seed and assemble the fakes
+      // (ADR 0032); every other boundary above still applies. Service
+      // internals are a gitignore group here, so a service's fake/ folder
+      // can be negated. Oxlint applies a group's negations to every pattern
+      // of the rule, so a negated group must be the only pattern.
+      "files": ["src/mock/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "openapi-fetch",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "**/api/*/**",
+                  "!**/api/*/fake",
+                  "!**/api/*/fake/**",
+                  "!**/api/fake",
+                  "!**/api/fake/**"
+                ],
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
