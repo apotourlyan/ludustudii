@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
+import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { errorMessage } from "@/components/error-message";
 import { LearningCardDisplay } from "@/components/learning-card-view";
@@ -81,9 +82,13 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         } else {
           await createLearningCard.mutateAsync(input);
         }
-      } catch {
+      } catch (error) {
         // The mutation's state shows the failure below the fields, and the
-        // form keeps the user's input; nothing is left to report.
+        // form keeps the user's input. An error that isn't an ApiError is a
+        // bug behind "Something went wrong", so it goes to the console.
+        if (!(error instanceof ApiError)) {
+          console.error(error);
+        }
         return;
       }
       if (card) {
