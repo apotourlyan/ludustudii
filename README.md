@@ -617,6 +617,12 @@ files (`src/api/schema.gen.ts`, `src/routeTree.gen.ts`) and the lockfiles. In
 the devcontainer, the Oxc extension formats JavaScript, TypeScript and CSS
 files on save.
 
+`.git-blame-ignore-revs` lists formatting-only commits, so blame shows the
+change before them. GitHub's blame view uses it automatically; locally, run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once per clone. Every
+later formatting-only commit (such as enabling import or Tailwind class
+sorting, #18 and #19) adds its hash to the file.
+
 #### Exclusion policy
 
 Use `backend/.golangci.yml` for shared rules: generated files and bundled assets,
