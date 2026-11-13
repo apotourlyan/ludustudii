@@ -118,6 +118,7 @@ function Carousel({
       <div
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- shadcn's carousel is a region whether or not the caller names it; a <section> is one only with an accessible name
         role="region"
         aria-roledescription="carousel"
         data-slot="carousel"
@@ -147,6 +148,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a slide is a group in the WAI-ARIA carousel pattern, not a fieldset
       role="group"
       aria-roledescription="slide"
       data-slot="carousel-item"
