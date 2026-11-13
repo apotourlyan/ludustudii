@@ -53,13 +53,32 @@
       "files": ["src/**"],
       "excludeFiles": ["src/api/**", "src/mock/**"],
       "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "openapi-fetch in src/api/ is the only HTTP client; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              }
+            ],
+            // Also window.fetch, globalThis.fetch and self.fetch.
+            "checkGlobalObject": true
+          }
+        ],
         "no-restricted-imports": [
           "error",
           {
             "paths": [
               {
                 "name": "@tanstack/react-query",
-                "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
                 "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
               }
             ],
@@ -89,13 +108,32 @@
       // of the rule, so no other pattern here may match a path under fake/.
       "files": ["src/mock/**"],
       "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "openapi-fetch in src/api/ is the only HTTP client; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              }
+            ],
+            // Also window.fetch, globalThis.fetch and self.fetch.
+            "checkGlobalObject": true
+          }
+        ],
         "no-restricted-imports": [
           "error",
           {
             "paths": [
               {
                 "name": "@tanstack/react-query",
-                "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
                 "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
               }
             ],

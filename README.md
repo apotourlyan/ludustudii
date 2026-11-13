@@ -633,9 +633,9 @@ Oxlint lints the client app with type-aware rules, configured in
 categories as errors, the promise and React hooks rules, and the module
 boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
-directly in `src/api/`), doesn't import `openapi-fetch` or `useQuery` and
-similar hooks, and only `src/mock/` imports the fakes. Every rule turned off
-carries its reason in the configuration.
+directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
+`useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
+fakes. Every rule turned off carries its reason in the configuration.
 
 #### Exclusion policy
 
