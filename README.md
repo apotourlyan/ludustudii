@@ -352,6 +352,56 @@ API, while the client app uses TypeScript 7, so it lives in its own package,
 ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
 `make frontend-deps` installs the locked dependencies of both packages.
 
+### Running without the backend
+
+```sh
+make dev-mock     # Vite dev server only; a fake backend answers /api in the browser
+```
+
+Open http://localhost:5173. [MSW](https://mswjs.io) intercepts the client
+app's API requests and answers them from in-memory fakes in
+`frontend/src/api/<service>/fake/`, so no Go server, database or migrations
+are needed. The fake implements only what the client app's flows depend on:
+state across requests, versions with `ETag` and `If-Match` (428 without it,
+404 before 412), malformed IDs, opaque cursors and minimal validation
+(trimmed, required, maximum length, page size). It doesn't reproduce the
+backend's input parsing
+([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
+the fake has no handler for fails as a network error, with the request named
+in the console, instead of reaching a server. The mock mode doesn't proxy to
+the backend, so the API reference at `/docs` isn't available there.
+
+Query parameters on the URL the app loads with choose the data:
+
+| Parameter | Effect |
+| --- | --- |
+| `scenario=default` | About eight cards with varied markdown (also when omitted) |
+| `scenario=empty` | No cards |
+| `scenario=many` | 150 cards, more than one page |
+| `scenario=failing` | Every API request answers `500 unexpected_error` |
+| `delay=<ms>` | Adds that many milliseconds to every API response, for example `?scenario=many&delay=2000` |
+
+The fake's state lives in the page's memory: changes survive navigation
+inside the app, and reloading the page starts over from the parameters in
+the address bar. In-app links drop them, so a reload after navigating starts
+the default scenario. Seeded cards get new IDs on every load, so a card's
+URL, such as its editor, shows "doesn't exist" after a reload. Each tab
+runs its own fake, so a change made in one tab is invisible to another. To
+produce a `412`, open a card's editor, change the card from the browser
+console, then save:
+
+```js
+const id = location.pathname.split('/').pop()
+const card = await (await fetch(`/api/lcards/${id}`)).json()
+await fetch(`/api/lcards/${id}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json', 'If-Match': `"${card.version}"` },
+  body: JSON.stringify({ title: 'Changed elsewhere', description: card.description }),
+})
+```
+
+Production builds contain neither MSW's worker nor the fake.
+
 ### GitHub CLI in the devcontainer
 
 Agents open pull requests with `gh`, authenticated by `GH_TOKEN`, which the
@@ -474,7 +524,9 @@ The spec is split across `backend/apispec/openapi.yml`, `paths/` and
 - `make api-types` generates the client app's types,
   `frontend/src/api/schema.gen.ts`, from the bundle. The file is committed;
   `make api-types-check` fails when it is stale. After a spec change, run
-  `make api-types` and commit the bundle and the types together.
+  `make api-types` and commit the bundle and the types together. If the
+  client app calls the endpoint, update its fake as well
+  ([Running without the backend](#running-without-the-backend)).
 
 The reference UI is the Scalar standalone script, taken from
 `frontend/node_modules`, gzipped and embedded only when building with the
