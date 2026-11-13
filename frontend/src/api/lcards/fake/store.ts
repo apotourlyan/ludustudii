@@ -58,7 +58,7 @@ export class CardStore {
 
     const sorted = [...this.#cards.values()]
       .filter((card) => after === undefined || card.id < after)
-      .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+      .toSorted((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
 
     const items = sorted.slice(0, limit).map((card) => ({ ...card }));
     const last = items.at(-1);
