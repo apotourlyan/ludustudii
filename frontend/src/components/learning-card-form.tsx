@@ -1,117 +1,102 @@
-import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import {
-  useCreateLearningCard,
-  useUpdateLearningCard,
-  type LearningCard,
-} from '@/api/lcards'
-import { errorMessage } from '@/components/error-message'
-import { LearningCardDisplay } from '@/components/learning-card-view'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
-import { Textarea } from '@/components/ui/textarea'
+import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useForm } from "@tanstack/react-form";
+import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
+import { errorMessage } from "@/components/error-message";
+import { LearningCardDisplay } from "@/components/learning-card-view";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
 
-const TITLE_MAX_LENGTH = 200
-const DESCRIPTION_MAX_LENGTH = 2000
+const TITLE_MAX_LENGTH = 200;
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 // The maxLength attribute counts UTF-16 code units of the raw value, so it
 // only caps runaway pastes; validation reports the real limit.
-const INPUT_SLACK = 2
+const INPUT_SLACK = 2;
 
 // The server stores fields in this form and checks their length after
 // applying it. JS trim() also strips U+FEFF and keeps U+0085, unlike Go's
 // strings.TrimSpace; at worst the server rejects what the form accepted.
-const canonicalize = (value: string) => value.normalize('NFC').trim()
+const canonicalize = (value: string) => value.normalize("NFC").trim();
 
 // Counts code points, as the server does, rather than UTF-16 code units.
-const canonicalLength = (value: string) => [...canonicalize(value)].length
+const canonicalLength = (value: string) => [...canonicalize(value)].length;
 
 const validateTitle = ({ value }: { value: string }) => {
-  const length = canonicalLength(value)
+  const length = canonicalLength(value);
   if (length === 0) {
-    return { message: 'Title is required' }
+    return { message: "Title is required" };
   }
   if (length > TITLE_MAX_LENGTH) {
-    return { message: `Title must be at most ${TITLE_MAX_LENGTH} characters` }
+    return { message: `Title must be at most ${TITLE_MAX_LENGTH} characters` };
   }
-  return undefined
-}
+  return undefined;
+};
 
 const validateDescription = ({ value }: { value: string }) => {
-  const length = canonicalLength(value)
+  const length = canonicalLength(value);
   if (length === 0) {
-    return { message: 'Description is required' }
+    return { message: "Description is required" };
   }
   if (length > DESCRIPTION_MAX_LENGTH) {
     return {
       message: `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters`,
-    }
+    };
   }
-  return undefined
-}
+  return undefined;
+};
 
 interface LearningCardFormProps {
-  card?: LearningCard
+  card?: LearningCard;
 }
 
 export function LearningCardForm({ card }: LearningCardFormProps) {
   // Retain the version the form opened with across background query refetches.
-  const [editingVersion] = useState(card?.version)
-  const navigate = useNavigate()
-  const createLearningCard = useCreateLearningCard()
-  const updateLearningCard = useUpdateLearningCard()
-  const isEditing = Boolean(card)
-  const mutation = isEditing ? updateLearningCard : createLearningCard
+  const [editingVersion] = useState(card?.version);
+  const navigate = useNavigate();
+  const createLearningCard = useCreateLearningCard();
+  const updateLearningCard = useUpdateLearningCard();
+  const isEditing = Boolean(card);
+  const mutation = isEditing ? updateLearningCard : createLearningCard;
 
   const form = useForm({
     defaultValues: {
-      title: card?.title ?? '',
-      description: card?.description ?? '',
+      title: card?.title ?? "",
+      description: card?.description ?? "",
     },
     onSubmit: async ({ value, formApi }) => {
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
-      }
+      };
       if (card) {
         await updateLearningCard.mutateAsync({
           id: card.id,
           version: editingVersion!,
           ...input,
-        })
-        await navigate({ to: '/learning-cards' })
+        });
+        await navigate({ to: "/learning-cards" });
       } else {
-        await createLearningCard.mutateAsync(input)
-        formApi.reset()
+        await createLearningCard.mutateAsync(input);
+        formApi.reset();
       }
     },
-  })
+  });
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 p-6 md:grid-cols-2">
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle>{isEditing ? 'Update Card' : 'Add Card'}</CardTitle>
+          <CardTitle>{isEditing ? "Update Card" : "Add Card"}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
             onSubmit={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
             }}
           >
             <FieldGroup>
@@ -123,7 +108,7 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
                 }}
               >
                 {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0
+                  const isInvalid = field.state.meta.errors.length > 0;
                   return (
                     <Field data-invalid={isInvalid}>
                       <div className="flex items-center justify-between">
@@ -144,12 +129,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
                         placeholder="Enter title..."
                       />
                       <div className="min-h-4">
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
+                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
                       </div>
                     </Field>
-                  )
+                  );
                 }}
               </form.Field>
 
@@ -161,7 +144,7 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
                 }}
               >
                 {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0
+                  const isInvalid = field.state.meta.errors.length > 0;
                   return (
                     <Field data-invalid={isInvalid}>
                       <div className="flex items-center justify-between">
@@ -182,41 +165,29 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
                         aria-invalid={isInvalid}
                       />
                       <div className="min-h-4">
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
+                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
                       </div>
                     </Field>
-                  )
+                  );
                 }}
               </form.Field>
 
               {mutation.isError && (
                 <FieldError>
-                  {errorMessage(
-                    mutation.error,
-                    isEditing ? 'save your edits' : 'create the card',
-                  )}
+                  {errorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
                 </FieldError>
               )}
 
-              <form.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
-              >
+              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
                 {([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    disabled={
-                      !canSubmit || isSubmitting || mutation.isPending
-                    }
-                  >
+                  <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
                     {isSubmitting || mutation.isPending
                       ? isEditing
-                        ? 'Updating...'
-                        : 'Creating...'
+                        ? "Updating..."
+                        : "Creating..."
                       : isEditing
-                        ? 'Update Card'
-                        : 'Create Card'}
+                        ? "Update Card"
+                        : "Create Card"}
                   </Button>
                 )}
               </form.Subscribe>
@@ -228,6 +199,5 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         {(values) => <LearningCardDisplay card={values} />}
       </form.Subscribe>
     </div>
-  )
+  );
 }
-
