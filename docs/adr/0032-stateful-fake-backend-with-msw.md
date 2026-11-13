@@ -1,6 +1,6 @@
 # 0032. Stateful fake backend with MSW
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 - Tags: front-end, testing, api
 
@@ -32,10 +32,10 @@ error codes ([0025](0025-error-responses.md)).
     type check;
   - **factories** that build valid data for seeds and tests.
 - **The fake implements what the client app's flows depend on, and
-  nothing else:** state across requests, versions with 404 before 412 on
-  a stale version, a 400 for a malformed ID, opaque cursors in
-  newest-first order, and minimal input validation (trimmed, required,
-  maximum length). It doesn't reproduce the backend's input parsing,
+  nothing else:** state across requests, versions with 428 without
+  `If-Match` and 404 before 412 on a stale version, a 400 for a malformed
+  ID, opaque cursors in newest-first order, and minimal input validation
+  (trimmed, required, maximum length, page size). It doesn't reproduce the backend's input parsing,
   canonicalization or order of checks; the backend's own tests cover
   those. Any other response a test needs, such as a specific error, comes
   from a per-test handler override, not from the fake.
