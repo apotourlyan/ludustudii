@@ -8,47 +8,47 @@
 // out, or the clock goes backwards, the timestamp moves one millisecond
 // ahead of the last one used, so IDs never stop increasing. rand_b is random.
 
-const COUNTER_MAX = 0xfff
+const COUNTER_MAX = 0xfff;
 // A new millisecond starts the counter below this value, which leaves at
 // least 2048 increments before it overflows.
-const COUNTER_START_LIMIT = 0x800
+const COUNTER_START_LIMIT = 0x800;
 
-let lastMs = -1
-let counter = 0
+let lastMs = -1;
+let counter = 0;
 
 export function uuidv7(): string {
-  const now = Date.now()
+  const now = Date.now();
   if (now > lastMs) {
-    lastMs = now
-    counter = randomCounterStart()
+    lastMs = now;
+    counter = randomCounterStart();
   } else if (counter < COUNTER_MAX) {
-    counter += 1
+    counter += 1;
   } else {
-    lastMs += 1
-    counter = randomCounterStart()
+    lastMs += 1;
+    counter = randomCounterStart();
   }
 
-  const rand = crypto.getRandomValues(new Uint8Array(8))
+  const rand = crypto.getRandomValues(new Uint8Array(8));
   // The variant takes the top two bits of rand_b: 0b10.
-  rand[0] = 0x80 | (rand[0]! & 0x3f)
+  rand[0] = 0x80 | (rand[0]! & 0x3f);
 
-  const time = lastMs.toString(16).padStart(12, '0')
-  const randA = counter.toString(16).padStart(3, '0')
-  const randB = hex(rand)
+  const time = lastMs.toString(16).padStart(12, "0");
+  const randA = counter.toString(16).padStart(3, "0");
+  const randB = hex(rand);
   return [
     time.slice(0, 8),
     time.slice(8, 12),
     `7${randA}`,
     randB.slice(0, 4),
     randB.slice(4, 16),
-  ].join('-')
+  ].join("-");
 }
 
 function randomCounterStart(): number {
-  const [value] = crypto.getRandomValues(new Uint16Array(1))
-  return value! % COUNTER_START_LIMIT
+  const [value] = crypto.getRandomValues(new Uint16Array(1));
+  return value! % COUNTER_START_LIMIT;
 }
 
 function hex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
