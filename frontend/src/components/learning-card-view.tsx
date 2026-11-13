@@ -21,21 +21,31 @@ import { Separator } from "@/components/ui/separator";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
-  h1: ({ node: _node, ...props }) => (
-    <h1 className="mt-4 mb-2 text-lg font-semibold first:mt-0" {...props} />
+  h1: ({ node: _node, children, ...props }) => (
+    <h1 className="mt-4 mb-2 text-lg font-semibold first:mt-0" {...props}>
+      {children}
+    </h1>
   ),
-  h2: ({ node: _node, ...props }) => (
-    <h2 className="mt-4 mb-2 text-base font-semibold first:mt-0" {...props} />
+  h2: ({ node: _node, children, ...props }) => (
+    <h2 className="mt-4 mb-2 text-base font-semibold first:mt-0" {...props}>
+      {children}
+    </h2>
   ),
-  h3: ({ node: _node, ...props }) => (
-    <h3 className="mt-3 mb-1 text-sm font-semibold first:mt-0" {...props} />
+  h3: ({ node: _node, children, ...props }) => (
+    <h3 className="mt-3 mb-1 text-sm font-semibold first:mt-0" {...props}>
+      {children}
+    </h3>
   ),
-  h4: ({ node: _node, ...props }) => (
-    <h4 className="mt-3 mb-1 font-semibold first:mt-0" {...props} />
+  h4: ({ node: _node, children, ...props }) => (
+    <h4 className="mt-3 mb-1 font-semibold first:mt-0" {...props}>
+      {children}
+    </h4>
   ),
   p: ({ node: _node, ...props }) => <p className="my-2 first:mt-0 last:mb-0" {...props} />,
-  a: ({ node: _node, ...props }) => (
-    <a className="text-primary underline underline-offset-2" {...props} />
+  a: ({ node: _node, children, ...props }) => (
+    <a className="text-primary underline underline-offset-2" {...props}>
+      {children}
+    </a>
   ),
   ul: ({ node: _node, ...props }) => <ul className="my-2 list-disc pl-5" {...props} />,
   ol: ({ node: _node, ...props }) => <ol className="my-2 list-decimal pl-5" {...props} />,
