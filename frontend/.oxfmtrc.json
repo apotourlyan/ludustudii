@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "src/api/schema.gen.ts",
+    "src/routeTree.gen.ts",
+    "package-lock.json",
+    "tools/package-lock.json"
+  ]
+}
