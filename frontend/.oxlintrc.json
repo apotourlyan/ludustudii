@@ -45,7 +45,8 @@
     },
     {
       // Module boundaries outside the API layer (ADR 0033). The patterns
-      // match the alias and relative paths (./api/, ../api/, ../../api/...).
+      // match the alias and relative paths (./api/, ../api/, ./../api/...),
+      // and openapi-fetch's subpaths as well as the package.
       // A fake inside a service folder gets both messages. src/mock/ has its
       // own copy below without the fakes pattern; an override replaces a
       // rule's options instead of merging them.
@@ -57,10 +58,6 @@
           {
             "paths": [
               {
-                "name": "openapi-fetch",
-                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
-              },
-              {
                 "name": "@tanstack/react-query",
                 "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
                 "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
@@ -68,7 +65,11 @@
             ],
             "patterns": [
               {
-                "regex": "^(@|\\.|\\.\\.(/\\.\\.)*)/api/[^/]+/",
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/api/[^/]+/",
                 "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
               },
               {
@@ -85,7 +86,7 @@
       // (ADR 0032); every other boundary above still applies. Service
       // internals are a gitignore group here, so a service's fake/ folder
       // can be negated. Oxlint applies a group's negations to every pattern
-      // of the rule, so a negated group must be the only pattern.
+      // of the rule, so no other pattern here may match a path under fake/.
       "files": ["src/mock/**"],
       "rules": {
         "no-restricted-imports": [
@@ -93,16 +94,16 @@
           {
             "paths": [
               {
-                "name": "openapi-fetch",
-                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
-              },
-              {
                 "name": "@tanstack/react-query",
                 "importNames": ["useQuery", "useQueryClient", "useQueries", "useInfiniteQuery"],
                 "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
               }
             ],
             "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
               {
                 "group": [
                   "**/api/*/**",
