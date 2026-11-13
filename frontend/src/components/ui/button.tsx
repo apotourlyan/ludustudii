@@ -52,4 +52,8 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+export {
+  Button,
+  // oxlint-disable-next-line react/only-export-components -- shadcn exports the variants with the component, for links styled as buttons; an edit here reloads the page instead of keeping state
+  buttonVariants,
+};

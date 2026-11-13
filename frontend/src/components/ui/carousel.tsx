@@ -227,5 +227,6 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  // oxlint-disable-next-line react/only-export-components -- shadcn exports the hook with the components, for slides that need the Embla API; an edit here reloads the page instead of keeping state
   useCarousel,
 };
