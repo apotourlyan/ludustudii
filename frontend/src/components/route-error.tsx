@@ -24,7 +24,9 @@ export function RouteError({ error }: ErrorComponentProps) {
       <Card>
         <CardContent className="space-y-3">
           <FieldError>{message}</FieldError>
-          <Button variant="outline" onClick={() => router.invalidate()}>
+          {/* A failed reload shows this component again, so the click has
+              nothing to wait for. */}
+          <Button variant="outline" onClick={() => void router.invalidate()}>
             Try again
           </Button>
         </CardContent>
