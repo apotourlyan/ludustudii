@@ -107,8 +107,10 @@ frontend-fmt-check:
 ## frontend-lint: Lints the client app with Oxlint, type-aware; warnings and unused disable directives fail
 # frontend/.oxlintrc.json turns on type-aware rules, denies warnings and
 # reports unused disable directives, so the editor applies the same settings.
+# The guard looks for the binaries, not only node_modules, so a checkout
+# installed before Oxlint was added also gets the hint.
 frontend-lint:
-	@[ -d $(FRONTEND_DIR)/node_modules ] || \
+	@[ -x $(FRONTEND_DIR)/node_modules/.bin/oxlint ] && [ -x $(FRONTEND_DIR)/node_modules/.bin/tsgolint ] || \
 		{ echo "frontend-lint: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	cd $(FRONTEND_DIR) && npm run --silent lint
 
