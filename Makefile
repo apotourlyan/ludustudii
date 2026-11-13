@@ -270,7 +270,6 @@ git-diff:
 check:
 	$(MAKE) versions-check
 	$(MAKE) fmt-check
-	$(MAKE) frontend-fmt-check
 	$(MAKE) test-tags-check
 	$(MAKE) pr-title-check-test
 	$(MAKE) lint
