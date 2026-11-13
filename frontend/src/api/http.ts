@@ -84,6 +84,7 @@ export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
     });
   }
   // A response without a body, such as a 204, has no data.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- responses aren't validated at runtime (ADR 0031); a successful body is trusted to match the spec's type
   return data as T;
 }
 
