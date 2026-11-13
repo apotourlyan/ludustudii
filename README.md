@@ -598,11 +598,11 @@ tooling is kept out of `go.mod`.
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
 
-`make check` runs `versions-check`, `fmt-check`, `test-tags-check`,
-`pr-title-check-test`, `lint`, `tidy-check`, `generate-check`,
-`api-types-check`, `frontend-typecheck`, `test-unit` and `test-integration`
-sequentially, stopping at the first failure. It needs the frontend
-dependencies (`make frontend-deps`).
+`make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
+`test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
+`generate-check`, `api-types-check`, `frontend-typecheck`, `test-unit` and
+`test-integration` sequentially, stopping at the first failure. It needs the
+frontend dependencies (`make frontend-deps`).
 
 `make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.
