@@ -91,6 +91,7 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- shadcn's sync with Embla: its init event has fired before the hook returns the API, so the initial state is read here
     onSelect(api);
     api.on("reInit", onSelect);
     api.on("select", onSelect);
