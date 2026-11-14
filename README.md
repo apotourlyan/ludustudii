@@ -438,6 +438,36 @@ description, and the issue closes when the maintainer merges it.
 Without `GH_TOKEN`, everything else works; agents just can't open pull
 requests or issues.
 
+### Claude Code in the devcontainer
+
+The devcontainer installs the Claude Code CLI and VS Code extension through
+the `claude-code` feature in `devcontainer.json`. `CLAUDE.md` imports
+`AGENTS.md`, so Claude Code follows the same instructions as other agents;
+edit `AGENTS.md`, not `CLAUDE.md`.
+
+Unlike the repository's other tools, the CLI isn't pinned, on purpose.
+`devcontainer-lock.json` pins only the feature (its install script). The
+feature installs the latest `@anthropic-ai/claude-code` from npm with the
+Node version from the `node` feature, and the CLI then updates itself.
+Pinning it would need a different install route, since the feature has no
+version option.
+
+Claude Code's state (login, settings, sessions, memory and plugins) lives in
+the `claude-config` volume, mounted at `/root/.claude`. `CLAUDE_CONFIG_DIR`
+points there as well, so `.claude.json` is kept in the volume rather than in
+the container's home directory. The state survives container rebuilds; log
+in once with `/login` after the first build.
+
+To start over, remove the container and then the volume. Docker won't remove
+a volume that any container references, even a stopped one, and the next
+rebuild recreates the container. Compose prefixes the volume name with the
+project name; `docker volume ls` shows it:
+
+```sh
+docker rm -f ludustudii
+docker volume rm <project>_claude-config
+```
+
 ### Database migrations
 
 Migrations live in `backend/migrations` as goose SQL files. Only tests use
