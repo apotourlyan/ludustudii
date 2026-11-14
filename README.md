@@ -669,8 +669,8 @@ imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
 `useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
 fakes. Every rule turned off carries its reason in the configuration. In the
-devcontainer, the Oxc extension applies the same configuration through
-`oxc.configPath` and the `OXLINT_TSGOLINT_PATH` container variable.
+devcontainer, the Oxc extension applies the same configuration through its
+`oxc.configPath` and `oxc.path.tsgolint` settings.
 
 #### Exclusion policy
 
