@@ -26,7 +26,19 @@
         "[javascript][javascriptreact][typescript][typescriptreact][css]": {
           "editor.defaultFormatter": "oxc.oxc-vscode",
           "editor.formatOnSave": true
-        }
+        },
+        // Lint with the client app's config. The language server starts at
+        // /workspace and would otherwise reject the file as a nested config
+        // (`options.typeAware` is root-only) and fall back to the defaults.
+        // The path resolves against the workspace folder; its override
+        // globs resolve against the file, as with 'make frontend-lint'.
+        "oxc.configPath": "frontend/.oxlintrc.json",
+        // Oxlint looks for tsgolint from its working directory, /workspace
+        // for the language server, so type-aware rules wouldn't start. The
+        // extension passes this path to the server as OXLINT_TSGOLINT_PATH;
+        // a containerEnv variable wouldn't reach it, because the extension
+        // builds the server's environment from a fresh login shell.
+        "oxc.path.tsgolint": "/workspace/frontend/node_modules/.bin/tsgolint"
       }
     }
   },
