@@ -1,10 +1,12 @@
 // Seeded scenarios for the fake backend (ADR 0032), chosen in the mock mode
 // with the app URL's `scenario` parameter. Nothing here depends on the
 // browser, so tests can use the same scenarios in Node.
+
 import { delay, http, HttpResponse, type RequestHandler } from "msw";
+
 import { apiBaseUrls } from "@/api/config";
-import { requestIdHeader } from "@/api/fake/http";
 import { resetFakeStores } from "@/api/fake";
+import { requestIdHeader } from "@/api/fake/http";
 import { makeCards, sampleCards } from "@/api/lcards/fake/factories";
 import { cardStore } from "@/api/lcards/fake/store";
 

@@ -1,8 +1,11 @@
 // Starts the fake backend in the browser for the mock mode (npm run
 // dev:mock, ADR 0032). main.tsx imports this module dynamically, and only in
 // that mode, so neither MSW's worker nor the fake reaches another build.
+
 import { network } from "virtual:msw";
+
 import { fakeHandlers } from "@/api/fake";
+
 import {
   applyScenario,
   isScenarioName,

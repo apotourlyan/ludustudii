@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+
 import { getLearningCard, getLearningCards } from "./requests";
 
 // Every key starts with the backend service name, so one resource has one

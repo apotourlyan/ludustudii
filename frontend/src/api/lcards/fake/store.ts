@@ -3,8 +3,9 @@
 // creation order; versions start at 1 and every replace increments them;
 // replace and remove check the expected version and report an unknown card
 // before a stale version. Handlers map the outcomes to HTTP.
-import type { components } from "../../schema.gen";
+
 import { uuidv7 } from "../../fake/uuidv7";
+import type { components } from "../../schema.gen";
 
 export type LearningCard = components["schemas"]["LearningCard"];
 export type CardContent = Pick<LearningCard, "title" | "description">;

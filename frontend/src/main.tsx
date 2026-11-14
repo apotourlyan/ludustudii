@@ -1,11 +1,14 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import React from "react";
+import ReactDOM from "react-dom/client";
+
 import { ApiError } from "@/api/http";
 import { RouteError } from "@/components/route-error";
 import { RoutePending } from "@/components/route-pending";
+
 import { routeTree } from "./routeTree.gen.js";
+
 import "./styles/global.css";
 
 // How long fetched data counts as fresh before a read refetches it.

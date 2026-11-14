@@ -1,4 +1,5 @@
 // HTTP pieces shared by the fake services (ADR 0032).
+
 import type { components } from "../schema.gen";
 
 export type FieldError = components["schemas"]["FieldError"];

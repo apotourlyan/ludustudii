@@ -6,8 +6,9 @@
 //
 // Operations: GET and POST /api/lcards, and GET, PUT and DELETE
 // /api/lcards/{id}.
+
 import { createOpenApiHttp } from "openapi-msw";
-import type { paths } from "../../schema.gen";
+
 import {
   etag,
   ifMatchVersion,
@@ -16,6 +17,7 @@ import {
   validationError,
   type FieldError,
 } from "../../fake/http";
+import type { paths } from "../../schema.gen";
 import { cardStore, type CardContent, type CardStore } from "./store";
 
 const CARDS_PATH = "/api/lcards";

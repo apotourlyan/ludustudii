@@ -1,4 +1,5 @@
 import createClient, { type Client, type Middleware } from "openapi-fetch";
+
 import type { components } from "./schema.gen";
 
 type ErrorResponse = components["schemas"]["ErrorResponse"];
