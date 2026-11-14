@@ -438,6 +438,26 @@ description, and the issue closes when the maintainer merges it.
 Without `GH_TOKEN`, everything else works; agents just can't open pull
 requests or issues.
 
+### Claude Code in the devcontainer
+
+The devcontainer installs the Claude Code CLI and VS Code extension through
+the `claude-code` feature in `devcontainer.json`. `CLAUDE.md` imports
+`AGENTS.md`, so Claude Code follows the same instructions as other agents;
+edit `AGENTS.md`, not `CLAUDE.md`.
+
+Claude Code's state (login, settings, sessions, memory and plugins) lives in
+the `claude-config` volume, mounted at `/root/.claude`. `CLAUDE_CONFIG_DIR`
+points there as well, so `.claude.json` is kept in the volume rather than in
+the container's home directory. The state survives container rebuilds; log
+in once with `/login` after the first build.
+
+To start over, remove the volume while the container is stopped (Compose
+prefixes the volume name with the project name; `docker volume ls` shows it):
+
+```sh
+docker volume rm <project>_claude-config
+```
+
 ### Database migrations
 
 Migrations live in `backend/migrations` as goose SQL files. Only tests use
