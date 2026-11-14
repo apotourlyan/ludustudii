@@ -668,7 +668,9 @@ boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
 `useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
-fakes. Every rule turned off carries its reason in the configuration.
+fakes. Every rule turned off carries its reason in the configuration. In the
+devcontainer, the Oxc extension applies the same configuration through
+`oxc.configPath` and the `OXLINT_TSGOLINT_PATH` container variable.
 
 #### Exclusion policy
 
