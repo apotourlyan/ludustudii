@@ -68,3 +68,9 @@ Thumbs.db
 *.dll
 *.so
 *.dylib
+
+# ==========================================
+# Claude Code (personal, per-developer files)
+# ==========================================
+.claude/settings.local.json
+CLAUDE.local.md
