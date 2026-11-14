@@ -1,9 +1,10 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import path from "node:path";
+
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import react from "@vitejs/plugin-react";
 import { msw } from "msw/vite";
+import { defineConfig } from "vite";
 
 // The mode of `npm run dev:mock`, where a fake backend answers the client
 // app's API requests in the browser (ADR 0032).

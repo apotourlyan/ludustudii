@@ -1,6 +1,7 @@
 // Valid learning cards for seeding the fake lcards store and for tests.
 // IDs come from the shared monotonic generator, so cards built later sort
 // as newer, and cards created through the store sort after all of them.
+
 import { uuidv7 } from "../../fake/uuidv7";
 import type { LearningCard } from "./store";
 
