@@ -62,7 +62,7 @@ spec-bundle: $(SPEC_BUNDLE)
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
-.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check
+.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check frontend-lint
 
 ## frontend-deps: Installs the locked dependencies of the client app and its generators
 frontend-deps:
@@ -103,6 +103,16 @@ frontend-fmt-check:
 		{ echo "frontend-fmt-check: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	@cd $(FRONTEND_DIR) && npm run --silent fmt:check || \
 		{ echo "frontend-fmt-check: the files above need formatting; run 'make frontend-fmt'" >&2; exit 1; }
+
+## frontend-lint: Lints the client app with Oxlint, type-aware; warnings and unused disable directives fail
+# frontend/.oxlintrc.json turns on type-aware rules, denies warnings and
+# reports unused disable directives, so the editor applies the same settings.
+# The guard looks for the binaries, not only node_modules, so a checkout
+# installed before Oxlint was added also gets the hint.
+frontend-lint:
+	@[ -x $(FRONTEND_DIR)/node_modules/.bin/oxlint ] && [ -x $(FRONTEND_DIR)/node_modules/.bin/tsgolint ] || \
+		{ echo "frontend-lint: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	cd $(FRONTEND_DIR) && npm run --silent lint
 
 .PHONY: dev
 
@@ -278,6 +288,7 @@ check:
 	$(MAKE) generate-check
 	$(MAKE) api-types-check
 	$(MAKE) frontend-typecheck
+	$(MAKE) frontend-lint
 	$(MAKE) test-unit
 	$(MAKE) test-integration
 

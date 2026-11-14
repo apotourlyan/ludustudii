@@ -127,6 +127,7 @@ function VirtualCards({ cards }: { cards: LearningCard[] }) {
       <div className="mt-4 flex items-center justify-center gap-4">
         <CarouselPrevious className="static inset-auto m-0" />
         <p
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- role="status" is announced as a live region more reliably than <output>
           role="status"
           aria-live="polite"
           aria-atomic="true"

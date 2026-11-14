@@ -341,13 +341,17 @@ Each tool version has one source, which the devcontainer and CI both read:
 | golangci-lint | `GOLANGCI_LINT_VERSION` in the `Makefile` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
 | Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
 | oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
+| Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
 Node, change `engines.node` and the devcontainer's node feature in one commit,
 then rebuild the devcontainer. To upgrade oxfmt, which can change formatting,
 change its pin, run `npm install` in `frontend/` and `make frontend-fmt`, and
-commit the reformat on its own.
+commit the reformat on its own. To upgrade Oxlint, which can add rules, change
+the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
+`frontend/` and `make frontend-lint`, and fix or configure what it reports in
+the same change.
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -594,15 +598,16 @@ tooling is kept out of `go.mod`.
 | `make frontend-typecheck` | Type-check the client app. |
 | `make frontend-fmt` | Format the client app with oxfmt. |
 | `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
+| `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
-`generate-check`, `api-types-check`, `frontend-typecheck`, `test-unit` and
-`test-integration` sequentially, stopping at the first failure. It needs the
-frontend dependencies (`make frontend-deps`).
+`generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
+`test-unit` and `test-integration` sequentially, stopping at the first
+failure. It needs the frontend dependencies (`make frontend-deps`).
 
 `make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.
@@ -623,6 +628,15 @@ change before them. GitHub's blame view uses it automatically; locally, run
 later formatting-only commit (such as enabling import or Tailwind class
 sorting, #18 and #19) adds its hash to the file.
 
+Oxlint lints the client app with type-aware rules, configured in
+`frontend/.oxlintrc.json` (ADR 0033): the correctness and suspicious
+categories as errors, the promise and React hooks rules, and the module
+boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
+imports a service only through `@/api/<service>` (plus the shared files
+directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
+`useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
+fakes. Every rule turned off carries its reason in the configuration.
+
 #### Exclusion policy
 
 Use `backend/.golangci.yml` for shared rules: generated files and bundled assets,
@@ -632,6 +646,13 @@ For a one-off exception, place `//nolint:<linter> // <reason>` beside the code
 with the smallest practical scope. Name the linter and explain the deliberate
 behavior or false positive; prefer a real fix when the finding identifies a bug.
 For gosec, use `// #nosec Gxxx -- <reason>` to suppress only the relevant check.
+
+In the client app, a one-off exception is
+`// oxlint-disable-next-line <plugin>/<rule> -- <reason>`, only where the rule
+is wrong for that code. Never disable a promise rule: await or return the
+promise where the caller must wait for it, or mark it `void` with a comment
+saying why not waiting is right. `make frontend-lint` fails on a disable
+directive that no longer suppresses anything.
 
 ### CI
 

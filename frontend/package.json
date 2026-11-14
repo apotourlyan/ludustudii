@@ -10,6 +10,7 @@
     "typecheck": "tsc -p .",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --list-different",
+    "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -45,6 +46,8 @@
     "msw": "^3.0.5",
     "openapi-msw": "^2.1.1",
     "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "7.0.2007",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"

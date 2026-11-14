@@ -57,10 +57,10 @@ function Carousel({
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
 
-  const onSelect = React.useCallback((api: CarouselApi) => {
-    if (!api) return;
-    setCanScrollPrev(api.canScrollPrev());
-    setCanScrollNext(api.canScrollNext());
+  const onSelect = React.useCallback((emblaApi: CarouselApi) => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
   }, []);
 
   const scrollPrev = React.useCallback(() => {
@@ -91,6 +91,7 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- shadcn's sync with Embla: its init event has fired before the hook returns the API, so the initial state is read here
     onSelect(api);
     api.on("reInit", onSelect);
     api.on("select", onSelect);
@@ -117,6 +118,7 @@ function Carousel({
       <div
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- shadcn's carousel is a region whether or not the caller names it; a <section> is one only with an accessible name
         role="region"
         aria-roledescription="carousel"
         data-slot="carousel"
@@ -146,6 +148,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a slide is a group in the WAI-ARIA carousel pattern, not a fieldset
       role="group"
       aria-roledescription="slide"
       data-slot="carousel-item"
@@ -226,5 +229,6 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  // oxlint-disable-next-line react/only-export-components -- shadcn exports the hook with the components, for slides that need the Embla API; an edit here reloads the page instead of keeping state
   useCarousel,
 };

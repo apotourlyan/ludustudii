@@ -3,6 +3,7 @@ import { cn } from "cn";
 
 function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (
+    // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- a generic label: callers pass htmlFor through props, as FieldLabel's do
     <label
       data-slot="label"
       className={cn(

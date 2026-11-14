@@ -71,6 +71,7 @@ function Field({
 }: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
   return (
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- shadcn groups a field's label, control and messages; a fieldset would bring its own styles and form semantics
       role="group"
       data-slot="field"
       data-orientation={orientation}

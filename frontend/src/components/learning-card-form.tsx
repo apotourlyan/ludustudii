@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
+import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { errorMessage } from "@/components/error-message";
 import { LearningCardDisplay } from "@/components/learning-card-view";
@@ -71,15 +72,28 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
       };
+      try {
+        if (card) {
+          await updateLearningCard.mutateAsync({
+            id: card.id,
+            version: editingVersion!,
+            ...input,
+          });
+        } else {
+          await createLearningCard.mutateAsync(input);
+        }
+      } catch (error) {
+        // The mutation's state shows the failure below the fields, and the
+        // form keeps the user's input. An error that isn't an ApiError is a
+        // bug behind "Something went wrong", so it goes to the console.
+        if (!(error instanceof ApiError)) {
+          console.error(error);
+        }
+        return;
+      }
       if (card) {
-        await updateLearningCard.mutateAsync({
-          id: card.id,
-          version: editingVersion!,
-          ...input,
-        });
         await navigate({ to: "/learning-cards" });
       } else {
-        await createLearningCard.mutateAsync(input);
         formApi.reset();
       }
     },
@@ -96,7 +110,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              form.handleSubmit();
+              // onSubmit handles a failed save itself, and the form's state
+              // shows the submission's progress, so the event handler has
+              // nothing to wait for.
+              void form.handleSubmit();
             }}
           >
             <FieldGroup>
