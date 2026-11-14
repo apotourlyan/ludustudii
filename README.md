@@ -647,26 +647,19 @@ The alternate `script_none.go` build is intentionally omitted from linting.
 
 oxfmt formats the client app with its defaults
 ([ADR 0033](docs/adr/0033-oxlint-and-oxfmt-for-the-client-app.md)).
-`frontend/.oxfmtrc.json` sets two options beyond them:
-
-- `sortImports` sorts import statements with oxfmt's default groups,
-  separated by a blank line: Node.js built-ins, packages, `@/` imports,
-  relative imports, then style imports. It doesn't reorder side-effect
-  imports. A comment directly above an import moves with it, so a file's
-  header comment ends with a blank line before the imports.
-- `sortTailwindcss` sorts Tailwind classes in `class` and `className`
-  attributes and in `cn` and `cva` calls, in the order of the theme in
-  `src/styles/global.css` (without it, the theme's classes such as
-  `text-muted-foreground` sort as unknown).
-
-It also ignores the generated files (`src/api/schema.gen.ts`,
-`src/routeTree.gen.ts`) and the lockfiles. In the devcontainer, the Oxc
-extension formats JavaScript, TypeScript and CSS files on save.
+`frontend/.oxfmtrc.json` sets one option beyond them: `sortTailwindcss` sorts
+Tailwind classes in `class` and `className` attributes and in `cn` and `cva`
+calls, in the order of the theme in `src/styles/global.css` (without it, the
+theme's classes such as `text-muted-foreground` sort as unknown). It also
+ignores the generated files (`src/api/schema.gen.ts`, `src/routeTree.gen.ts`)
+and the lockfiles. In the devcontainer, the Oxc extension formats JavaScript,
+TypeScript and CSS files on save.
 
 `.git-blame-ignore-revs` lists formatting-only commits, so blame shows the
 change before them. GitHub's blame view uses it automatically; locally, run
 `git config blame.ignoreRevsFile .git-blame-ignore-revs` once per clone. Every
-later formatting-only commit adds its hash to the file.
+later formatting-only commit (such as enabling import sorting, #18) adds its
+hash to the file.
 
 Oxlint lints the client app with type-aware rules, configured in
 `frontend/.oxlintrc.json` (ADR 0033): the correctness and suspicious
