@@ -6,11 +6,13 @@ services:
     volumes:
       - ..:/workspace:cached
       - spa-node-modules:/workspace/frontend/node_modules
+      - claude-config:/root/.claude
     working_dir: /workspace
     environment:
       - APP_PORT=8080
       - DB_CONNECTION=postgres://ludus:ludus@db:5432/ludustudii_db?sslmode=disable
       - DB_TEST_CONNECTION=postgres://tester:tester@db_test:5432/ludustudii_db_test?sslmode=disable
+      - CLAUDE_CONFIG_DIR=/root/.claude
     ports:
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:5173:5173"
@@ -59,3 +61,4 @@ services:
 volumes:
   postgres-data:
   spa-node-modules:
+  claude-config:

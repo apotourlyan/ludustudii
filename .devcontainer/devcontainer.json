@@ -7,9 +7,6 @@
     "vscode": {
       "extensions": [
         "golang.go",
-        "google.google-antigravity",
-        "openai.chatgpt",
-        "anthropic.claude-code",
         "typescriptteam.native-preview",
         "oxc.oxc-vscode",
         "github.vscode-github-actions"
@@ -39,7 +36,8 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {
       "version": "2"
-    }
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
   "otherPortsAttributes": {
     "onAutoForward": "ignore"
