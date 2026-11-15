@@ -178,6 +178,39 @@
           }
         ]
       }
+    },
+    {
+      // The API layer's production modules ship in the production bundle,
+      // so they import neither the fakes nor MSW (ADR 0032). The fakes
+      // themselves are excluded: they import each other and MSW, and only
+      // the mock mode loads them. excludeFiles rather than negated patterns,
+      // which would cancel the other patterns of the group.
+      "files": ["src/api/**"],
+      "excludeFiles": ["src/api/fake.ts", "src/api/fake/**", "src/api/*/fake/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              }
+            ],
+            "patterns": [
+              {
+                // @/api/fake, ./fake, ./fake/store, ../fake/http and so on.
+                "regex": "(^|/)fake(/|$)",
+                "message": "Production modules in src/api/ don't import the fakes; only src/mock/ and tests do, so the fakes stay out of the production bundle (ADR 0032)."
+              },
+              {
+                "regex": "^(openapi-)?msw(/|$)",
+                "message": "Production modules in src/api/ don't import MSW; only the fakes and src/mock/ do, so it stays out of the production bundle (ADR 0032)."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
