@@ -342,6 +342,7 @@ Each tool version has one source, which the devcontainer and CI both read:
 | Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
 | oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 | Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
+| Playwright (`@playwright/test`) and its Chromium | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; the browser build is the one that version expects | `make frontend-deps` and the devcontainer install both; CI caches the browser keyed by the locked version |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
@@ -351,7 +352,9 @@ change its pin, run `npm install` in `frontend/` and `make frontend-fmt`, and
 commit the reformat on its own. To upgrade Oxlint, which can add rules, change
 the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
 `frontend/` and `make frontend-lint`, and fix or configure what it reports in
-the same change.
+the same change. To upgrade Playwright, change its pin, run `npm install` and
+`make frontend-deps` (which downloads the new browser once), and run both kinds
+of [browser test](#browser-tests).
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -553,6 +556,92 @@ Every response received through `testkit.Do` is validated against the OpenAPI
 spec (status, headers and body schema), so the implementation and the spec
 can't drift apart unnoticed.
 
+#### Browser tests
+
+[Playwright](https://playwright.dev) drives the client app in Chromium
+([ADR 0034](docs/adr/0034-browser-tests-with-playwright.md)). There are two
+kinds, each in its own folder under `frontend/tests/` and its own Playwright
+project:
+
+| Command | Tests | Runs against | Covers | Runs in |
+| --- | --- | --- | --- | --- |
+| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the list and its markdown, empty state, create, edit, delete, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
+| `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create, find, edit and delete a card; open a card by its URL; a nonexistent card | Its own CI job |
+
+Both targets pass `ARGS` on to Playwright, for example
+`make frontend-test ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
+Run a new or changed test with `--repeat-each=5` before opening a pull request;
+a test that fails only sometimes is a broken test.
+
+`make test-e2e` builds the client app and the binary, creates a database with
+a unique name (`ludustudii_e2e_<time>_<random>`) on the server in
+`DB_TEST_CONNECTION` with `psql` (the devcontainer installs it; GitHub's
+Ubuntu runners have it), migrates it with goose and runs the tests. The binary
+gets that database's URL from `E2E_DB_CONNECTION`, so running the end-to-end
+config without the target fails with a hint. The database is dropped
+afterwards, also when a test fails or the run is interrupted with Ctrl+C.
+
+Each kind has its own config, `frontend/playwright.mock.config.ts` and
+`frontend/playwright.e2e.config.ts`, with the shared settings in
+`frontend/tests/playwright.base.ts`. Playwright starts every web server a
+config declares, whichever project runs, so one config per kind is what keeps
+the app tests from building or starting the Go server, and the end-to-end
+tests from starting Vite. Each starts its own server on a port that
+`make dev` doesn't use, and never reuses one already running. Both run
+Chromium's headless shell only, with every test in parallel, and no retries,
+so a flaky test fails instead of passing on its second try. Workers are
+Playwright's default of half the CPU cores, capped at one per GB of free
+memory: each worker's Chromium takes up to about 650 MB, and a renderer that
+runs out of memory crashes its page. A failed test keeps its trace and
+screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
+`npx playwright show-report playwright-report/<kind> --host 0.0.0.0` in
+`frontend/` serves it on port 9323.
+
+**App tests** get a new page each, and with it a fresh fake, so they run in
+parallel and can rely on the scenario's data, totals included. The fake's
+state lives in the page, so a test moves between pages with the app's links;
+`page.goto` reloads the page and starts the fake over. Scenarios and delays
+come from the URL (`/learning-cards?scenario=empty`), and other states from
+inside the page: `changeCardElsewhere` in `tests/support/cards.ts` changes a
+card with a `fetch` the fake answers, so the page's copy is stale and the next
+save gets a 412. `context.setOffline(true)` makes the fake fail requests as
+the network would.
+
+**End-to-end tests** share one database and run in parallel, so every test
+creates its own data with a unique title (a random UUID in it) and asserts only
+on that data, never on totals or positions. The list is a carousel, newest
+first, and another test may create a card at any moment, so a test doesn't
+assume its card is the first slide. It finds the card by title with
+`showCard` in `tests/support/carousel.ts`, which steps through the slides
+until one shows it, or it opens the card by its ID (from the editor's URL, or
+the `Location` of a card created through the API). The list loads only its
+first page (20 cards), so a test deletes the cards it creates, which keeps
+the other tests' cards on that page.
+
+**Locators** find elements the way users do: by role, label and text
+(`getByRole`, `getByLabel`, `getByText`). A test that fails because an element
+lost its accessible name has found a real problem. A test ID is a last resort,
+for an element with no role, label or text a user would know it by, and its
+use says why in a comment. In the carousel, only the slide on screen is
+exposed; the others are `aria-hidden`, so role locators skip them, and
+`currentSlide` returns the one on screen.
+
+**A new feature adds its tests** in the same pull request: app tests for its
+flows, error paths included, in `tests/mock/<feature>.spec.ts`, with the fake
+extended for what they need ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md));
+an end-to-end test for its main success path, with uniquely named data, in
+`tests/e2e/<feature>.spec.ts`; and steps both kinds share in `tests/support/`.
+Tests are TypeScript, type-checked by `make frontend-typecheck` (with
+`frontend/tests/tsconfig.json`), and linted and formatted like the client app.
+
+`make frontend-deps` installs Chromium's headless shell in the version the
+locked `@playwright/test` expects; it does nothing when that version is
+present. The devcontainer runs the same install in `post-create.sh`, into the
+`playwright-browsers` volume at `/ms-playwright` (`PLAYWRIGHT_BROWSERS_PATH`),
+so a rebuild keeps the browser. A devcontainer created before the volume
+existed needs a rebuild to get it; until then the browser goes to Playwright's
+default cache, `~/.cache/ms-playwright`.
+
 ### API spec and reference
 
 The spec is split across `backend/apispec/openapi.yml`, `paths/` and
@@ -633,15 +722,18 @@ tooling is kept out of `go.mod`.
 | `make frontend-fmt` | Format the client app with oxfmt. |
 | `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
 | `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
-| `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`. |
+| `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
+| `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
 `generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
-`test-unit` and `test-integration` sequentially, stopping at the first
-failure. It needs the frontend dependencies (`make frontend-deps`).
+`frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
+the first failure. It needs the frontend dependencies and Playwright's
+Chromium (`make frontend-deps`). The end-to-end tests (`make test-e2e`) aren't
+part of it; CI runs them in their own job.
 
 `make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.
@@ -707,15 +799,23 @@ GitHub Actions runs the same gate as a developer
 
 | Workflow | When | What |
 | --- | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Every push to `main` and every pull request; a newer push to a pull request cancels its older run, while runs on `main` always finish | `make check` |
+| [`ci.yml`](.github/workflows/ci.yml) | Every push to `main` and every pull request; a newer push to a pull request cancels its older run, while runs on `main` always finish | `make check`, and `make test-e2e` in a second job beside it |
 | [`pr-title.yml`](.github/workflows/pr-title.yml) | Every pull request when it is opened, reopened, pushed to or edited, so fixing the title re-runs it | `make pr-title-check` with the pull request title, which must be `type: summary` within 64 characters |
 | [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln` |
 
-The CI job installs Go from `backend/go.mod`, Node from `engines.node` in
-`frontend/package.json`, golangci-lint with `make install-golangci-lint`, and
-the frontend dependencies with `make frontend-deps`. It starts only `db_test`
-from `.devcontainer/docker-compose.yml` (`docker compose up -d --wait db_test`)
-and points `DB_TEST_CONNECTION` at `localhost:5433`.
+Both `ci.yml` jobs set up their tools with the same steps, in
+[`.github/actions/setup`](.github/actions/setup/action.yml): Go from
+`backend/go.mod`, Node from `engines.node` in `frontend/package.json`, the
+frontend dependencies and Playwright's Chromium with `make frontend-deps`, and
+Chromium's system libraries with `npx playwright install-deps chromium`. The
+browser directory is cached, keyed by the Playwright version in
+`frontend/package-lock.json`, so only an upgrade downloads it. The `check` job
+also installs golangci-lint with `make install-golangci-lint`. Each job starts
+only `db_test` from `.devcontainer/docker-compose.yml`
+(`docker compose up -d --wait db_test`) and points `DB_TEST_CONNECTION` at
+`localhost:5433`. When a job fails, its Playwright report, with the traces and
+screenshots of the failed tests, is uploaded as an artifact
+(`playwright-report-mock` or `playwright-report-e2e`) on the run's page.
 
 A failing `ci.yml` run means the change isn't done. To run the vulnerability
 scan by hand, open **Actions → Vulnerability scan → Run workflow**, or run
