@@ -431,6 +431,19 @@ component, run from `frontend/`:
 npx shadcn@latest add <component>
 ```
 
+The components use [Phosphor](https://phosphoricons.com) icons. The CLI
+imports them from the package's main entry, `@phosphor-icons/react`, which
+`make frontend-lint` rejects. Import each icon from its own module instead,
+as Phosphor recommends:
+
+```tsx
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+```
+
+In development, Vite pre-bundles the main entry as a single module of every
+icon (over 6 MB), and evaluating it blocks the page for up to seconds on a
+slow machine. A production build includes only the icons used either way.
+
 The CLI runs from npm's cache, so it doesn't need a `shadcn` package in
 `package.json`. The components rely on CSS that shadcn ships as
 `shadcn/tailwind.css`: shared keyframes, custom variants such as `data-open:`,
@@ -816,7 +829,8 @@ boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
 `useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
-fakes. Every rule turned off carries its reason in the configuration. In the
+fakes. Everywhere, Phosphor icons come from their own modules, not the
+package's main entry ([UI components](#ui-components)). Every rule turned off carries its reason in the configuration. In the
 devcontainer, the Oxc extension applies the same configuration through its
 `oxc.configPath` and `oxc.path.tsgolint` settings.
 

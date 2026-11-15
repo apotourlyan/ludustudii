@@ -31,6 +31,20 @@
     "typescript/consistent-return": "off",
     // [...value].length counts code points on purpose, as the server does.
     "typescript/no-misused-spread": "off",
+    // Phosphor's main entry, which loads every icon in development. The
+    // overrides below that set this rule repeat the entry, since an
+    // override replaces a rule's options instead of merging them.
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@phosphor-icons/react",
+            "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+          }
+        ]
+      }
+    ],
     // Side-effect imports of style sheets are how CSS is loaded.
     "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
   },
@@ -70,6 +84,10 @@
           "error",
           {
             "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
               {
                 "name": "@tanstack/react-query",
                 "importNames": [
@@ -125,6 +143,10 @@
           "error",
           {
             "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
               {
                 "name": "@tanstack/react-query",
                 "importNames": [
