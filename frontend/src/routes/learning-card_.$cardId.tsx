@@ -1,10 +1,8 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { ApiError } from "@/api/http";
 import { lcardQueries } from "@/api/lcards";
-import { LearningCardForm } from "@/components/learning-card-form";
-import { Card, CardContent } from "@/shared/ui/card";
+import { CardNotFoundPage, EditCardPage } from "@/modules/library";
 
 export const Route = createFileRoute("/learning-card_/$cardId")({
   // Fill the query cache without returning the data, so the router keeps no
@@ -26,27 +24,11 @@ export const Route = createFileRoute("/learning-card_/$cardId")({
     }
   },
   component: LearningCardEditRoute,
-  notFoundComponent: LearningCardNotFound,
+  notFoundComponent: CardNotFoundPage,
 });
 
 function LearningCardEditRoute() {
   const { cardId } = Route.useParams();
-  const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
 
-  return <LearningCardForm key={card.id} card={card} />;
-}
-
-function LearningCardNotFound() {
-  return (
-    <div className="mx-auto max-w-xl p-6">
-      <Card>
-        <CardContent className="space-y-3">
-          <p>This card doesn't exist. It may have been deleted.</p>
-          <Link to="/learning-cards" className="text-sm text-primary underline underline-offset-4">
-            Back to learning cards
-          </Link>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <EditCardPage cardId={cardId} />;
 }

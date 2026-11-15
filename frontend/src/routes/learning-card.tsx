@@ -1,11 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { LearningCardForm } from "@/components/learning-card-form";
+import { NewCardPage } from "@/modules/library";
 
 export const Route = createFileRoute("/learning-card")({
-  component: LearningCardRoute,
+  component: NewCardPage,
 });
-
-function LearningCardRoute() {
-  return <LearningCardForm />;
-}

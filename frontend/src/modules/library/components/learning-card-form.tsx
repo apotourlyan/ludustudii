@@ -4,12 +4,13 @@ import { useState } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { LearningCardDisplay } from "@/components/learning-card-view";
-import { cardErrorMessage } from "@/modules/library/components/card-error-message";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
+
+import { cardErrorMessage } from "./card-error-message";
+import { LearningCardDisplay } from "./learning-card-view";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;

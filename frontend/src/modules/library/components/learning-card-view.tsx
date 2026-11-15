@@ -3,7 +3,6 @@ import { useState, type ReactNode } from "react";
 import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
-import { cardErrorMessage } from "@/modules/library/components/card-error-message";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +18,8 @@ import { Button, buttonVariants } from "@/shared/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
 import { Separator } from "@/shared/ui/separator";
+
+import { cardErrorMessage } from "./card-error-message";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
