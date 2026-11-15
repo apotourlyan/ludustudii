@@ -38,23 +38,25 @@ export async function goToSlide(page: Page, target: number): Promise<void> {
 }
 
 // Moves the carousel forward, one slide at a time, until it shows the card
-// with this exact title, and returns that slide. Fails when no later slide
-// has it. For lists that other tests change at the same time, where a
-// card's position isn't known, only its title.
+// with this exact title, and returns the slide on screen. Fails when no
+// later slide has it. For lists that other tests change at the same time,
+// where a card's position isn't known, only its title. The position is read
+// again at every step, so a refetch that changes the number of slides
+// doesn't throw it off.
 export async function showCard(page: Page, title: string): Promise<Locator> {
-  let { current, total } = await position(page);
+  const slide = currentSlide(page);
   for (;;) {
-    // Waits until the carousel shows this position, so the check below
-    // reads its slide and not the one before.
-    const slide = page.getByRole("group", { name: `${current} of ${total}`, exact: true });
-    await expect(slide).toBeVisible();
+    const { current, total } = await position(page);
+    // A slide's name and content render together, so once its name matches
+    // the status, the check below reads this slide's card.
+    await expect(slide).toHaveAccessibleName(`${current} of ${total}`);
     if (await slide.getByText(title, { exact: true }).isVisible()) {
       return slide;
     }
-    if (current === total) {
+    if (current >= total) {
       throw new Error(`no slide shows a card titled ${JSON.stringify(title)}`);
     }
     await nextSlideButton(page).click();
-    current += 1;
+    await expect(page.getByRole("status")).not.toHaveText(`${current} / ${total}`);
   }
 }

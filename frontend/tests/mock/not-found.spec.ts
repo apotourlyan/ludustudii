@@ -3,6 +3,8 @@
 
 import { expect, test } from "@playwright/test";
 
+import { NOT_FOUND_TEXT } from "../support/cards";
+
 const cases = [
   { name: "a malformed card ID", id: "not-a-card-id" },
   // A valid UUIDv7 that the fake never hands out.
@@ -13,9 +15,7 @@ for (const { name, id } of cases) {
   test(`${name} shows the not-found page`, async ({ page }) => {
     await page.goto(`/learning-card/${id}`);
 
-    await expect(
-      page.getByText("This card doesn't exist. It may have been deleted.", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Back to learning cards" }).click();
 
     await expect(page).toHaveURL(/\/learning-cards$/);

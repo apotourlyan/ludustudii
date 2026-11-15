@@ -6,25 +6,15 @@
 
 import { randomUUID } from "node:crypto";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
+import { cardIdFromPath, deleteFromSlide, NOT_FOUND_TEXT } from "../support/cards";
 import { showCard } from "../support/carousel";
 
 // A title no other test or run uses.
 function uniqueTitle(label: string): string {
   return `${label} ${randomUUID()}`;
 }
-
-// The ID in the card URL the page shows, /learning-card/<id>.
-function cardIdInUrl(page: Page): string {
-  const id = new URL(page.url()).pathname.match(/^\/learning-card\/([^/]+)$/)?.[1];
-  if (!id) {
-    throw new Error(`not a card URL: ${page.url()}`);
-  }
-  return id;
-}
-
-const NOT_FOUND = "This card doesn't exist. It may have been deleted.";
 
 test("a card is created, edited and deleted through the UI", async ({ page }) => {
   const title = uniqueTitle("Lifecycle");
@@ -43,7 +33,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
 
   await slide.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
-  const id = cardIdInUrl(page);
+  const id = cardIdFromPath(new URL(page.url()).pathname);
   await page.getByLabel("Title").fill(edited);
   await page.getByRole("button", { name: "Update Card" }).click();
 
@@ -51,15 +41,13 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   slide = await showCard(page, edited);
   await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 
-  await slide.getByRole("button", { name: "Delete" }).click();
-  const dialog = page.getByRole("alertdialog", { name: "Delete this learning card?" });
-  await dialog.getByRole("button", { name: "Delete" }).click();
+  const dialog = await deleteFromSlide(page, slide);
   await expect(dialog).toBeHidden();
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 
   // Gone from the server too, not only from the page's list.
   await page.goto(`/learning-card/${id}`);
-  await expect(page.getByText(NOT_FOUND, { exact: true })).toBeVisible();
+  await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
 });
 
 test("a card's URL opens it in the form", async ({ page, request }) => {
@@ -89,7 +77,7 @@ test("a nonexistent card ID shows the not-found page", async ({ page }) => {
   // A valid UUIDv7 that the database never generates: its time is 1970.
   await page.goto("/learning-card/00000000-0000-7000-8000-000000000000");
 
-  await expect(page.getByText(NOT_FOUND, { exact: true })).toBeVisible();
+  await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to learning cards" }).click();
   await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
 });

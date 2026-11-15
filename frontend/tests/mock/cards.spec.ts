@@ -4,6 +4,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { deleteFromSlide } from "../support/cards";
 import { currentSlide } from "../support/carousel";
 
 test("a created card is the newest in the list", async ({ page }) => {
@@ -44,9 +45,7 @@ test("a deleted card leaves the list", async ({ page }) => {
   const slide = currentSlide(page);
   await expect(slide.getByText("Mitochondria", { exact: true })).toBeVisible();
 
-  await slide.getByRole("button", { name: "Delete" }).click();
-  const dialog = page.getByRole("alertdialog", { name: "Delete this learning card?" });
-  await dialog.getByRole("button", { name: "Delete" }).click();
+  const dialog = await deleteFromSlide(page, slide);
 
   await expect(dialog).toBeHidden();
   await expect(slide).toHaveAccessibleName("1 of 7");
