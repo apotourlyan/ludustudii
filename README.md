@@ -286,6 +286,90 @@ required ones.
 Durations use Go's `time.ParseDuration` syntax. The connection string is
 logged at startup with its password redacted.
 
+## Client app
+
+A React app in `frontend/`, built with Vite and embedded in the binary. It
+reads and changes server data through TanStack Query
+([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)) and is
+sliced into modules by user activity
+([ADR 0035](docs/adr/0035-client-app-modules-by-user-activity.md)).
+
+### Structure
+
+```
+frontend/
+├── src/
+│   ├── main.tsx            # bootstrap: starts the mock mode's fake backend, if any, then renders the app
+│   ├── app/                # the shell: query client, router, root layout and navigation, pending and error pages
+│   ├── routes/             # TanStack Router's file routes: path, params, loader and a module's page
+│   ├── routeTree.gen.ts    # generated from routes/ by the router's Vite plugin
+│   ├── modules/            # one folder per user activity
+│   │   └── library/        # managing content: learning cards
+│   │       ├── index.ts    # the module's public surface: its pages
+│   │       ├── pages/      # one component per route
+│   │       └── components/ # the pages' parts and the module's wording, private to the module
+│   ├── shared/             # used by every module, knows none of them
+│   │   ├── ui/             # shadcn components (see UI components)
+│   │   ├── lib/            # helpers
+│   │   └── error-message.ts # wording for the failures every module shares
+│   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
+│   ├── mock/               # the mock mode's start-up and scenarios
+│   └── styles/             # Tailwind theme and the ejected shadcn CSS
+├── tests/                  # browser tests: mock/, e2e/ and shared support/
+└── tools/                  # the API type generator, with its own pinned TypeScript 5
+```
+
+- **`src/app/`** is the only code that may combine several modules, such as
+  a navigation or, later, a dashboard built from what each module exports.
+- **`src/routes/`** stays thin: a route file declares its path and params,
+  prefetches its page's data in a loader (mapping a missing resource to
+  `notFound`), and renders a page from a module's index. Pages take route
+  params as props.
+- **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
+  `model/` for plain TypeScript logic once it needs one. Today there is one,
+  `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
+  are built. URLs don't carry the module yet; ADR 0035 moves them to
+  `/library/...`, with the route files in `src/routes/library/`.
+- **Wording:** the API layer has none
+  ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
+  `errorMessage` in `src/shared/error-message.ts` words the failures every
+  module shares: the network, server errors and anything unexpected. A module
+  words what is about its own resources, such as a missing or changed card,
+  in a `FailureWording` it passes to `errorMessage`
+  (`modules/library/components/card-error-message.ts`).
+
+### Boundaries
+
+`make frontend-lint` enforces them with `no-restricted-imports` overrides in
+`frontend/.oxlintrc.json` ([Linting](#linting)):
+
+- Modules don't import each other, `src/app/` or `src/routes/`. They connect
+  through URLs, and `src/app/` combines them.
+- From outside a module, only its index is imported (`@/modules/library`).
+  Inside, imports are relative and stay inside the module: no `@/modules/`
+  import at all, and no relative path that climbs above the module's folder.
+  How far a file may climb depends on its depth, so the rule comes in three
+  overrides (the module's root, one folder down, two or more), and names no
+  module: a new module needs no change to the configuration. A file nested
+  more than two folders deep can climb only two levels.
+- `src/shared/` imports nothing from `src/app/`, `src/routes/` or
+  `src/modules/`, and from the API layer only `@/api/http`.
+- The API layer's boundaries apply everywhere outside `src/api/`: a service
+  only through `@/api/<service>`, no `fetch`, `openapi-fetch` or `useQuery`,
+  and the fakes only from `src/mock/` and tests.
+
+### Where a new file goes
+
+| A new… | Goes in | Imported as |
+| --- | --- | --- |
+| Page | `src/modules/<module>/pages/`, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
+| Component | `src/modules/<module>/components/` | A relative path, inside the module |
+| Route | `src/routes/`, a file named after its URL: path, params, loader, `notFound` mapping and the page | Generated into `routeTree.gen.ts` |
+| API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
+| Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
+| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `components/` | `@/shared/error-message`, or a relative path |
+| Module | `src/modules/<module>/` with `index.ts`, `pages/` and `components/` | `@/modules/<module>` |
+
 ## Development
 
 Architecture decisions and their rationale are recorded in
@@ -831,7 +915,8 @@ boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,
 `useQuery`, `useMutation` and similar hooks, and only `src/mock/` imports the
-fakes. Inside `src/api/`, only the fakes themselves (`src/api/fake.ts` and the
+fakes. Modules, `src/shared/` and the code around them keep the boundaries
+of ADR 0035 ([Client app → Boundaries](#boundaries)). Inside `src/api/`, only the fakes themselves (`src/api/fake.ts` and the
 `fake/` folders) import the fakes, `msw` or `openapi-msw`, which keeps them out
 of the production bundle (ADR 0032). Everywhere, Phosphor icons come from their own modules, not the
 package's main entry ([UI components](#ui-components)). Every rule turned off carries its reason in the configuration. In the
