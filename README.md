@@ -420,6 +420,43 @@ await fetch(`/api/lcards/${id}`, {
 
 Production builds contain neither MSW's worker nor the fake.
 
+### UI components
+
+The client app's UI components come from [shadcn/ui](https://ui.shadcn.com),
+copied into `frontend/src/components/ui/` and maintained there like the rest
+of the code. `frontend/components.json` configures the shadcn CLI. To add a
+component, run from `frontend/`:
+
+```sh
+npx shadcn@latest add <component>
+```
+
+The CLI runs from npm's cache, so it doesn't need a `shadcn` package in
+`package.json`. The components rely on CSS that shadcn ships as
+`shadcn/tailwind.css`: shared keyframes, custom variants such as `data-open:`,
+and the `scroll-fade` and `shimmer` utilities. That CSS is ejected into
+`frontend/src/styles/shadcn.css`, whose first line names the shadcn version it
+came from, and `global.css` imports it. This keeps the `shadcn` package and its
+dependency tree (an MCP server, an HTTP framework, ts-morph) out of the app's
+dependencies.
+
+When updating components to a newer shadcn version, refresh the ejected CSS in
+the same change. From `frontend/`:
+
+1. In `src/styles/global.css`, replace `@import "./shadcn.css";` with
+   `@import "shadcn/tailwind.css";`.
+2. Run `npm install shadcn@<version>`, then `npx shadcn@<version> eject --yes`.
+   Eject reads the CSS from the installed package, inlines it into
+   `global.css` after an `/* ejected from shadcn@<version> */` line, and
+   uninstalls the package.
+3. Move the ejected block, from that line up to the `@fontsource-variable`
+   imports, into `src/styles/shadcn.css` in place of its contents, and restore
+   the `./shadcn.css` import.
+4. Run `git checkout package.json package-lock.json` and `npm ci`: the install
+   in step 2 can also move unrelated locked versions.
+5. Run `make frontend-fmt`, then `make frontend-test`, and review the diff of
+   `shadcn.css`.
+
 ### GitHub CLI in the devcontainer
 
 Agents open pull requests with `gh`, authenticated by `GH_TOKEN`, which the
