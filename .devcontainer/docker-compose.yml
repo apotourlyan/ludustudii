@@ -2,6 +2,11 @@ services:
   app:
     container_name: ludustudii
     image: golang:1.27.4
+    # Docker's init (tini) runs as PID 1 in front of the command and reaps
+    # orphaned processes, which sleep infinity never does. The browser tests
+    # leave orphans on every run, and unreaped they pile up as zombies, each
+    # holding a PID until the container stops.
+    init: true
     command: sleep infinity
     volumes:
       - ..:/workspace:cached
