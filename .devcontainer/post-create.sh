@@ -15,6 +15,10 @@ echo "Go tools installed successfully!"
 
 echo "Installing frontend dependencies..."
 (cd frontend && npm install)
+# The browser tests' Chromium headless shell, in the version the installed
+# @playwright/test expects, on the playwright-browsers volume; a no-op when
+# that version is already there (ADR 0034).
+(cd frontend && npx --no-install playwright install chromium --only-shell)
 # The API type generator's package, with its exact pins (ADR 0031).
 (cd frontend/tools && npm ci)
 echo "Frontend dependencies installed successfully!"
