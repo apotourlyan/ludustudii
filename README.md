@@ -376,7 +376,11 @@ backend's input parsing
 ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
 the fake has no handler for fails as a network error, with the request named
 in the console, instead of reaching a server. The mock mode doesn't proxy to
-the backend, so the API reference at `/docs` isn't available there.
+the backend, so the API reference at `/docs` isn't available there. While the
+browser is offline (the Network panel's "Offline" in the developer tools, or
+Playwright's `context.setOffline`), the fake fails every API request as a
+network error; MSW's worker answers requests from inside the page, so it
+would otherwise keep answering them.
 
 Query parameters on the URL the app loads with choose the data:
 

@@ -62,6 +62,21 @@ export function failingHandlers(): RequestHandler[] {
   );
 }
 
+// Fails every API request as a network error while `isOnline` reports the
+// browser offline, and otherwise lets the next handler answer it. MSW's
+// worker answers requests from inside the page, so without these, going
+// offline wouldn't fail them. Put these first.
+export function offlineHandlers(isOnline: () => boolean): RequestHandler[] {
+  return apiPaths.map((path) =>
+    http.all(path, () => {
+      if (!isOnline()) {
+        return HttpResponse.error();
+      }
+      return undefined;
+    }),
+  );
+}
+
 // Delays every API request by `ms` milliseconds, then lets the next handler
 // answer it. Put these before the handlers they should delay. MSW passes a
 // request no later handler answers on to the network, so end the list with

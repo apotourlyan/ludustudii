@@ -10,6 +10,7 @@ import {
   applyScenario,
   isScenarioName,
   latencyHandlers,
+  offlineHandlers,
   scenarios,
   unhandledApiHandlers,
 } from "./scenarios";
@@ -29,6 +30,9 @@ export async function startFakeBackend(): Promise<void> {
 
   network.configure({
     handlers: [
+      // First: while the browser is offline, API requests fail at once, as
+      // they would against a real server.
+      ...offlineHandlers(() => navigator.onLine),
       ...latencyHandlers(delayMs),
       ...applyScenario(scenario),
       ...fakeHandlers,
