@@ -74,3 +74,4 @@ Records in force. Superseded records are kept as history in
 | [0031](0031-generated-api-types-and-typed-fetch-client.md) | Generated API types and a typed fetch client | Accepted | front-end, api, tooling |
 | [0032](0032-stateful-fake-backend-with-msw.md) | Stateful fake backend with MSW | Accepted | front-end, testing, api |
 | [0033](0033-oxlint-and-oxfmt-for-the-client-app.md) | Oxlint and oxfmt for the client app | Accepted | front-end, tooling |
+| [0034](0034-browser-tests-with-playwright.md) | Browser tests with Playwright | Proposed | front-end, testing, tooling |
