@@ -1,6 +1,6 @@
 # 0034. Browser tests with Playwright
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-15
 - Tags: front-end, testing, tooling
 
