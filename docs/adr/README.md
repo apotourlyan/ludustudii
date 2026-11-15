@@ -75,3 +75,4 @@ Records in force. Superseded records are kept as history in
 | [0032](0032-stateful-fake-backend-with-msw.md) | Stateful fake backend with MSW | Accepted | front-end, testing, api |
 | [0033](0033-oxlint-and-oxfmt-for-the-client-app.md) | Oxlint and oxfmt for the client app | Accepted | front-end, tooling |
 | [0034](0034-browser-tests-with-playwright.md) | Browser tests with Playwright | Accepted | front-end, testing, tooling |
+| [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Proposed | front-end, architecture |
