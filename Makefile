@@ -124,10 +124,12 @@ frontend-lint:
 ## frontend-test: Runs the app tests: the client app in Chromium against the fake backend (no Go server or database)
 ## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5' or ARGS='-g conflict'
 # playwright.mock.config.ts starts Vite in the mock mode on its own port (ADR 0034).
+# --forbid-only fails the run on a test.only left behind, which would
+# otherwise pass the gate with the other tests skipped.
 frontend-test:
 	@[ -x $(FRONTEND_DIR)/node_modules/.bin/playwright ] || \
 		{ echo "frontend-test: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
-	cd $(FRONTEND_DIR) && npm run --silent test:mock -- $(ARGS)
+	cd $(FRONTEND_DIR) && npm run --silent test:mock -- --forbid-only $(ARGS)
 
 .PHONY: dev
 
@@ -213,10 +215,12 @@ coverage: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
 ## ---- Builds the client app and the binary, creates and migrates the database, and drops it afterwards, also when a test fails
 ## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5'
 # The database gets a unique name on the server in DB_TEST_CONNECTION, whose
-# role may create databases, as for testkit's templates. Once it exists, the
-# EXIT trap drops it however the shell ends: success, a failing step (set -e)
-# or Ctrl+C (the INT and TERM traps exit, which runs the EXIT trap). FORCE
-# ends any connection the server left open (ADR 0034).
+# role may create databases, as for testkit's templates. The EXIT trap,
+# armed before the database is created so no interrupt can slip between the
+# two, drops it however the shell ends: success, a failing step (set -e) or
+# Ctrl+C (the INT and TERM traps exit, which runs the EXIT trap). IF EXISTS
+# covers a create that never happened; FORCE ends any connection the server
+# left open. --forbid-only fails the run on a test.only left behind (ADR 0034).
 test-e2e:
 	@[ -x $(FRONTEND_DIR)/node_modules/.bin/playwright ] || \
 		{ echo "test-e2e: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
@@ -230,14 +234,14 @@ test-e2e:
 		name="ludustudii_e2e_$$(date -u +%Y%m%d%H%M%S)_$$RANDOM"; \
 		url="$${BASH_REMATCH[1]}/$$name$${BASH_REMATCH[4]}"; \
 		admin() { psql "$$DB_TEST_CONNECTION" -X -q -v ON_ERROR_STOP=1 -c "$$1"; }; \
-		echo "==> Creating database $$name..."; \
-		admin "CREATE DATABASE $$name"; \
 		trap 'echo "==> Dropping database $$name..."; admin "DROP DATABASE IF EXISTS $$name WITH (FORCE)"' EXIT; \
 		trap 'exit 130' INT; \
 		trap 'exit 143' TERM; \
+		echo "==> Creating database $$name..."; \
+		admin "CREATE DATABASE $$name"; \
 		$(GO_TOOL) goose -dir $(MIGRATIONS_DIR) postgres "$$url" up; \
 		echo "==> Running end-to-end tests..."; \
-		cd $(FRONTEND_DIR) && E2E_DB_CONNECTION="$$url" npm run --silent test:e2e -- $(ARGS)
+		cd $(FRONTEND_DIR) && E2E_DB_CONNECTION="$$url" npm run --silent test:e2e -- --forbid-only $(ARGS)
 
 .PHONY: build build-frontend build-backend clean
 
