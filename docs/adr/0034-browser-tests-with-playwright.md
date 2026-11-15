@@ -17,8 +17,9 @@ app embedded, works end to end in a browser.
 
 `make check` already needs the test database for the backend's integration
 tests ([0028](0028-ci-reuses-the-devcontainer-test-database.md)). Playwright's
-Chromium downloads in seconds in the devcontainer, and the devcontainer's
-image already has the system libraries it needs.
+Chromium downloads in seconds in the devcontainer. The
+devcontainer's `golang` image lacks some of the system libraries the
+browser needs; Playwright installs them with `apt`.
 
 ## Decision
 
@@ -41,10 +42,12 @@ image already has the system libraries it needs.
 - **Tests find elements the way users do**: by role, label and text. Test
   IDs are a last resort, each with a reason.
 - **The browser is installed by Playwright itself**, as the headless shell,
-  in the version the pinned `@playwright/test` expects. The devcontainer
-  installs it in `post-create.sh` into a named volume, so a rebuild
-  downloads nothing; CI installs it with its system libraries and caches it
-  by version. `package.json` is the only place the version is pinned.
+  in the version the pinned `@playwright/test` expects, together with the
+  system libraries it needs. The devcontainer installs the browser in
+  `post-create.sh` into a named volume, so a rebuild doesn't download it
+  again, and installs the system libraries on every rebuild; CI does the
+  same and caches the browser by version. `package.json` is the only place
+  the version is pinned.
 - **Unit and component tests are a separate decision.**
 
 ## Alternatives considered
@@ -78,3 +81,6 @@ image already has the system libraries it needs.
   devcontainer install it.
 - A Playwright upgrade downloads a new browser once, in the devcontainer and
   in CI.
+- Every devcontainer rebuild spends about 15 seconds installing the
+  browser's system libraries. A Dockerfile layer could cache them if that
+  becomes a burden.
