@@ -301,6 +301,10 @@ tooling (Air, Delve, goose, golangci-lint) and two PostgreSQL 18 instances:
 | `db` | `5432` | Development database (persistent volume) |
 | `db_test` | `5433` | Test server (tmpfs, fsync off, for speed) |
 
+The `app` container runs Docker's init as PID 1 (`init: true`), which reaps
+the processes that tools such as the browser tests leave orphaned; without
+it they would stay as zombies until the container stops.
+
 Open the repository in the devcontainer, then:
 
 ```sh
