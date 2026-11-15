@@ -4,7 +4,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ApiError } from "@/api/http";
 import { lcardQueries } from "@/api/lcards";
 import { LearningCardForm } from "@/components/learning-card-form";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/shared/ui/card";
 
 export const Route = createFileRoute("/learning-card_/$cardId")({
   // Fill the query cache without returning the data, so the router keeps no

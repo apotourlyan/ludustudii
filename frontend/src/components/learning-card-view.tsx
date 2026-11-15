@@ -14,11 +14,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FieldError } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/alert-dialog";
+import { Button, buttonVariants } from "@/shared/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { FieldError } from "@/shared/ui/field";
+import { Separator } from "@/shared/ui/separator";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {

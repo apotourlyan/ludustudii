@@ -12,7 +12,7 @@ import {
   CarouselNext,
   CarouselPrevious,
   useCarousel,
-} from "@/components/ui/carousel";
+} from "@/shared/ui/carousel";
 
 export function LearningCardsOverview() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());

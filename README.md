@@ -423,9 +423,11 @@ Production builds contain neither MSW's worker nor the fake.
 ### UI components
 
 The client app's UI components come from [shadcn/ui](https://ui.shadcn.com),
-copied into `frontend/src/components/ui/` and maintained there like the rest
-of the code. `frontend/components.json` configures the shadcn CLI. To add a
-component, run from `frontend/`:
+copied into `frontend/src/shared/ui/` and maintained there like the rest
+of the code. `frontend/components.json` configures the shadcn CLI: its
+aliases point at `src/shared/ui/` for components and `src/shared/lib/` for
+helpers and hooks, so the CLI writes there. To add a component, run from
+`frontend/`:
 
 ```sh
 npx shadcn@latest add <component>
