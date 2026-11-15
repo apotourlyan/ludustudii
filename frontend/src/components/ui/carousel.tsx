@@ -1,4 +1,5 @@
-import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { cn } from "cn";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
