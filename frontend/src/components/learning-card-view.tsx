@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
-import { errorMessage } from "@/components/error-message";
+import { cardErrorMessage } from "@/modules/library/components/card-error-message";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,7 +111,7 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {deleteCard.isError && (
-          <FieldError>{errorMessage(deleteCard.error, "delete the card")}</FieldError>
+          <FieldError>{cardErrorMessage(deleteCard.error, "delete the card")}</FieldError>
         )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteCard.isPending}>Cancel</AlertDialogCancel>

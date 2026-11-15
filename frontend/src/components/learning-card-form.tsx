@@ -4,8 +4,8 @@ import { useState } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { errorMessage } from "@/components/error-message";
 import { LearningCardDisplay } from "@/components/learning-card-view";
+import { cardErrorMessage } from "@/modules/library/components/card-error-message";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
@@ -192,7 +192,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
 
               {mutation.isError && (
                 <FieldError>
-                  {errorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+                  {cardErrorMessage(
+                    mutation.error,
+                    isEditing ? "save your edits" : "create the card",
+                  )}
                 </FieldError>
               )}
 
