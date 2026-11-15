@@ -1,6 +1,7 @@
 name: CI
 
-# Runs the same gate as a developer: make check (ADR 0020). The test database
+# Runs the same gate as a developer: make check (ADR 0020), and beside it
+# the end-to-end browser tests, make test-e2e (ADR 0034). The test database
 # comes from the devcontainer's compose file and tool versions from the same
 # sources as the devcontainer (ADR 0028).
 on:
@@ -28,30 +29,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@v7.0.0
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: |
-            backend/go.sum
-            backend/tools/go.sum
-
-      # engines.node in frontend/package.json is the single source for the
-      # Node version; make versions-check compares the devcontainer against it.
-      - name: Set up Node
-        uses: actions/setup-node@v7.1.0
-        with:
-          node-version-file: frontend/package.json
-          cache: npm
-          cache-dependency-path: |
-            frontend/package-lock.json
-            frontend/tools/package-lock.json
+      # Go, Node, the frontend dependencies and Playwright's Chromium.
+      - name: Set up the tools
+        uses: ./.github/actions/setup
 
       - name: Install golangci-lint
         run: make install-golangci-lint
-
-      - name: Install frontend dependencies
-        run: make frontend-deps
 
       # Only db_test starts; its healthcheck makes --wait block until
       # Postgres accepts connections.
@@ -62,3 +45,48 @@ jobs:
         env:
           DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
         run: make check
+
+      # The app tests' report, with the traces and screenshots of failed
+      # tests. It exists only when make check got as far as frontend-test.
+      - name: Upload the app tests' report
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-report-mock
+          path: frontend/playwright-report/mock
+          if-no-files-found: ignore
+          retention-days: 14
+
+  e2e:
+    name: make test-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same setup as check, without golangci-lint, which only lints.
+      - name: Set up the tools
+        uses: ./.github/actions/setup
+
+      - name: Start test database
+        run: docker compose -f .devcontainer/docker-compose.yml up -d --wait db_test
+
+      # Builds the client app and the binary, and runs the tests on a
+      # database it creates and drops on the test server.
+      - name: make test-e2e
+        env:
+          DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
+        run: make test-e2e
+
+      # The report, with the traces and screenshots of failed tests.
+      - name: Upload the end-to-end tests' report
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-report-e2e
+          path: frontend/playwright-report/e2e
+          if-no-files-found: ignore
+          retention-days: 14

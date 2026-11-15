@@ -1,0 +1,55 @@
+name: Set up the tools
+description: >-
+  Go, Node, the frontend dependencies and Playwright's Chromium, in the
+  versions the devcontainer uses (ADR 0028, ADR 0034). Run after checkout.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v7.0.0
+      with:
+        go-version-file: backend/go.mod
+        cache-dependency-path: |
+          backend/go.sum
+          backend/tools/go.sum
+
+    # engines.node in frontend/package.json is the single source for the
+    # Node version; make versions-check compares the devcontainer against it.
+    - name: Set up Node
+      uses: actions/setup-node@v7.1.0
+      with:
+        node-version-file: frontend/package.json
+        cache: npm
+        cache-dependency-path: |
+          frontend/package-lock.json
+          frontend/tools/package-lock.json
+
+    # The pin in frontend/package.json, as locked, is the only copy of the
+    # Playwright version; it also decides the browser build.
+    - name: Read the Playwright version
+      id: playwright
+      shell: bash
+      run: |
+        version=$(jq -r '.packages["node_modules/@playwright/test"].version' frontend/package-lock.json)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    # Playwright's default browser directory on Linux. A hit makes the
+    # install in make frontend-deps a no-op.
+    - name: Cache Playwright's browser
+      uses: actions/cache@v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+    # Installs the browser too, unless the cache restored it.
+    - name: Install frontend dependencies
+      shell: bash
+      run: make frontend-deps
+
+    # The runner image lacks some of the libraries Chromium needs; they are
+    # system packages, so they aren't cached.
+    - name: Install Chromium's system libraries
+      shell: bash
+      working-directory: frontend
+      run: npx --no-install playwright install-deps chromium
