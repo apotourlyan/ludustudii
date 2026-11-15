@@ -29,5 +29,12 @@ jobs:
             backend/go.sum
             backend/tools/go.sum
 
+      # npm audit reads only the lockfiles, so Node is enough: no install,
+      # and not the shared setup action, which also installs Playwright.
+      - name: Set up Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: frontend/package.json
+
       - name: make vuln
         run: make vuln
