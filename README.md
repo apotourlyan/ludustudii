@@ -903,3 +903,5 @@ screenshots of the failed tests, is uploaded as an artifact
 A failing `ci.yml` run means the change isn't done. To run the vulnerability
 scan by hand, open **Actions → Vulnerability scan → Run workflow**, or run
 `gh workflow run vuln.yml`.
+
+To report a vulnerability, follow [SECURITY.md](SECURITY.md).
