@@ -23,6 +23,9 @@ MIGRATIONS_DIR := migrations
 API_DOCS_TAGS := $(if $(filter 1,$(API_DOCS)),-tags=apidocs)
 LOG_FILE ?= $(BACKEND_DIR)/tmp/app.log
 PKG ?= ./...
+# A PostgreSQL URL, split so test-e2e can swap its database: 1 is the scheme
+# and host, 3 the database path, 4 the query.
+E2E_DB_URL_PATTERN := ^(postgres(ql)?://[^/?\#]+)(/[^?\#]*)?(\?.*)?$$
 RUN ?=
 RUN_FLAG = $(if $(RUN),-run '$(RUN)')
 # The single pin for golangci-lint, read by the devcontainer and CI through
@@ -62,11 +65,15 @@ spec-bundle: $(SPEC_BUNDLE)
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
-.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check frontend-lint
+.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check frontend-lint frontend-test
 
-## frontend-deps: Installs the locked dependencies of the client app and its generators
+## frontend-deps: Installs the locked dependencies of the client app and its generators, and the browser tests' Chromium
+# Playwright installs the headless shell in the version the locked
+# @playwright/test expects, into PLAYWRIGHT_BROWSERS_PATH (the devcontainer's
+# volume) or its default cache; a no-op when that version is there (ADR 0034).
 frontend-deps:
 	cd $(FRONTEND_DIR) && npm ci
+	cd $(FRONTEND_DIR) && npx --no-install playwright install chromium --only-shell
 	cd $(FRONTEND_TOOLS_DIR) && npm ci
 
 ## api-types: Regenerates the client app's API types from the bundled OpenAPI spec
@@ -113,6 +120,16 @@ frontend-lint:
 	@[ -x $(FRONTEND_DIR)/node_modules/.bin/oxlint ] && [ -x $(FRONTEND_DIR)/node_modules/.bin/tsgolint ] || \
 		{ echo "frontend-lint: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	cd $(FRONTEND_DIR) && npm run --silent lint
+
+## frontend-test: Runs the app tests: the client app in Chromium against the fake backend (no Go server or database)
+## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5' or ARGS='-g conflict'
+# playwright.mock.config.ts starts Vite in the mock mode on its own port (ADR 0034).
+# --forbid-only fails the run on a test.only left behind, which would
+# otherwise pass the gate with the other tests skipped.
+frontend-test:
+	@[ -x $(FRONTEND_DIR)/node_modules/.bin/playwright ] || \
+		{ echo "frontend-test: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	cd $(FRONTEND_DIR) && npm run --silent test:mock -- --forbid-only $(ARGS)
 
 .PHONY: dev
 
@@ -165,7 +182,7 @@ logs-slow:
 logs-stats:
 	@jq -nrR '[inputs | fromjson? | select(.msg == "request") | {status, method, route}] | group_by(.) | map({count: length} + .[0]) | sort_by(-.count) | .[] | "\(.count)\t\(.status)\t\(.method)\t\(.route)"' $(LOG_FILE)
 
-.PHONY: test test-unit test-integration coverage
+.PHONY: test test-unit test-integration coverage test-e2e
 
 ## test: Runs both unit and integration tests
 test: test-unit test-integration
@@ -193,6 +210,38 @@ coverage: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
 	go -C $(BACKEND_DIR) test -tags=unit,integration,apidocs -race -count=1 -coverpkg=./... -coverprofile=coverage/coverage.out ./...
 	go -C $(BACKEND_DIR) tool cover -html=coverage/coverage.out -o coverage/coverage.html
 	@echo "Serve from the repository root: python3 -m http.server 8000 --directory backend/coverage"
+
+## test-e2e: Runs the end-to-end tests: the built binary in Chromium, on a database made for the run (requires DB_TEST_CONNECTION)
+## ---- Builds the client app and the binary, creates and migrates the database, and drops it afterwards, also when a test fails
+## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5'
+# The database gets a unique name on the server in DB_TEST_CONNECTION, whose
+# role may create databases, as for testkit's templates. The EXIT trap,
+# armed before the database is created so no interrupt can slip between the
+# two, drops it however the shell ends: success, a failing step (set -e) or
+# Ctrl+C (the INT and TERM traps exit, which runs the EXIT trap). IF EXISTS
+# covers a create that never happened; FORCE ends any connection the server
+# left open. --forbid-only fails the run on a test.only left behind (ADR 0034).
+test-e2e:
+	@[ -x $(FRONTEND_DIR)/node_modules/.bin/playwright ] || \
+		{ echo "test-e2e: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	@[[ $${DB_TEST_CONNECTION-} =~ $(E2E_DB_URL_PATTERN) ]] || \
+		{ echo "test-e2e: DB_TEST_CONNECTION must be a postgres:// or postgresql:// URL" >&2; exit 1; }
+	@echo "==> Building the client app..."
+	cd $(FRONTEND_DIR) && npm run --silent build
+	$(MAKE) --no-print-directory build-backend
+	@set -eu; \
+		[[ $$DB_TEST_CONNECTION =~ $(E2E_DB_URL_PATTERN) ]]; \
+		name="ludustudii_e2e_$$(date -u +%Y%m%d%H%M%S)_$$RANDOM"; \
+		url="$${BASH_REMATCH[1]}/$$name$${BASH_REMATCH[4]}"; \
+		admin() { psql "$$DB_TEST_CONNECTION" -X -q -v ON_ERROR_STOP=1 -c "$$1"; }; \
+		trap 'echo "==> Dropping database $$name..."; admin "DROP DATABASE IF EXISTS $$name WITH (FORCE)"' EXIT; \
+		trap 'exit 130' INT; \
+		trap 'exit 143' TERM; \
+		echo "==> Creating database $$name..."; \
+		admin "CREATE DATABASE $$name"; \
+		$(GO_TOOL) goose -dir $(MIGRATIONS_DIR) postgres "$$url" up; \
+		echo "==> Running end-to-end tests..."; \
+		cd $(FRONTEND_DIR) && E2E_DB_CONNECTION="$$url" npm run --silent test:e2e -- --forbid-only $(ARGS)
 
 .PHONY: build build-frontend build-backend clean
 
@@ -289,6 +338,7 @@ check:
 	$(MAKE) api-types-check
 	$(MAKE) frontend-typecheck
 	$(MAKE) frontend-lint
+	$(MAKE) frontend-test
 	$(MAKE) test-unit
 	$(MAKE) test-integration
 
