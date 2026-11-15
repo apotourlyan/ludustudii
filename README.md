@@ -324,7 +324,9 @@ frontend/
 - **`src/routes/`** stays thin: a route file declares its path and params,
   prefetches its page's data in a loader (mapping a missing resource to
   `notFound`), and renders a page from a module's index. Pages take route
-  params as props.
+  params as props. `frontend/package.json` declares only CSS as having side
+  effects (`sideEffects`), so the build drops the index's other exports from
+  each route's chunk, and every route still gets a chunk of its own.
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
   `model/` for plain TypeScript logic once it needs one. Today there is one,
   `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
@@ -347,7 +349,10 @@ frontend/
   through URLs, and `src/app/` combines them.
 - From outside a module, only its index is imported (`@/modules/library`).
   Inside, imports are relative and stay inside the module: no `@/modules/`
-  import at all, and no relative path that climbs above the module's folder.
+  import at all, no relative path that climbs above the module's folder, no
+  import of the module's own index (`..` from `pages/`), which would make a
+  cycle, and no `..` after a folder name (`./pages/../x`), which could hide
+  a climb.
   How far a file may climb depends on its depth, so the rule comes in three
   overrides (the module's root, one folder down, two or more), and names no
   module: a new module needs no change to the configuration. A file nested

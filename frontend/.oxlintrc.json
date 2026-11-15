@@ -179,6 +179,10 @@
               {
                 "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/(app|modules|routes)(/|$)|^(@|\\.{1,2}(/\\.{1,2})*)/routeTree\\.gen",
                 "message": "src/shared/ knows no module: it imports nothing from src/app/, src/routes/ or src/modules/ (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
               }
             ]
           }
@@ -187,7 +191,7 @@
     },
     {
       // Module boundaries (ADR 0035), in three overrides that differ only in
-      // the last pattern. They replace the src/** override's import rule
+      // the two patterns that depend on the file's depth. They replace the src/** override's import rule
       // for modules, so they repeat its entries (ADR 0030, 0031, 0032 and
       // Phosphor). No module may be imported by alias, which keeps out other
       // modules and makes a module's own imports relative, nor the shell or
@@ -195,8 +199,11 @@
       // root, so how far depends on the file's depth: none from the root
       // (index.ts), one level from pages/, components/ or model/, and two
       // from anything deeper. Files nested more than two folders deep can
-      // climb only two levels. The rules name no module, so a new module
-      // needs no change here.
+      // climb only two levels. Climbing exactly to the module's root reaches
+      // its index, which is for code outside the module. A path with a ..
+      // after a folder name (./pages/../../x) could hide a climb, so it is
+      // rejected here and in src/shared/. The rules name no module, so a new module needs
+      // no change here.
       "files": ["src/modules/*/*"],
       "rules": {
         "no-restricted-imports": [
@@ -243,6 +250,14 @@
               {
                 "regex": "^(\\./)*\\.\\.(/|$)",
                 "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
               }
             ]
           }
@@ -297,6 +312,14 @@
               {
                 "regex": "^(\\./)*\\.\\./(\\./)*\\.\\.(/|$)",
                 "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
               }
             ]
           }
@@ -352,6 +375,14 @@
               {
                 "regex": "^(\\./)*(\\.\\./(\\./)*){2}\\.\\.(/|$)",
                 "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\./(\\./)*\\.\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
               }
             ]
           }
