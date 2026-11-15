@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   // Vite's dependency scan doesn't follow virtual:msw. In the mock mode, it
@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => ({
           },
   },
   build: {
-    outDir: path.resolve(__dirname, "../backend/internal/infra/spa/dist"),
+    outDir: path.resolve(import.meta.dirname, "../backend/internal/infra/spa/dist"),
     emptyOutDir: true,
   },
 }));
