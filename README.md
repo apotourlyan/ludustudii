@@ -638,9 +638,12 @@ Tests are TypeScript, type-checked by `make frontend-typecheck` (with
 locked `@playwright/test` expects; it does nothing when that version is
 present. The devcontainer runs the same install in `post-create.sh`, into the
 `playwright-browsers` volume at `/ms-playwright` (`PLAYWRIGHT_BROWSERS_PATH`),
-so a rebuild keeps the browser. A devcontainer created before the volume
-existed needs a rebuild to get it; until then the browser goes to Playwright's
-default cache, `~/.cache/ms-playwright`.
+so a rebuild keeps the browser. Chromium's system libraries, which the
+`golang` image lacks, are packages in the container: `post-create.sh` installs
+them with `npx playwright install-deps chromium` on every rebuild, as CI does.
+A devcontainer created before these changes needs a rebuild; until then, run
+`make frontend-deps` and `npx playwright install-deps chromium` in `frontend/`,
+and the browser goes to Playwright's default cache, `~/.cache/ms-playwright`.
 
 ### API spec and reference
 

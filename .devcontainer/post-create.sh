@@ -19,6 +19,10 @@ echo "Installing frontend dependencies..."
 # @playwright/test expects, on the playwright-browsers volume; a no-op when
 # that version is already there (ADR 0034).
 (cd frontend && npx --no-install playwright install chromium --only-shell)
+# Chromium's system libraries, which the golang image lacks, installed with
+# apt by Playwright as in CI. They live in the container, so every rebuild
+# installs them again (about 15 seconds).
+(cd frontend && npx --no-install playwright install-deps chromium)
 # The API type generator's package, with its exact pins (ADR 0031).
 (cd frontend/tools && npm ci)
 echo "Frontend dependencies installed successfully!"
