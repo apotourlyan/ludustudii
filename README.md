@@ -438,7 +438,7 @@ and the `scroll-fade` and `shimmer` utilities. That CSS is ejected into
 `frontend/src/styles/shadcn.css`, whose first line names the shadcn version it
 came from, and `global.css` imports it. This keeps the `shadcn` package and its
 dependency tree (an MCP server, an HTTP framework, ts-morph) out of the app's
-dependencies.
+dependencies and out of its [vulnerability scan](#vulnerability-scan).
 
 When updating components to a newer shadcn version, refresh the ejected CSS in
 the same change. From `frontend/`:
@@ -769,7 +769,8 @@ tooling is kept out of `go.mod`.
 | `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
-| `make vuln` | Check backend packages for known vulnerabilities with govulncheck. |
+| `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `frontend-vuln` ([Vulnerability scan](#vulnerability-scan)). |
+| `make frontend-vuln` | Audit the npm dependencies of `frontend/` and `frontend/tools/` from their lockfiles ([Vulnerability scan](#vulnerability-scan)). |
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
@@ -836,6 +837,30 @@ promise where the caller must wait for it, or mark it `void` with a comment
 saying why not waiting is right. `make frontend-lint` fails on a disable
 directive that no longer suppresses anything.
 
+### Vulnerability scan
+
+`make vuln` runs govulncheck on the backend, then `make frontend-vuln`, which
+runs `npm audit` on the lockfiles of `frontend/` and `frontend/tools/`. Both
+depend on an external vulnerability database, so they stay out of
+`make check` and run on a schedule instead
+([ADR 0020](docs/adr/0020-pinned-tooling-and-single-quality-gate.md)).
+`npm audit` reads only the lockfiles, so it doesn't need `node_modules`.
+
+The thresholds follow where the code runs. The client app's production
+dependencies (`npm audit --omit=dev`) ship to every user's browser, so a
+moderate advisory fails the scan. Its dev dependencies and the generators in
+`frontend/tools/` run only on developer machines and in CI, so only a high or
+critical one does. Lower advisories still appear in the output.
+
+When an advisory fails the scan, upgrade the package that pulls in the
+vulnerable version. If no fixed version exists yet, or the direct dependency
+hasn't adopted one, either add an
+[`overrides`](https://docs.npmjs.com/cli/configuring-npm/package-json#overrides)
+entry to that `package.json` that forces a patched transitive version (run
+`npm install`, then the tests, and remove the entry once the dependency
+catches up), or wait for a fix and track it in an issue; the scheduled scan
+keeps failing until then.
+
 ### CI
 
 GitHub Actions runs the same gate as a developer
@@ -845,7 +870,7 @@ GitHub Actions runs the same gate as a developer
 | --- | --- | --- |
 | [`ci.yml`](.github/workflows/ci.yml) | Every push to `main` and every pull request; a newer push to a pull request cancels its older run, while runs on `main` always finish | `make check`, and `make test-e2e` in a second job beside it |
 | [`pr-title.yml`](.github/workflows/pr-title.yml) | Every pull request when it is opened, reopened, pushed to or edited, so fixing the title re-runs it | `make pr-title-check` with the pull request title, which must be `type: summary` within 64 characters |
-| [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln` |
+| [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln`: govulncheck and `npm audit`, with Go from `backend/go.mod` and Node from `engines.node` (no npm install) |
 
 Both `ci.yml` jobs set up their tools with the same steps, in
 [`.github/actions/setup`](.github/actions/setup/action.yml): Go from

@@ -417,11 +417,24 @@ fmt-check:
 lint-verify:
 	cd $(BACKEND_DIR) && golangci-lint config verify
 
-.PHONY: vuln
+.PHONY: vuln frontend-vuln
 
-## vuln: Checks backend packages for known vulnerabilities
+## vuln: Checks backend packages and the client app's npm dependencies for known vulnerabilities
+# Outside check: both depend on an external vulnerability database (ADR 0020).
 vuln: $(SPA_EMBED_DIR)/index.html
 	$(GO_TOOL) govulncheck ./...
+	$(MAKE) --no-print-directory frontend-vuln
+
+## frontend-vuln: Audits the npm dependencies of the client app and its generators
+## ---- Fails on a moderate advisory in what ships to the browser, and on a high one anywhere
+# npm audit reads only the lockfiles, so it doesn't need node_modules. The
+# client app's production dependencies ship to the browser, so they fail at
+# moderate; its dev dependencies and the generators in frontend/tools only run
+# on developer machines and CI, so they fail at high.
+frontend-vuln:
+	cd $(FRONTEND_DIR) && npm audit --omit=dev --audit-level=moderate
+	cd $(FRONTEND_DIR) && npm audit --audit-level=high
+	cd $(FRONTEND_TOOLS_DIR) && npm audit --audit-level=high
 
 .PHONY: test-tags-check
 
