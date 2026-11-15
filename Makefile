@@ -91,7 +91,7 @@ api-types-check:
 		[ "$$before" = "$$(sha256sum < $(API_TYPES))" ] || \
 		{ echo "api-types-check: $(API_TYPES) is stale; run 'make api-types' and commit the regenerated output"; exit 1; }
 
-## frontend-typecheck: Type-checks the client app
+## frontend-typecheck: Type-checks the client app, its Vite config and the browser tests
 frontend-typecheck:
 	@[ -d $(FRONTEND_DIR)/node_modules ] || \
 		{ echo "frontend-typecheck: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }

@@ -775,7 +775,7 @@ tooling is kept out of `go.mod`.
 | `make tidy-check` | Fail if the app or tool module's `go.mod` or `go.sum` needs tidying. |
 | `make generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
 | `make api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
-| `make frontend-typecheck` | Type-check the client app. |
+| `make frontend-typecheck` | Type-check the client app, its Vite config and the browser tests. |
 | `make frontend-fmt` | Format the client app with oxfmt. |
 | `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
 | `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |

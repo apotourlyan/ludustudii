@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:mock": "vite --mode mock",
-    "build": "tsc && vite build",
-    "typecheck": "tsc -p . && tsc -p tests",
+    "build": "tsc -p . && tsc -p tsconfig.node.json && vite build",
+    "typecheck": "tsc -p . && tsc -p tsconfig.node.json && tsc -p tests",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --list-different",
     "lint": "oxlint",
