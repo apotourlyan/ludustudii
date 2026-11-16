@@ -15,11 +15,11 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { Button, buttonVariants } from "@/shared/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
 import { Separator } from "@/shared/ui/separator";
 
 import { cardErrorMessage } from "./card-error-message";
+import { LearningCardFrame } from "./learning-card-frame";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
@@ -70,7 +70,7 @@ export function LearningCardView({ card }: { card: LearningCard }) {
   return (
     <LearningCardDisplay
       card={card}
-      action={
+      actions={
         <div className="flex gap-2">
           {/* A link, so the router preloads the card while the pointer hovers it. */}
           <Link
@@ -136,25 +136,21 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
   );
 }
 
+// A card's title and description as Markdown, in the frame every mode of
+// a card shares.
 export function LearningCardDisplay({
   card,
-  action,
+  actions,
 }: {
   card: Pick<LearningCard, "title" | "description">;
-  action?: ReactNode;
+  actions?: ReactNode;
 }) {
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle className="min-w-0 wrap-break-word">
-          <Markdown components={markdownComponents}>{card.title}</Markdown>
-        </CardTitle>
-        {action && <CardAction>{action}</CardAction>}
-      </CardHeader>
-      <Separator />
-      <CardContent className="min-w-0 wrap-break-word">
-        <Markdown components={markdownComponents}>{card.description}</Markdown>
-      </CardContent>
-    </Card>
+    <LearningCardFrame
+      title={<Markdown components={markdownComponents}>{card.title}</Markdown>}
+      actions={actions}
+    >
+      <Markdown components={markdownComponents}>{card.description}</Markdown>
+    </LearningCardFrame>
   );
 }
