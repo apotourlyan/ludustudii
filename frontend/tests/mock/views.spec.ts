@@ -3,10 +3,12 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+// The switch's buttons, found in its group, named "View".
 function viewButtons(page: Page) {
+  const group = page.getByRole("group", { name: "View" });
   return {
-    list: page.getByRole("button", { name: "List view" }),
-    grid: page.getByRole("button", { name: "Grid view" }),
+    list: group.getByRole("button", { name: "List view" }),
+    grid: group.getByRole("button", { name: "Grid view" }),
   };
 }
 

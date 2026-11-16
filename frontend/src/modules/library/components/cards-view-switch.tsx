@@ -5,9 +5,10 @@ import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/toggle-group";
 
 import type { CardsView } from "../model/cards-view";
 
-// Switches the cards overview between its views. Each button is an icon
-// with its name as hidden text, like the cards' actions; the one that is
-// on is pressed. Pressing it again keeps it on: one view is always shown.
+// Switches the cards overview between its views, as a group named
+// "View". Each button is an icon with its name as hidden text, like the
+// cards' actions; the one that is on is pressed. Pressing it again keeps
+// it on: one view is always shown.
 export function CardsViewSwitch({
   view,
   onChange,
@@ -17,6 +18,7 @@ export function CardsViewSwitch({
 }) {
   return (
     <ToggleGroup
+      aria-label="View"
       variant="outline"
       size="sm"
       spacing={0}
