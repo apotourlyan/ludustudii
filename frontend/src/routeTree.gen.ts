@@ -10,69 +10,89 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LearningCardRouteImport } from './routes/learning-card'
-import { Route as LearningCardsRouteImport } from './routes/learning-cards'
-import { Route as LearningCardCardIdRouteImport } from './routes/learning-card_.$cardId'
+import { Route as LibraryIndexRouteImport } from './routes/library/index'
+import { Route as LibraryCardsIndexRouteImport } from './routes/library/cards/index'
+import { Route as LibraryCardsCardIdRouteImport } from './routes/library/cards/$cardId'
+import { Route as LibraryCardsNewRouteImport } from './routes/library/cards/new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LearningCardRoute = LearningCardRouteImport.update({
-  id: '/learning-card',
-  path: '/learning-card',
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LearningCardsRoute = LearningCardsRouteImport.update({
-  id: '/learning-cards',
-  path: '/learning-cards',
+const LibraryCardsIndexRoute = LibraryCardsIndexRouteImport.update({
+  id: '/library/cards/',
+  path: '/library/cards/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LearningCardCardIdRoute = LearningCardCardIdRouteImport.update({
-  id: '/learning-card_/$cardId',
-  path: '/learning-card/$cardId',
+const LibraryCardsCardIdRoute = LibraryCardsCardIdRouteImport.update({
+  id: '/library/cards/$cardId',
+  path: '/library/cards/$cardId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryCardsNewRoute = LibraryCardsNewRouteImport.update({
+  id: '/library/cards/new',
+  path: '/library/cards/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/learning-card': typeof LearningCardRoute
-  '/learning-cards': typeof LearningCardsRoute
-  '/learning-card/$cardId': typeof LearningCardCardIdRoute
+  '/library/': typeof LibraryIndexRoute
+  '/library/cards/$cardId': typeof LibraryCardsCardIdRoute
+  '/library/cards/new': typeof LibraryCardsNewRoute
+  '/library/cards/': typeof LibraryCardsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/learning-card': typeof LearningCardRoute
-  '/learning-cards': typeof LearningCardsRoute
-  '/learning-card/$cardId': typeof LearningCardCardIdRoute
+  '/library': typeof LibraryIndexRoute
+  '/library/cards/$cardId': typeof LibraryCardsCardIdRoute
+  '/library/cards/new': typeof LibraryCardsNewRoute
+  '/library/cards': typeof LibraryCardsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/learning-card': typeof LearningCardRoute
-  '/learning-cards': typeof LearningCardsRoute
-  '/learning-card_/$cardId': typeof LearningCardCardIdRoute
+  '/library/': typeof LibraryIndexRoute
+  '/library/cards/$cardId': typeof LibraryCardsCardIdRoute
+  '/library/cards/new': typeof LibraryCardsNewRoute
+  '/library/cards/': typeof LibraryCardsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/learning-card' | '/learning-cards' | '/learning-card/$cardId'
+    | '/'
+    | '/library/'
+    | '/library/cards/$cardId'
+    | '/library/cards/new'
+    | '/library/cards/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/learning-card' | '/learning-cards' | '/learning-card/$cardId'
+  to:
+    | '/'
+    | '/library'
+    | '/library/cards/$cardId'
+    | '/library/cards/new'
+    | '/library/cards'
   id:
     | '__root__'
     | '/'
-    | '/learning-card'
-    | '/learning-cards'
-    | '/learning-card_/$cardId'
+    | '/library/'
+    | '/library/cards/$cardId'
+    | '/library/cards/new'
+    | '/library/cards/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  LearningCardRoute: typeof LearningCardRoute
-  LearningCardsRoute: typeof LearningCardsRoute
-  LearningCardCardIdRoute: typeof LearningCardCardIdRoute
+  LibraryIndexRoute: typeof LibraryIndexRoute
+  LibraryCardsCardIdRoute: typeof LibraryCardsCardIdRoute
+  LibraryCardsNewRoute: typeof LibraryCardsNewRoute
+  LibraryCardsIndexRoute: typeof LibraryCardsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -84,25 +104,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/learning-card': {
-      id: '/learning-card'
-      path: '/learning-card'
-      fullPath: '/learning-card'
-      preLoaderRoute: typeof LearningCardRouteImport
+    '/library/': {
+      id: '/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof LibraryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/learning-cards': {
-      id: '/learning-cards'
-      path: '/learning-cards'
-      fullPath: '/learning-cards'
-      preLoaderRoute: typeof LearningCardsRouteImport
+    '/library/cards/': {
+      id: '/library/cards/'
+      path: '/library/cards'
+      fullPath: '/library/cards/'
+      preLoaderRoute: typeof LibraryCardsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/learning-card_/$cardId': {
-      id: '/learning-card_/$cardId'
-      path: '/learning-card/$cardId'
-      fullPath: '/learning-card/$cardId'
-      preLoaderRoute: typeof LearningCardCardIdRouteImport
+    '/library/cards/$cardId': {
+      id: '/library/cards/$cardId'
+      path: '/library/cards/$cardId'
+      fullPath: '/library/cards/$cardId'
+      preLoaderRoute: typeof LibraryCardsCardIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library/cards/new': {
+      id: '/library/cards/new'
+      path: '/library/cards/new'
+      fullPath: '/library/cards/new'
+      preLoaderRoute: typeof LibraryCardsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -110,9 +137,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  LearningCardRoute: LearningCardRoute,
-  LearningCardsRoute: LearningCardsRoute,
-  LearningCardCardIdRoute: LearningCardCardIdRoute,
+  LibraryIndexRoute: LibraryIndexRoute,
+  LibraryCardsCardIdRoute: LibraryCardsCardIdRoute,
+  LibraryCardsNewRoute: LibraryCardsNewRoute,
+  LibraryCardsIndexRoute: LibraryCardsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

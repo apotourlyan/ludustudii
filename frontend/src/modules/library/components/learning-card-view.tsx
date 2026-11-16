@@ -73,7 +73,7 @@ export function LearningCardView({ card }: { card: LearningCard }) {
           <div className="flex gap-2">
             {/* A link, so the router preloads the card while the pointer hovers it. */}
             <Link
-              to="/learning-card/$cardId"
+              to="/library/cards/$cardId"
               params={{ cardId: card.id }}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >

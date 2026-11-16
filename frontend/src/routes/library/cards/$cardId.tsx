@@ -4,7 +4,7 @@ import { ApiError } from "@/api/http";
 import { lcardQueries } from "@/api/lcards";
 import { CardNotFoundPage, EditCardPage } from "@/modules/library";
 
-export const Route = createFileRoute("/learning-card_/$cardId")({
+export const Route = createFileRoute("/library/cards/$cardId")({
   // Fill the query cache without returning the data, so the router keeps no
   // second copy as loaderData.
   loader: async ({ context: { queryClient }, params: { cardId } }) => {
