@@ -329,10 +329,13 @@ frontend/
   and renders a page from a module's index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
   effects (`sideEffects`), so the build drops the index's other exports from
-  each route's chunk, and every route still gets a chunk of its own.
+  each route's chunk. The router's code splitting keeps a route's loader in
+  the initial bundle, though, and the load function it calls shares a file
+  with the page, so every page and what it imports load up front; only
+  what no loader reaches is split off per route.
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
-  `model/` for plain TypeScript logic or `widgets/` once it needs one. Today there is one,
-  `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
+  `model/` for plain TypeScript logic or `widgets/` once it needs one. Today
+  there is one, `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
   are built. URLs start with the module (`/library/cards`,
   `/library/cards/new`, `/library/cards/$cardId`), and the route files are
   grouped the same way, in `src/routes/library/`. `/` and `/library`

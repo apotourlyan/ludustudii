@@ -67,6 +67,16 @@
       }
     },
     {
+      // A page file exports the page's load function next to the page (ADR
+      // 0036). Fast Refresh can't update such a file on its own, so in
+      // development an edit to it updates its routes instead, and the page
+      // loses its state.
+      "files": ["src/modules/*/pages/**"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
       // Module boundaries outside the API layer (ADR 0033), and outside a
       // module, its index only (ADR 0035). The patterns match the alias and
       // relative paths (./api/, ../api/, ./../api/...), and openapi-fetch's

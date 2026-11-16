@@ -1,13 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { lcardQueries } from "@/api/lcards";
-import { CardsPage } from "@/modules/library";
+import { CardsPage, loadCardsPage } from "@/modules/library";
 
 export const Route = createFileRoute("/library/cards/")({
-  // Fill the query cache without returning the data, so the router keeps no
-  // second copy as loaderData.
-  loader: async ({ context: { queryClient } }) => {
-    await queryClient.query(lcardQueries.list());
-  },
+  loader: ({ context: { queryClient } }) => loadCardsPage(queryClient),
   component: CardsPage,
 });
