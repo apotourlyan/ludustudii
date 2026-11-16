@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
+import { cn } from "cn";
 import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { ApiError } from "@/api/http";
@@ -11,6 +12,16 @@ import { Textarea } from "@/shared/ui/textarea";
 import { cardErrorMessage } from "./card-error-message";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 import { LearningCardPreview } from "./learning-card-preview";
+
+// From md up, the preview on the left, the editor on the right, and the
+// buttons under the editor. Both frames span the seven band rows as
+// subgrids, so each row is as tall as the taller of the two sides and the
+// bands line up; the description's row takes what is left. The rows have
+// no gap: the bands touch, as inside a frame. Below md, one column in
+// document order: editor, buttons, preview.
+const GRID =
+  "grid grid-cols-1 gap-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_auto_auto_1fr_auto_auto] md:gap-y-0";
+const BAND_ROWS = "md:row-span-7 md:row-start-1 md:grid md:grid-rows-subgrid";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -151,7 +162,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 
   return (
     <form
-      className="grid grid-cols-1 gap-6"
+      className={GRID}
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -169,13 +180,16 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           >
             {(description) => (
               <LearningCardFrame
+                className={cn(BAND_ROWS, "md:col-start-2")}
                 strip="Edit"
                 title={fieldSection(title, "Title", TITLE_MAX_LENGTH, {
                   className: "min-h-5",
                   placeholder: "Enter title...",
                 })}
                 description={fieldSection(description, "Description", DESCRIPTION_MAX_LENGTH, {
-                  className: "min-h-50",
+                  // Fills its row, so it ends where the preview's description
+                  // does when the preview is the taller of the two.
+                  className: "h-full min-h-50",
                   placeholder: "Enter description...",
                 })}
               />
@@ -186,7 +200,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 
       {/* The save error sits left of the buttons, next to the action that
           failed, and adds no row, so nothing above it moves. */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 md:col-start-2 md:row-start-8 md:mt-4">
         {mutation.isError && (
           <FieldError className="min-w-0 flex-1">
             {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
@@ -211,7 +225,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       </div>
 
       <form.Subscribe selector={(state) => state.values}>
-        {(values) => <LearningCardPreview card={values} />}
+        {(values) => (
+          <LearningCardPreview card={values} className={cn(BAND_ROWS, "md:col-start-1")} />
+        )}
       </form.Subscribe>
     </form>
   );
