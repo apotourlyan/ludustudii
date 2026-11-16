@@ -986,8 +986,8 @@ package's main entry ([UI components](#ui-components)). Every rule turned off ca
 The configuration is TypeScript so that each import restriction is written
 once: a named constant with its message and its ADR. An override replaces a
 rule's options instead of merging them, so each override lists, by name,
-every restriction that applies to its files, and `restrictImports` sorts them
-into `paths` and `patterns`. A new boundary is one constant, added by name to
+every restriction that applies to its files, and `restrictImports` puts each
+in `paths` or `patterns`, keeping their order. A new boundary is one constant, added by name to
 each override that needs it. Keep the file a list of rules: plain constants
 and arrays, no loops or generated regexes. `make frontend-typecheck` checks it
 against Oxlint's `defineConfig` types, and Node runs it by stripping the
