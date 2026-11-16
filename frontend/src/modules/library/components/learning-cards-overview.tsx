@@ -19,7 +19,7 @@ export function LearningCardsOverview() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning Cards</h1>
         <Link to="/library/cards/new" className="text-sm text-primary underline underline-offset-4">
@@ -34,7 +34,7 @@ export function LearningCardsOverview() {
           <VirtualCards cards={cards} />
         </Carousel>
       )}
-    </main>
+    </div>
   );
 }
 
