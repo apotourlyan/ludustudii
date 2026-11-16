@@ -374,6 +374,11 @@ decides what each kind of file in a module may do:
   dialog), renders links instead of navigating, reports outcomes through
   callbacks (`onSaved`), and leaves its page width and outer margins to its
   parent.
+- **Modes of one thing**, such as viewing and editing a card, share a frame
+  component with slots, and each mode is its own component that fills them:
+  `LearningCardFrame` lays out a card's header, body and footer, and
+  `LearningCardDisplay` and `LearningCardForm` fill it. No mode prop that
+  switches the logic.
 - **A widget** is data the page shouldn't wait for: it owns its query and
   shows its own loading and failure, behind its own Suspense and error
   boundary, or inline with `useQuery` where suspending would be wrong. A
