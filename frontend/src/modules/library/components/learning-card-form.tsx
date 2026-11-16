@@ -234,7 +234,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           failed, and adds no row, so nothing above it moves. */}
       <div className="flex items-center justify-end gap-2 md:col-start-2 md:row-start-8 md:mt-4">
         {mutation.isError && (
-          <FieldError className="min-w-0 flex-1">
+          <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
             {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
           </FieldError>
         )}

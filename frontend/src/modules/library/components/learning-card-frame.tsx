@@ -96,9 +96,20 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
 function StatusBar({ section }: { section: LearningCardFrameSection }) {
   if (section.status === undefined) return null;
   return (
-    // Holds one line when empty, so a message appearing shifts nothing.
-    <div className={cn(BAND, "min-h-8 text-muted-foreground", section.invalid && INVALID_BAND)}>
-      {section.status}
+    // Holds one line when empty, so a message appearing shifts nothing; a
+    // message fades in.
+    <div
+      className={cn(
+        BAND,
+        "min-h-8 text-muted-foreground transition-colors",
+        section.invalid && INVALID_BAND,
+      )}
+    >
+      {section.status !== null && (
+        <div className="animate-in duration-200 fade-in-0 motion-reduce:animate-none">
+          {section.status}
+        </div>
+      )}
     </div>
   );
 }
