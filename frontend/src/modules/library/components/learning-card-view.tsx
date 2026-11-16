@@ -64,26 +64,26 @@ const markdownComponents: Components = {
   hr: () => <Separator className="my-4" />,
 };
 
+// A saved card with its actions: a link to edit it, and deleting it. Its
+// parent places it.
 export function LearningCardView({ card }: { card: LearningCard }) {
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <LearningCardDisplay
-        card={card}
-        action={
-          <div className="flex gap-2">
-            {/* A link, so the router preloads the card while the pointer hovers it. */}
-            <Link
-              to="/library/cards/$cardId"
-              params={{ cardId: card.id }}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Update
-            </Link>
-            <DeleteLearningCardButton card={card} />
-          </div>
-        }
-      />
-    </div>
+    <LearningCardDisplay
+      card={card}
+      action={
+        <div className="flex gap-2">
+          {/* A link, so the router preloads the card while the pointer hovers it. */}
+          <Link
+            to="/library/cards/$cardId"
+            params={{ cardId: card.id }}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Update
+          </Link>
+          <DeleteLearningCardButton card={card} />
+        </div>
+      }
+    />
   );
 }
 

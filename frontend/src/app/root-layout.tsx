@@ -10,7 +10,8 @@ const TanStackRouterDevtools = import.meta.env.PROD
       })),
     );
 
-// The layout around every page: the navigation, then the current route.
+// The layout around every page: the navigation, then the current route in
+// the page's one <main> landmark, which pages leave to this layout (ADR 0036).
 export function RootLayout() {
   return (
     <React.Fragment>
@@ -22,7 +23,9 @@ export function RootLayout() {
         </Link>
         <Link to="/library/cards/new">Add Card</Link>
       </nav>
-      <Outlet />
+      <main>
+        <Outlet />
+      </main>
       <React.Suspense>
         <TanStackRouterDevtools />
       </React.Suspense>

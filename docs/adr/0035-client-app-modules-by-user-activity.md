@@ -1,6 +1,6 @@
 # 0035. Client app modules by user activity
 
-- Status: Accepted
+- Status: Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md) (widgets/ folder; .load.ts files next to pages)
 - Date: 2026-11-15
 - Tags: front-end, architecture
 
