@@ -27,7 +27,7 @@ export interface LearningCardFrameSection {
 
 export interface LearningCardFrameProps {
   // A band above the title section that names the panel, such as "Edit",
-  // at its right edge.
+  // at its right edge, a step stronger than the bars below it.
   strip?: ReactNode;
   // Shown next to the title's content, such as buttons.
   actions?: ReactNode;
@@ -60,7 +60,7 @@ export function LearningCardFrame({
     // up with another frame's in a subgrid.
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
       {strip !== undefined && (
-        <div className={cn(BAND, "justify-end text-muted-foreground")}>{strip}</div>
+        <div className={cn(BAND, "justify-end bg-muted text-foreground")}>{strip}</div>
       )}
       <LabelBar section={title} />
       <CardHeader className={cn("py-(--card-spacing)", title.active && ACTIVE_LINE)}>
