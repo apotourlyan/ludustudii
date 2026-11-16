@@ -307,9 +307,10 @@ frontend/
 │   ├── routeTree.gen.ts    # generated from routes/ by the router's Vite plugin
 │   ├── modules/            # one folder per user activity
 │   │   └── library/        # managing content: learning cards
-│   │       ├── index.ts    # the module's public surface: its pages and their load functions
-│   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts)
-│   │       └── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
+│   │       ├── index.ts    # the module's public surface: its pages, their load functions and search params validators
+│   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
+│   │       ├── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
+│   │       └── model/      # plain TypeScript logic, such as the overview's views
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
 │   │   ├── lib/            # helpers
@@ -324,7 +325,9 @@ frontend/
 - **`src/app/`** is the only code that may combine several modules, such as
   a navigation or, later, a dashboard built from what each module exports.
 - **`src/routes/`** stays thin: a route file declares its path and params,
-  calls its page's load function in its loader
+  checks its search params with its page's validator, if the page has
+  display state (`validateSearch: validateCardsPageSearch`), calls its
+  page's load function in its loader
   (`loader: ({ context: { queryClient } }) => loadCardsPage(queryClient)`),
   and renders a page from a module's index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
@@ -352,10 +355,30 @@ frontend/
 
 | URL | Page | Shows |
 | --- | --- | --- |
-| `/library/cards` | `CardsPage` | The cards, newest first, one at a time in a carousel, each with Open, Update and Delete |
+| `/library/cards?view=list` | `CardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete |
+| `/library/cards?view=grid` | `CardsPage` | The same, as a grid of cards of one size |
 | `/library/cards/new` | `NewCardPage` | The form for a new card, with its preview |
 | `/library/cards/$cardId` | `CardPage` | One card, its title the page's `<h1>`, with Update and Delete |
 | `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
+
+The overview, `/library/cards`, shows the cards as a list or a grid,
+switched by the two icon buttons next to its "Add Card" link ("List view"
+and "Grid view"). The view is in the URL: `view=grid` is the grid, and
+anything else, or nothing, the list. The router writes the default into
+the URL, so links to the overview, and the redirects from `/` and
+`/library`, end on `?view=list`. A list row shows a title on one line and
+a grid card up to three, each cut with an ellipsis; the grid has 4 cards
+per row from `lg`, 3 from `md`, 2 from `sm` and 1 below. Both views render
+only the items near the window, with TanStack Virtual's window virtualizer:
+every row and card has a fixed height, so nothing is measured, and each
+rendered item carries `aria-posinset` and `aria-setsize`, so assistive
+technology knows its place among all the cards. The page scrolls, and Back
+returns to where it was scrolled: the router's scroll restoration
+(`scrollRestoration` in `src/app/router.ts`) restores the window, and the
+page reads the position it is about to restore with
+`useElementScrollRestoration` and passes it to the view as its initial
+offset, so the first render already shows the items there. The overview
+loads the first page of cards, 100, the most the API serves at once.
 
 Both card URLs show `CardNotFoundPage` for an ID that names no card.
 Creating a card and saving an edit end on the card's page; Cancel goes to
@@ -398,6 +421,19 @@ decides what each kind of file in a module may do:
   or removes what it shows (a delete), a page navigates with
   `replace: true`, so Back doesn't return to an empty form or to a missing
   card. Any other navigation pushes.
+- **Display state**, such as the overview's chosen view, lives in the
+  URL's search params, so a reload, Back or a shared link keeps it. The
+  route checks them with `validateSearch`, which calls the page's
+  validator in `pages/<page>.search.ts` (`validateCardsPageSearch`), and
+  turns anything invalid or missing into the default. The page reads them
+  with `useSearch`, and changing them navigates with `replace: true`, so
+  Back leaves the page instead of stepping through each change. Changing
+  them doesn't reload the page's data either: the router runs a page's
+  loader again for a navigation that only changes its search params (a
+  "stay") only when it goes to the very same URL, so switching views never
+  waits for a refetch or fails on one (`tests/mock/views.spec.ts` checks
+  it). Entering the page runs the loader as on every route
+  ([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)).
 - **A component** takes data as props and owns only UI state. It may call
   a mutation hook for the interaction it owns (a delete button and its
   dialog), renders links instead of navigating, reports outcomes through
@@ -458,6 +494,7 @@ decides what each kind of file in a module may do:
 | --- | --- | --- |
 | Page | `src/modules/<module>/pages/<page>.tsx`, exporting only its component, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
 | Load function | `src/modules/<module>/pages/<page>.load.ts`, beside its page: fills what the page reads, imports only the API layer and the router, exported from the module's `index.ts` | `@/modules/<module>`, by its route's loader |
+| Search params validator | `src/modules/<module>/pages/<page>.search.ts`, beside its page: checks the page's display state and fills in defaults, imports no UI, exported from the module's `index.ts` | `@/modules/<module>`, by its route's `validateSearch` |
 | Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks | A relative path, inside the module |
 | Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
@@ -801,8 +838,8 @@ project:
 
 | Command | Tests | Runs against | Covers | Runs in |
 | --- | --- | --- | --- | --- |
-| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the list and its markdown, a card's page, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
-| `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
+| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the overview's list and grid views (the view in the URL, rendering only what is near the window, item positions, cut titles, the grid's columns, tabbing through the actions, Back to the same position), a card's page and its markdown, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
+| `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, find it in the grid and open it, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
 
 Both targets pass `ARGS` on to Playwright, for example
 `make frontend-test ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
@@ -845,22 +882,24 @@ the network would.
 
 **End-to-end tests** share one database and run in parallel, so every test
 creates its own data with a unique title (a random UUID in it) and asserts only
-on that data, never on totals or positions. The list is a carousel, newest
-first, and another test may create a card at any moment, so a test doesn't
-assume its card is the first slide. It finds the card by title with
-`showCard` in `tests/support/carousel.ts`, which steps through the slides
-until one shows it, or it opens the card by its ID (from its page's URL, or
-the `Location` of a card created through the API). The list loads only its
-first page (20 cards), so a test deletes the cards it creates, which keeps
-the other tests' cards on that page.
+on that data, never on totals or positions. The overview is newest first,
+and another test may create a card at any moment, so a test doesn't assume
+its card is the first item. It finds the card by title with `findCard` in
+`tests/support/overview.ts`, which scrolls down a screen at a time until
+the overview has rendered it, or it opens the card by its ID (from its
+page's URL, or the `Location` of a card created through the API). The
+overview loads only its first page (100 cards), so a test deletes the cards
+it creates, which keeps the other tests' cards on that page.
 
 **Locators** find elements the way users do: by role, label and text
 (`getByRole`, `getByLabel`, `getByText`). A test that fails because an element
 lost its accessible name has found a real problem. A test ID is a last resort,
 for an element with no role, label or text a user would know it by, and its
-use says why in a comment. In the carousel, only the slide on screen is
-exposed; the others are `aria-hidden`, so role locators skip them, and
-`currentSlide` returns the one on screen.
+use says why in a comment. The overview renders only the items near the
+window, so a test reaches an item by its position among all the cards
+(`cardAt` in `tests/support/overview.ts`, from its `aria-posinset`) or its
+title (`cardItem`), and scrolls the window (`scrollWindow`) to bring others
+in.
 
 **A new feature adds its tests** in the same pull request: app tests for its
 flows, error paths included, in `tests/mock/<feature>.spec.ts`, with the fake

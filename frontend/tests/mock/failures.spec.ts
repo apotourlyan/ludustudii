@@ -2,7 +2,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { currentSlide } from "../support/carousel";
+import { cardAt, cardItems } from "../support/overview";
 
 test("a failing server shows the error page", async ({ page }) => {
   await page.goto("/library/cards?scenario=failing");
@@ -25,13 +25,13 @@ test("a slow server shows the pending page first", async ({ page }) => {
 
   const pending = page.getByRole("status").filter({ hasText: "Loading..." });
   await expect(pending).toBeVisible();
-  await expect(page.getByRole("status")).toHaveText("1 / 8");
+  await expect(cardItems(page)).toHaveCount(8);
   await expect(pending).toBeHidden();
 });
 
 test("going offline shows the network message on the next request", async ({ page, context }) => {
   await page.goto("/library/cards");
-  await currentSlide(page).getByRole("link", { name: "Update" }).click();
+  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
 
   await context.setOffline(true);

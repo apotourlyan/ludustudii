@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 import { cardIdFromPath, deleteCard, NOT_FOUND_TEXT } from "../support/cards";
-import { showCard } from "../support/carousel";
+import { findCard } from "../support/overview";
 
 // A title no other test or run uses.
 function uniqueTitle(label: string): string {
@@ -31,8 +31,8 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page.getByRole("main").getByRole("strong")).toHaveText("end-to-end");
 
   await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
-  const slide = await showCard(page, title);
-  await slide.getByRole("link", { name: "Update" }).click();
+  const item = await findCard(page, title);
+  await item.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await page.getByLabel("Title").fill(edited);
   await page.getByRole("button", { name: "Update Card" }).click();
@@ -41,10 +41,19 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(edited);
 
+  // The grid shows the change too, and opens the card's page.
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("button", { name: "Grid view" }).click();
+  await expect(page).toHaveURL(/\/library\/cards\?view=grid$/);
+  const card = await findCard(page, edited);
+  await card.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(edited);
+
   // Deleting on the card's page ends on the list, without the card.
   const dialog = await deleteCard(page, page.getByRole("main"));
   await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 

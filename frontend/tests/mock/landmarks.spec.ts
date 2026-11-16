@@ -5,8 +5,8 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { NOT_FOUND_TEXT } from "../support/cards";
-import { currentSlide } from "../support/carousel";
+import { NOT_FOUND_TEXT, openCardFromList } from "../support/cards";
+import { cardAt, cardItems } from "../support/overview";
 
 const pages: { name: string; heading: string; open: (page: Page) => Promise<void> }[] = [
   {
@@ -14,7 +14,7 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     heading: "Learning Cards",
     open: async (page) => {
       await page.goto("/library/cards");
-      await expect(page.getByRole("status")).toHaveText("1 / 8");
+      await expect(cardItems(page)).toHaveCount(8);
     },
   },
   {
@@ -40,8 +40,10 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     heading: "Mitochondria",
     open: async (page) => {
       await page.goto("/library/cards");
-      await currentSlide(page).getByRole("link", { name: "Open" }).click();
-      await expect(page.getByRole("link", { name: "Update" })).toBeVisible();
+      await openCardFromList(page, cardAt(page, 1));
+      // The URL changes before the card's page replaces the list, whose
+      // items have an Update link each.
+      await expect(page.getByRole("link", { name: "Update" })).toHaveCount(1);
     },
   },
   {
@@ -49,7 +51,7 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     heading: "Update Card",
     open: async (page) => {
       await page.goto("/library/cards");
-      await currentSlide(page).getByRole("link", { name: "Update" }).click();
+      await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
       await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
     },
   },
