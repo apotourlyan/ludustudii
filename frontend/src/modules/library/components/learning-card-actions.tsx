@@ -25,10 +25,21 @@ import { cardErrorMessage } from "./card-error-message";
 // compose in their actions slot. The links let the router preload the
 // card's page while the pointer hovers them.
 //
-// Each action is an icon. Its name is hidden text, as on the carousel's
-// buttons, so assistive technology and tests find it by name.
+// Each action is an icon. Its name is hidden text, so assistive technology
+// and tests find it by name.
 
 const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
+
+// All three, in a row: open, update, delete.
+export function LearningCardActions({ card }: { card: Pick<LearningCard, "id" | "version"> }) {
+  return (
+    <div className="flex gap-2">
+      <OpenLearningCardLink card={card} />
+      <UpdateLearningCardLink card={card} />
+      <DeleteLearningCardButton card={card} />
+    </div>
+  );
+}
 
 // Opens the card's own page.
 export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {

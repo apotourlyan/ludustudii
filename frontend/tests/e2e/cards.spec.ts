@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 import { cardIdFromPath, deleteCard, NOT_FOUND_TEXT } from "../support/cards";
-import { showCard } from "../support/carousel";
+import { findCard } from "../support/overview";
 
 // A title no other test or run uses.
 function uniqueTitle(label: string): string {
@@ -31,8 +31,8 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page.getByRole("main").getByRole("strong")).toHaveText("end-to-end");
 
   await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
-  const slide = await showCard(page, title);
-  await slide.getByRole("link", { name: "Update" }).click();
+  const item = await findCard(page, title);
+  await item.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await page.getByLabel("Title").fill(edited);
   await page.getByRole("button", { name: "Update Card" }).click();

@@ -1,11 +1,11 @@
 // A card's title renders only inline Markdown, and its description's
 // headings start at level 2, so the page's own <h1> stays the only one
-// (#47). Checked wherever a card renders: the editor's preview, the list
-// and the card's page, where the title is the page's heading.
+// (#47). Checked wherever a card renders: the editor's preview, the card's
+// page, where the title is the page's heading, and, title only, the overview.
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { currentSlide } from "../support/carousel";
+import { cardAt } from "../support/overview";
 
 const TITLE = "# Photosynthesis **basics**";
 const DESCRIPTION = "# Light\n\nThe **light-dependent** reactions come first.";
@@ -40,9 +40,14 @@ test("a title renders inline and description headings start at level 2", async (
   await expectRendered(page, page.getByRole("main"));
 
   await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
-  const slide = currentSlide(page);
-  await expect(slide).toHaveAccessibleName("1 of 9");
-  await expectRendered(page, slide);
+  // The overview shows the title only.
+  const item = cardAt(page, 1);
+  await expect(item).toHaveAttribute("aria-setsize", "9");
+  const title = titleIn(item);
+  await expect(title).toBeVisible();
+  await expect(title.getByRole("strong")).toHaveText("basics");
+  await expect(title.getByRole("heading")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
 });
 
 // A title whose syntax leaves no text once unwrapped shows its source, so

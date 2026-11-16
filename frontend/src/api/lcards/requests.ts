@@ -53,8 +53,14 @@ export function getLearningCard(id: string, signal?: AbortSignal): Promise<Learn
   return unwrap(client.GET("/api/lcards/{id}", { params: { path: { id } }, signal }));
 }
 
-// Only the first page is loaded; next_cursor is not followed yet.
+// The largest page the API serves (its limit's maximum).
+const LIST_PAGE_SIZE = 100;
+
+// Only the first page is loaded, as large as the API allows; next_cursor
+// is not followed yet.
 export async function getLearningCards(signal?: AbortSignal): Promise<LearningCard[]> {
-  const page = await unwrap(client.GET("/api/lcards", { signal }));
+  const page = await unwrap(
+    client.GET("/api/lcards", { params: { query: { limit: LIST_PAGE_SIZE } }, signal }),
+  );
   return page.items;
 }

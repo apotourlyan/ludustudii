@@ -16,21 +16,21 @@ export function cardIdFromPath(path: string | null | undefined): string {
   return id;
 }
 
-// The ID of the card a slide shows, from its "Open" link.
-export async function cardIdOf(slide: Locator): Promise<string> {
-  return cardIdFromPath(await slide.getByRole("link", { name: "Open" }).getAttribute("href"));
+// The ID of the card an overview's item shows, from its "Open" link.
+export async function cardIdOf(item: Locator): Promise<string> {
+  return cardIdFromPath(await item.getByRole("link", { name: "Open" }).getAttribute("href"));
 }
 
-// Opens the card the list's carousel shows on its page, from the slide's
+// Opens the card an overview's item shows on its page, from the item's
 // "Open" link, and returns the card's ID.
-export async function openCardFromList(page: Page, slide: Locator): Promise<string> {
-  const id = await cardIdOf(slide);
-  await slide.getByRole("link", { name: "Open" }).click();
+export async function openCardFromList(page: Page, item: Locator): Promise<string> {
+  const id = await cardIdOf(item);
+  await item.getByRole("link", { name: "Open" }).click();
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   return id;
 }
 
-// Deletes the card shown in `scope`, a slide or the card's page, through
+// Deletes the card shown in `scope`, an overview's item or the card's page, through
 // its confirmation dialog, and returns the dialog, which closes once the
 // card is deleted and stays open with the error otherwise.
 export async function deleteCard(page: Page, scope: Locator): Promise<Locator> {

@@ -4,12 +4,12 @@
 import { expect, test } from "@playwright/test";
 
 import { cardIdOf, changeCardElsewhere, deleteCard } from "../support/cards";
-import { currentSlide } from "../support/carousel";
+import { cardAt } from "../support/overview";
 
 test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
   await page.goto("/library/cards");
-  const id = await cardIdOf(currentSlide(page));
-  await currentSlide(page).getByRole("link", { name: "Update" }).click();
+  const id = await cardIdOf(cardAt(page, 1));
+  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
 
   await changeCardElsewhere(page, id);
@@ -26,10 +26,10 @@ test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
 
 test("deleting a card changed elsewhere shows the conflict", async ({ page }) => {
   await page.goto("/library/cards");
-  const slide = currentSlide(page);
-  await changeCardElsewhere(page, await cardIdOf(slide));
+  const item = cardAt(page, 1);
+  await changeCardElsewhere(page, await cardIdOf(item));
 
-  const dialog = await deleteCard(page, slide);
+  const dialog = await deleteCard(page, item);
 
   await expect(dialog.getByRole("alert")).toHaveText(
     "This card has changed. Reload it before you delete the card.",

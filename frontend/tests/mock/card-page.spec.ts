@@ -6,12 +6,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { openCardFromList } from "../support/cards";
-import { currentSlide } from "../support/carousel";
+import { cardAt, cardItems } from "../support/overview";
 
 // Opens the newest card, "Mitochondria", on its page, and returns its ID.
 async function openNewestCard(page: Page): Promise<string> {
   await page.goto("/library/cards");
-  const id = await openCardFromList(page, currentSlide(page));
+  const id = await openCardFromList(page, cardAt(page, 1));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
   return id;
 }
@@ -38,7 +38,7 @@ test("Open in the list shows the card on its own page", async ({ page }) => {
   // The page has no link back of its own; the navigation's leads to the list.
   await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
   await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
-  await expect(page.getByRole("status")).toHaveText("1 / 8");
+  await expect(cardItems(page)).toHaveCount(8);
 });
 
 test("the card's page links to a new card", async ({ page }) => {

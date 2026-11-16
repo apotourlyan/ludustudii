@@ -5,11 +5,11 @@
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { currentSlide } from "../support/carousel";
+import { cardAt } from "../support/overview";
 
 async function openEditor(page: Page): Promise<void> {
   await page.goto("/library/cards");
-  await currentSlide(page).getByRole("link", { name: "Update" }).click();
+  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
 }
 
