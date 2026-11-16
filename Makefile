@@ -112,7 +112,7 @@ frontend-fmt-check:
 		{ echo "frontend-fmt-check: the files above need formatting; run 'make frontend-fmt'" >&2; exit 1; }
 
 ## frontend-lint: Lints the client app with Oxlint, type-aware; warnings and unused disable directives fail
-# frontend/.oxlintrc.json turns on type-aware rules, denies warnings and
+# frontend/oxlint.config.ts turns on type-aware rules, denies warnings and
 # reports unused disable directives, so the editor applies the same settings.
 # The guard looks for the binaries, not only node_modules, so a checkout
 # installed before Oxlint was added also gets the hint.
