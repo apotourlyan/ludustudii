@@ -1,9 +1,7 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useVirtualizer, type VirtualizerOptions } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useState } from "react";
 
-import { lcardQueries, type LearningCard } from "@/api/lcards";
+import type { LearningCard } from "@/api/lcards";
 import {
   Carousel,
   CarouselContent,
@@ -15,26 +13,13 @@ import {
 
 import { LearningCardView } from "./learning-card-view";
 
-export function LearningCardsOverview() {
-  const { data: cards } = useSuspenseQuery(lcardQueries.list());
-
+// The cards, one at a time, with only the slides near the current one
+// mounted. Takes at least one card: an empty list is its parent's to show.
+export function LearningCardCarousel({ cards }: { cards: LearningCard[] }) {
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Learning Cards</h1>
-        <Link to="/library/cards/new" className="text-sm text-primary underline underline-offset-4">
-          Add Card
-        </Link>
-      </div>
-
-      {cards.length === 0 ? (
-        <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
-      ) : (
-        <Carousel opts={{ align: "start", loop: false }} aria-label="Learning cards">
-          <VirtualCards cards={cards} />
-        </Carousel>
-      )}
-    </div>
+    <Carousel opts={{ align: "start", loop: false }} aria-label="Learning cards">
+      <VirtualCards cards={cards} />
+    </Carousel>
   );
 }
 
