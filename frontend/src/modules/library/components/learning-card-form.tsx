@@ -1,15 +1,16 @@
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
+import { Button, buttonVariants } from "@/shared/ui/button";
+import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
 import { cardErrorMessage } from "./card-error-message";
-import { LearningCardDisplay } from "./learning-card-view";
+import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
+import { LearningCardPreview } from "./learning-card-preview";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -50,16 +51,61 @@ const validateDescription = ({ value }: { value: string }) => {
   return undefined;
 };
 
-interface LearningCardFormProps {
+// What the editor's bands need from a form field holding text.
+interface TextField {
+  name: string;
+  state: { value: string; meta: { errors: ({ message: string } | undefined)[] } };
+  handleBlur: () => void;
+  handleChange: (value: string) => void;
+}
+
+// A field as one of the editor's sections: its label and counter in the
+// label bar, the field as the content, its error in the status bar.
+function fieldSection(
+  field: TextField,
+  label: string,
+  maxLength: number,
+  control: Pick<ComponentProps<"textarea">, "className" | "placeholder">,
+): LearningCardFrameSection {
+  const invalid = field.state.meta.errors.length > 0;
+  return {
+    label: <FieldLabel htmlFor={field.name}>{label}</FieldLabel>,
+    meta: `${canonicalLength(field.state.value)}/${maxLength}`,
+    content: (
+      <Textarea
+        {...control}
+        id={field.name}
+        name={field.name}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={(e) => field.handleChange(e.target.value)}
+        maxLength={maxLength * INPUT_SLACK}
+        aria-invalid={invalid}
+      />
+    ),
+    status: invalid ? <FieldError errors={field.state.meta.errors} /> : null,
+    invalid,
+  };
+}
+
+interface LearningCardFormProps<
+  TRouter extends RegisteredRouter = RegisteredRouter,
+  TOptions = unknown,
+> {
   card?: LearningCard;
+  // Where Cancel goes, which is the page's decision.
+  cancel: ValidateLinkOptions<TRouter, TOptions>;
   // Called after a successful save, and awaited; what follows a save, such
   // as leaving the page, is the page's (ADR 0036).
   onSaved?: () => void | Promise<void>;
 }
 
-// Creates a card, or updates the given one, with a preview beside the
-// fields. Its page places it and gives it a heading.
-export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
+// Creates a card, or updates the given one: the editor, its buttons, and
+// a preview of the card. Its page places it and gives it a heading.
+export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
+  props: LearningCardFormProps<TRouter, TOptions>,
+): ReactNode;
+export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
   const createLearningCard = useCreateLearningCard();
@@ -104,121 +150,69 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
   });
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-      <Card className="min-w-0">
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // onSubmit handles a failed save itself, and the form's state
-              // shows the submission's progress, so the event handler has
-              // nothing to wait for.
-              void form.handleSubmit();
-            }}
+    <form
+      className="grid grid-cols-1 gap-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // onSubmit handles a failed save itself, and the form's state
+        // shows the submission's progress, so the event handler has
+        // nothing to wait for.
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="title" validators={{ onChange: validateTitle, onSubmit: validateTitle }}>
+        {(title) => (
+          <form.Field
+            name="description"
+            validators={{ onChange: validateDescription, onSubmit: validateDescription }}
           >
-            <FieldGroup>
-              <form.Field
-                name="title"
-                validators={{
-                  onChange: validateTitle,
-                  onSubmit: validateTitle,
-                }}
-              >
-                {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <div className="flex items-center justify-between">
-                        <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                        <FieldDescription>
-                          {canonicalLength(field.state.value)}/{TITLE_MAX_LENGTH}
-                        </FieldDescription>
-                      </div>
-                      <Textarea
-                        className="min-h-5"
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        maxLength={TITLE_MAX_LENGTH * INPUT_SLACK}
-                        aria-invalid={isInvalid}
-                        placeholder="Enter title..."
-                      />
-                      <div className="min-h-4">
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                      </div>
-                    </Field>
-                  );
-                }}
-              </form.Field>
+            {(description) => (
+              <LearningCardFrame
+                strip="Edit"
+                title={fieldSection(title, "Title", TITLE_MAX_LENGTH, {
+                  className: "min-h-5",
+                  placeholder: "Enter title...",
+                })}
+                description={fieldSection(description, "Description", DESCRIPTION_MAX_LENGTH, {
+                  className: "min-h-50",
+                  placeholder: "Enter description...",
+                })}
+              />
+            )}
+          </form.Field>
+        )}
+      </form.Field>
 
-              <form.Field
-                name="description"
-                validators={{
-                  onChange: validateDescription,
-                  onSubmit: validateDescription,
-                }}
-              >
-                {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <div className="flex items-center justify-between">
-                        <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                        <FieldDescription>
-                          {canonicalLength(field.state.value)}/{DESCRIPTION_MAX_LENGTH}
-                        </FieldDescription>
-                      </div>
-                      <Textarea
-                        className="min-h-50"
-                        id={field.name}
-                        placeholder="Enter description..."
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        maxLength={DESCRIPTION_MAX_LENGTH * INPUT_SLACK}
-                        aria-invalid={isInvalid}
-                      />
-                      <div className="min-h-4">
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                      </div>
-                    </Field>
-                  );
-                }}
-              </form.Field>
+      {/* The save error sits left of the buttons, next to the action that
+          failed, and adds no row, so nothing above it moves. */}
+      <div className="flex items-center justify-end gap-2">
+        {mutation.isError && (
+          <FieldError className="min-w-0 flex-1">
+            {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+          </FieldError>
+        )}
+        <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
+          Cancel
+        </Link>
+        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => (
+            <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
+              {isSubmitting || mutation.isPending
+                ? isEditing
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditing
+                  ? "Update Card"
+                  : "Create Card"}
+            </Button>
+          )}
+        </form.Subscribe>
+      </div>
 
-              {mutation.isError && (
-                <FieldError>
-                  {cardErrorMessage(
-                    mutation.error,
-                    isEditing ? "save your edits" : "create the card",
-                  )}
-                </FieldError>
-              )}
-
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
-                    {isSubmitting || mutation.isPending
-                      ? isEditing
-                        ? "Updating..."
-                        : "Creating..."
-                      : isEditing
-                        ? "Update Card"
-                        : "Create Card"}
-                  </Button>
-                )}
-              </form.Subscribe>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
       <form.Subscribe selector={(state) => state.values}>
-        {(values) => <LearningCardDisplay card={values} />}
+        {(values) => <LearningCardPreview card={values} />}
       </form.Subscribe>
-    </div>
+    </form>
   );
 }
