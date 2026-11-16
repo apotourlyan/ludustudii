@@ -200,14 +200,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                 className={cn(BAND_ROWS, "md:col-start-2")}
                 strip={
                   <span className="flex items-center gap-1.5">
-                    <PencilSimpleIcon
-                      aria-hidden
-                      className={cn(
-                        "size-3.5 origin-bottom-left",
-                        // Sways as if writing while a field has focus.
-                        focused !== null && "animate-write motion-reduce:animate-none",
-                      )}
-                    />
+                    <PencilSimpleIcon aria-hidden className="size-3.5" />
                     Edit
                   </span>
                 }
@@ -267,11 +260,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 
       <form.Subscribe selector={(state) => state.values}>
         {(values) => (
-          <LearningCardPreview
-            card={values}
-            editing={focused !== null}
-            className={cn(BAND_ROWS, "md:col-start-1")}
-          />
+          <LearningCardPreview card={values} className={cn(BAND_ROWS, "md:col-start-1")} />
         )}
       </form.Subscribe>
     </form>

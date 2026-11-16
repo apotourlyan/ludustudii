@@ -52,33 +52,6 @@
   --font-mono: "JetBrains Mono Variable", monospace;
 }
 
-/* Barely-there loops for the card editor's strip icons while a field has
-   focus: the pencil sways as if writing, the eye drifts as if watching. */
-@theme {
-  --animate-write: write 1.6s ease-in-out infinite;
-  --animate-watch: watch 3.2s ease-in-out infinite;
-
-  @keyframes write {
-    0%,
-    100% {
-      transform: rotate(-5deg);
-    }
-    50% {
-      transform: rotate(5deg);
-    }
-  }
-
-  @keyframes watch {
-    0%,
-    100% {
-      transform: translateX(-1px);
-    }
-    50% {
-      transform: translateX(1px);
-    }
-  }
-}
-
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
