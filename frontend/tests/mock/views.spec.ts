@@ -74,3 +74,13 @@ test("the redirects from / and /library keep the view", async ({ page }) => {
     await expect(viewButtons(page).grid).toHaveAttribute("aria-pressed", "true");
   }
 });
+
+test("the navigation marks the overview as the current page in either view", async ({ page }) => {
+  await page.goto("/library/cards");
+  const navLink = page.getByRole("navigation").getByRole("link", { name: "Learning Cards" });
+  await expect(navLink).toHaveAttribute("aria-current", "page");
+
+  await viewButtons(page).grid.click();
+  await expect(page).toHaveURL(/\?view=grid$/);
+  await expect(navLink).toHaveAttribute("aria-current", "page");
+});

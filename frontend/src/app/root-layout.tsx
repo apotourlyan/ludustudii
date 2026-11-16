@@ -17,8 +17,10 @@ export function RootLayout() {
     <React.Fragment>
       <nav className="flex gap-4 p-6">
         {/* Exact, so the list's link isn't also marked as the current page
-            on the pages below it, such as /library/cards/new. */}
-        <Link to="/library/cards" activeOptions={{ exact: true }}>
+            on the pages below it, such as /library/cards/new. Search params
+            aside: the link names the default view, and the overview is
+            the current page in either view. */}
+        <Link to="/library/cards" activeOptions={{ exact: true, includeSearch: false }}>
           Learning Cards
         </Link>
         <Link to="/library/cards/new">Add Card</Link>
