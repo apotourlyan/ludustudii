@@ -35,15 +35,19 @@ made anew in every file.
   | `components/` | never | props | no |
   | `widgets/` | its own | its own fetch | yes, itself |
 
-- **A page and its load function live in one file.** The page file exports
-  a load function, such as
-  `loadEditCardPage(queryClient, cardId): Promise<void>`, that fills every
-  query the page reads, and nothing else. It returns no data, as 0030
-  requires. The route's loader only calls it: routes stay thin (0035), and
-  a reviewer checks one file to see that the page reads exactly what its
-  load function fills. Turning a failure into the router's `notFound()`
-  happens in the load function too, since what counts as missing is the
-  module's knowledge.
+  `components/` is flat for now; its lint rule covers only files directly
+  in it.
+
+- **A page's load function lives next to it**, in `pages/<page>.load.ts`
+  beside `pages/<page>.tsx`. It fills every query the page reads, and
+  nothing else, and returns no data, as 0030 requires. The route's loader
+  only calls it. A reviewer reads the two neighboring files to see that the
+  page reads exactly what its load function fills. Turning a failure into
+  the router's `notFound()` happens in the load function too, since what
+  counts as missing is the module's knowledge. A load file imports only the
+  API layer and the router, never components: TanStack Router keeps every
+  loader in the initial bundle and splits only the components, so a load
+  file that imported UI would pull its page into the initial bundle.
 - **The page owns the screen:** its `<h1>`, its width and placement, and
   what happens after an action succeeds, such as going back to the list.
   The root layout provides the `<main>` landmark around every page.
@@ -68,8 +72,9 @@ made anew in every file.
   several queries; that alone doesn't make anything a widget.
 
 This amends 0030 (its loaders now call the page's load function, and pages,
-not any component, read what loaders fill) and 0035 (a module may have a
-`widgets/` folder, and its index exports load functions next to pages).
+not any component, read what loaders fill) and 0035 (a module gains a
+`widgets/` folder and `.load.ts` files next to its pages, exported from
+its index).
 
 ## Alternatives considered
 
@@ -79,6 +84,12 @@ not any component, read what loaders fill) and 0035 (a module may have a
   runtime, and every component needs a query client to render in a test.
 - **The decision made per page, without a rule.** Flexible, but the four
   existing pages already show four answers, and agents would add a fifth.
+- **The load function in the page file.** One file instead of two, but the
+  router keeps loaders in the initial bundle, so every page and its
+  dependencies would load up front (125.5 → 216.5 kB gzip with three
+  pages), and hot reload would remount the page on every edit.
+- **Each loader split into its page's chunk.** Keeps one file, but a
+  route's fetch would wait for its chunk to download first.
 - **Loaders stay in the route files.** Keeps routes as the one place for
   everything the router does, but splits each loader from the reads it
   must match across two folders.
@@ -88,8 +99,10 @@ not any component, read what loaders fill) and 0035 (a module may have a
 
 ## Consequences
 
-- Every query a page reads is visible in its own file, next to the
-  function that fills it.
+- Every query a page reads is visible next to the function that fills it,
+  in the neighboring load file.
+- The initial bundle doesn't grow with each page: a page stays in its
+  route's chunk.
 - Components render from props alone, so component tests need no query
   client, no router and no fake backend, and a component can be reused on
   another page, such as the card view in a future practice session.
@@ -97,9 +110,12 @@ not any component, read what loaders fill) and 0035 (a module may have a
   that can't hold up or break the rest of the page.
 - Props are passed one or two levels down, which is a cost accepted on
   purpose.
-- Enforced by lint (0033) where an import says it: components import
-  nothing from `@tanstack/react-query`, no imperative navigation from the
-  router, and no widgets. Review enforces the rest: that a page reads only
-  what its load function fills, and that widgets handle their own failure.
+- Enforced by lint (0033) where an import or an export says it:
+  components import nothing from `@tanstack/react-query`, no imperative
+  navigation from the router, and no widgets, and a page file exports
+  nothing but its component, which keeps the load function out of it.
+  Review enforces the rest: that a page reads only what its load function
+  fills, that a load file imports no UI, and that widgets handle their own
+  failure.
 - The library's pages and components move to this shape, and the
   boundary configuration gains one more override for `components/`.
