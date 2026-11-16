@@ -98,7 +98,7 @@ export function LearningCardGrid({
               <CardTitle className="line-clamp-3 wrap-break-word">
                 <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
               </CardTitle>
-              <div className="mt-auto">
+              <div className="mt-auto self-end">
                 <LearningCardActions card={card} />
               </div>
             </Card>
