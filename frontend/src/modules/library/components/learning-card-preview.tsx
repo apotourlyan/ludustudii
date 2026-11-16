@@ -28,12 +28,19 @@ export function LearningCardPreview({
         strip={<span id={stripId}>Preview</span>}
         title={{
           label: "Title",
-          content: isBlank(card.title) ? (
-            <Placeholder>Untitled</Placeholder>
-          ) : (
-            <CardTitle className="min-w-0 wrap-break-word">
-              <CardMarkdown>{card.title}</CardMarkdown>
-            </CardTitle>
+          content: (
+            // Sets the title's first line on the line of the title field's
+            // text beside it: the field's border and top padding, less the
+            // difference its smaller font makes. Checked by measuring both.
+            <div className="pt-1.5">
+              {isBlank(card.title) ? (
+                <Placeholder>Untitled</Placeholder>
+              ) : (
+                <CardTitle className="min-w-0 wrap-break-word">
+                  <CardMarkdown>{card.title}</CardMarkdown>
+                </CardTitle>
+              )}
+            </div>
           ),
           status: null,
         }}
