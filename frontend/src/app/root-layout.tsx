@@ -15,8 +15,8 @@ export function RootLayout() {
   return (
     <React.Fragment>
       <nav className="flex gap-4 p-6">
-        <Link to="/learning-cards">Learning Cards</Link>
-        <Link to="/learning-card">Add Card</Link>
+        <Link to="/library/cards">Learning Cards</Link>
+        <Link to="/library/cards/new">Add Card</Link>
       </nav>
       <Outlet />
       <React.Suspense>

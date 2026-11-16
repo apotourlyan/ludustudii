@@ -9,7 +9,7 @@ export function CardNotFoundPage() {
       <Card>
         <CardContent className="space-y-3">
           <p>This card doesn't exist. It may have been deleted.</p>
-          <Link to="/learning-cards" className="text-sm text-primary underline underline-offset-4">
+          <Link to="/library/cards" className="text-sm text-primary underline underline-offset-4">
             Back to learning cards
           </Link>
         </CardContent>

@@ -94,7 +94,7 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         return;
       }
       if (card) {
-        await navigate({ to: "/learning-cards" });
+        await navigate({ to: "/library/cards" });
       } else {
         formApi.reset();
       }

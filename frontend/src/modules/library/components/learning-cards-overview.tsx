@@ -22,7 +22,7 @@ export function LearningCardsOverview() {
     <main className="mx-auto max-w-3xl p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning Cards</h1>
-        <Link to="/learning-card" className="text-sm text-primary underline underline-offset-4">
+        <Link to="/library/cards/new" className="text-sm text-primary underline underline-offset-4">
           Add Card
         </Link>
       </div>
