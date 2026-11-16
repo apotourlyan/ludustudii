@@ -1,4 +1,4 @@
-import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOut";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Link } from "@tanstack/react-router";
@@ -34,7 +34,7 @@ const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
 export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId" params={{ cardId: card.id }} className={ACTION}>
-      <EyeIcon />
+      <ArrowSquareOutIcon />
       <span className="sr-only">Open</span>
     </Link>
   );
