@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/shared/ui/card";
 export function CardNotFoundPage() {
   return (
     <div className="mx-auto max-w-xl p-6">
+      <h1 className="mb-6 text-xl font-semibold">Card not found</h1>
       <Card>
         <CardContent className="space-y-3">
           <p>This card doesn't exist. It may have been deleted.</p>

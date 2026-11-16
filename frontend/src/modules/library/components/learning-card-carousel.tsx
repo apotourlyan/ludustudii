@@ -107,7 +107,11 @@ function VirtualCards({ cards }: { cards: LearningCard[] }) {
             aria-hidden={index !== selectedIndex}
             inert={index !== selectedIndex}
           >
-            {renderedIndexes.has(index) && <LearningCardView card={card} />}
+            {renderedIndexes.has(index) && (
+              <div className="mx-auto max-w-xl p-6">
+                <LearningCardView card={card} />
+              </div>
+            )}
           </CarouselItem>
         ))}
       </CarouselContent>
