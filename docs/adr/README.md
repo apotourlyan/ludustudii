@@ -73,7 +73,8 @@ Records in force. Superseded records are kept as history in
 | [0030](0030-server-state-owned-by-tanstack-query.md) | Server state owned by TanStack Query, organized by backend service | Accepted, Amended by [0031](0031-generated-api-types-and-typed-fetch-client.md), [0036](0036-pages-read-route-data-components-take-props.md) | front-end, architecture, api |
 | [0031](0031-generated-api-types-and-typed-fetch-client.md) | Generated API types and a typed fetch client | Accepted | front-end, api, tooling |
 | [0032](0032-stateful-fake-backend-with-msw.md) | Stateful fake backend with MSW | Accepted | front-end, testing, api |
-| [0033](0033-oxlint-and-oxfmt-for-the-client-app.md) | Oxlint and oxfmt for the client app | Accepted | front-end, tooling |
+| [0033](0033-oxlint-and-oxfmt-for-the-client-app.md) | Oxlint and oxfmt for the client app | Accepted, Amended by [0037](0037-client-lint-config-written-in-typescript.md) | front-end, tooling |
 | [0034](0034-browser-tests-with-playwright.md) | Browser tests with Playwright | Accepted | front-end, testing, tooling |
 | [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md) | front-end, architecture |
 | [0036](0036-pages-read-route-data-components-take-props.md) | Pages read route data, components take props, widgets own theirs | Accepted | front-end, architecture |
+| [0037](0037-client-lint-config-written-in-typescript.md) | Client lint config written in TypeScript | Accepted | front-end, tooling |

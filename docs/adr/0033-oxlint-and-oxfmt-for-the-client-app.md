@@ -1,6 +1,6 @@
 # 0033. Oxlint and oxfmt for the client app
 
-- Status: Accepted
+- Status: Accepted, Amended by [0037](0037-client-lint-config-written-in-typescript.md) (configuration in `frontend/oxlint.config.ts`)
 - Date: 2026-11-13
 - Tags: front-end, tooling
 

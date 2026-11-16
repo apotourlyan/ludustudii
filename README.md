@@ -384,7 +384,7 @@ decides what each kind of file in a module may do:
 ### Boundaries
 
 `make frontend-lint` enforces them with `no-restricted-imports` overrides in
-`frontend/.oxlintrc.json` ([Linting](#linting)):
+`frontend/oxlint.config.ts` ([Linting](#linting)):
 
 - Modules don't import each other, `src/app/` or `src/routes/`. They connect
   through URLs, and `src/app/` combines them.
@@ -400,8 +400,13 @@ decides what each kind of file in a module may do:
   more than two folders deep can climb only two levels.
 - A module's `components/` import nothing from `@tanstack/react-query`,
   none of `useNavigate`, `useRouter`, `Navigate` or `redirect` from the
-  router, and no `widgets/` (ADR 0036). An override for
-  `src/modules/*/components/*` repeats the module boundaries of its depth
+  router, none of the router's readers of route state (`useParams`,
+  `useSearch`, `useLoaderData`, `useLoaderDeps`, `useRouteContext`,
+  `useMatch`, `useMatches`, `useParentMatches`, `useChildMatches`,
+  `useLocation`, `useRouterState`, `getRouteApi`, `RouteApi`,
+  `useMatchRoute`, `MatchRoute`, `useCanGoBack`), and no `widgets/`
+  (ADR 0036). `Link` and `linkOptions` stay allowed. An override for
+  `src/modules/*/components/*` lists the module boundaries of its depth
   and adds these; `components/` is flat, since the override covers only
   files directly in it.
 - A page file exports only its component (`react/only-export-components`),
@@ -966,7 +971,7 @@ change before them. GitHub's blame view uses it automatically; locally, run
 later formatting-only commit adds its hash to the file.
 
 Oxlint lints the client app with type-aware rules, configured in
-`frontend/.oxlintrc.json` (ADR 0033): the correctness and suspicious
+`frontend/oxlint.config.ts` (ADR 0033, ADR 0037): the correctness and suspicious
 categories as errors, the promise and React hooks rules, and the module
 boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
@@ -976,7 +981,17 @@ fakes. Modules, `src/shared/` and the code around them keep the boundaries
 of ADR 0035 ([Client app → Boundaries](#boundaries)). Inside `src/api/`, only the fakes themselves (`src/api/fake.ts` and the
 `fake/` folders) import the fakes, `msw` or `openapi-msw`, which keeps them out
 of the production bundle (ADR 0032). Everywhere, Phosphor icons come from their own modules, not the
-package's main entry ([UI components](#ui-components)). Every rule turned off carries its reason in the configuration. In the
+package's main entry ([UI components](#ui-components)). Every rule turned off carries its reason in the configuration.
+
+The configuration is TypeScript so that each import restriction is written
+once: a named constant with its message and its ADR. An override replaces a
+rule's options instead of merging them, so each override lists, by name,
+every restriction that applies to its files, and `restrictImports` puts each
+in `paths` or `patterns`, keeping their order. A new boundary is one constant, added by name to
+each override that needs it. Keep the file a list of rules: plain constants
+and arrays, no loops or generated regexes. `make frontend-typecheck` checks it
+against Oxlint's `defineConfig` types, and Node runs it by stripping the
+types, so it uses only syntax that strips (`erasableSyntaxOnly`). In the
 devcontainer, the Oxc extension applies the same configuration through its
 `oxc.configPath` and `oxc.path.tsgolint` settings.
 
