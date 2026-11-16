@@ -33,7 +33,8 @@
     "typescript/no-misused-spread": "off",
     // Phosphor's main entry, which loads every icon in development. The
     // overrides below that set this rule repeat the entry, since an
-    // override replaces a rule's options instead of merging them.
+    // override replaces a rule's options instead of merging them; of two
+    // overrides that set it for a file, the later one applies.
     "no-restricted-imports": [
       "error",
       {
@@ -41,6 +42,14 @@
           {
             "name": "@phosphor-icons/react",
             "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+          }
+        ],
+        // Outside a module, only its index (ADR 0035). The overrides for
+        // code outside the modules repeat this pattern.
+        "patterns": [
+          {
+            "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/modules/[^/]+/",
+            "message": "Import a module only through its index, @/modules/<module> (ADR 0035)."
           }
         ]
       }
@@ -58,12 +67,15 @@
       }
     },
     {
-      // Module boundaries outside the API layer (ADR 0033). The patterns
-      // match the alias and relative paths (./api/, ../api/, ./../api/...),
-      // and openapi-fetch's subpaths as well as the package.
+      // Module boundaries outside the API layer (ADR 0033), and outside a
+      // module, its index only (ADR 0035). The patterns match the alias and
+      // relative paths (./api/, ../api/, ./../api/...), and openapi-fetch's
+      // subpaths as well as the package.
       // A fake inside a service folder gets both messages. src/mock/ has its
-      // own copy below without the fakes pattern; an override replaces a
-      // rule's options instead of merging them.
+      // own copy below without the fakes pattern, and src/shared/ and
+      // src/modules/ theirs with their own boundaries; an override replaces
+      // a rule's options instead of merging them. The fetch rule still
+      // applies to src/shared/ and src/modules/.
       "files": ["src/**"],
       "excludeFiles": ["src/api/**", "src/mock/**"],
       "rules": {
@@ -112,6 +124,265 @@
               {
                 "regex": "(^|/)fake(/|$)",
                 "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/modules/[^/]+/",
+                "message": "Import a module only through its index, @/modules/<module> (ADR 0035)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // src/shared/ is used by every module and knows none of them (ADR
+      // 0035): nothing from the shell, the routes or the modules, and from
+      // the API layer only the shared HTTP client's types and errors. It
+      // replaces the src/** override's import rule here, so it repeats its
+      // other entries. The API pattern is a gitignore group so that
+      // @/api/http can be negated; no other pattern here matches it.
+      "files": ["src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "group": ["**/api/**", "!**/api/http"],
+                "message": "src/shared/ imports only @/api/http from the API layer; a module uses the services (ADR 0035)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/(app|modules|routes)(/|$)|^(@|\\.{1,2}(/\\.{1,2})*)/routeTree\\.gen",
+                "message": "src/shared/ knows no module: it imports nothing from src/app/, src/routes/ or src/modules/ (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Module boundaries (ADR 0035), in three overrides that differ only in
+      // the two patterns that depend on the file's depth. They replace the src/** override's import rule
+      // for modules, so they repeat its entries (ADR 0030, 0031, 0032 and
+      // Phosphor). No module may be imported by alias, which keeps out other
+      // modules and makes a module's own imports relative, nor the shell or
+      // the routes. A relative import may climb no higher than the module's
+      // root, so how far depends on the file's depth: none from the root
+      // (index.ts), one level from pages/, components/ or model/, and two
+      // from anything deeper. Files nested more than two folders deep can
+      // climb only two levels. Climbing exactly to the module's root reaches
+      // its index, which is for code outside the module. A path with a ..
+      // after a folder name (./pages/../../x) could hide a climb, so it is
+      // rejected here and in src/shared/. The rules name no module, so a new module needs
+      // no change here.
+      "files": ["src/modules/*/*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/api/[^/]+/",
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "regex": "^@/modules(/|$)",
+                "message": "A module doesn't import another module: modules connect through URLs, and src/app/ combines them. Inside a module, imports are relative (ADR 0035)."
+              },
+              {
+                "regex": "^@/(app|routes)(/|$)|^@/routeTree\\.gen",
+                "message": "A module doesn't import the shell (src/app/) or the routes; they import the module's index (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\.(/|$)",
+                "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // A file one folder down in a module, such as pages/cards-page.tsx.
+      "files": ["src/modules/*/*/*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/api/[^/]+/",
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "regex": "^@/modules(/|$)",
+                "message": "A module doesn't import another module: modules connect through URLs, and src/app/ combines them. Inside a module, imports are relative (ADR 0035)."
+              },
+              {
+                "regex": "^@/(app|routes)(/|$)|^@/routeTree\\.gen",
+                "message": "A module doesn't import the shell (src/app/) or the routes; they import the module's index (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\./(\\./)*\\.\\.(/|$)",
+                "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // A file two or more folders down in a module.
+      "files": ["src/modules/**"],
+      "excludeFiles": ["src/modules/*/*", "src/modules/*/*/*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "importNames": [
+                  "useQuery",
+                  "useQueryClient",
+                  "useQueries",
+                  "useInfiniteQuery",
+                  "useMutation"
+                ],
+                "message": "Read data with useSuspenseQuery and the API layer's query options, and change it with the API layer's mutation hooks (ADR 0030)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/api/[^/]+/",
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "regex": "^@/modules(/|$)",
+                "message": "A module doesn't import another module: modules connect through URLs, and src/app/ combines them. Inside a module, imports are relative (ADR 0035)."
+              },
+              {
+                "regex": "^@/(app|routes)(/|$)|^@/routeTree\\.gen",
+                "message": "A module doesn't import the shell (src/app/) or the routes; they import the module's index (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*(\\.\\./(\\./)*){2}\\.\\.(/|$)",
+                "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\./(\\./)*\\.\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
               }
             ]
           }
@@ -173,6 +444,10 @@
                   "!**/api/fake/**"
                 ],
                 "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/modules/[^/]+/",
+                "message": "Import a module only through its index, @/modules/<module> (ADR 0035)."
               }
             ]
           }
@@ -206,6 +481,10 @@
               {
                 "regex": "^(openapi-)?msw(/|$)",
                 "message": "Production modules in src/api/ don't import MSW; only the fakes and src/mock/ do, so it stays out of the production bundle (ADR 0032)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/modules/[^/]+/",
+                "message": "Import a module only through its index, @/modules/<module> (ADR 0035)."
               }
             ]
           }

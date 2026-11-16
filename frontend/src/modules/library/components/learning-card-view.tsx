@@ -3,7 +3,6 @@ import { useState, type ReactNode } from "react";
 import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
-import { errorMessage } from "@/components/error-message";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,11 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FieldError } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/alert-dialog";
+import { Button, buttonVariants } from "@/shared/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { FieldError } from "@/shared/ui/field";
+import { Separator } from "@/shared/ui/separator";
+
+import { cardErrorMessage } from "./card-error-message";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
@@ -111,7 +112,7 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {deleteCard.isError && (
-          <FieldError>{errorMessage(deleteCard.error, "delete the card")}</FieldError>
+          <FieldError>{cardErrorMessage(deleteCard.error, "delete the card")}</FieldError>
         )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteCard.isPending}>Cancel</AlertDialogCancel>

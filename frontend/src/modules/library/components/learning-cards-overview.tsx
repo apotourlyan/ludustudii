@@ -4,7 +4,6 @@ import { useVirtualizer, type VirtualizerOptions } from "@tanstack/react-virtual
 import { useCallback, useEffect, useState } from "react";
 
 import { lcardQueries, type LearningCard } from "@/api/lcards";
-import { LearningCardView } from "@/components/learning-card-view";
 import {
   Carousel,
   CarouselContent,
@@ -12,7 +11,9 @@ import {
   CarouselNext,
   CarouselPrevious,
   useCarousel,
-} from "@/components/ui/carousel";
+} from "@/shared/ui/carousel";
+
+import { LearningCardView } from "./learning-card-view";
 
 export function LearningCardsOverview() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());

@@ -4,12 +4,13 @@ import { useState } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { errorMessage } from "@/components/error-message";
-import { LearningCardDisplay } from "@/components/learning-card-view";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
+import { Textarea } from "@/shared/ui/textarea";
+
+import { cardErrorMessage } from "./card-error-message";
+import { LearningCardDisplay } from "./learning-card-view";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -192,7 +193,10 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
 
               {mutation.isError && (
                 <FieldError>
-                  {errorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+                  {cardErrorMessage(
+                    mutation.error,
+                    isEditing ? "save your edits" : "create the card",
+                  )}
                 </FieldError>
               )}
 

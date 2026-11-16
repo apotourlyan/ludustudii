@@ -2,10 +2,10 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { errorMessage } from "@/components/error-message";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { FieldError } from "@/components/ui/field";
+import { errorMessage } from "@/shared/error-message";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent } from "@/shared/ui/card";
+import { FieldError } from "@/shared/ui/field";
 
 // The router's default error component, shown when a route's loader or a
 // suspense query in its component fails.
