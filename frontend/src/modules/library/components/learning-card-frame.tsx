@@ -27,7 +27,7 @@ export interface LearningCardFrameSection {
 
 export interface LearningCardFrameProps {
   // A band above the title section that names the panel, such as "Edit",
-  // at its right edge, a step stronger than the bars below it.
+  // at its right edge, a step stronger than the bars below it and hatched.
   strip?: ReactNode;
   // Shown next to the title's content, such as buttons.
   actions?: ReactNode;
@@ -40,6 +40,9 @@ export interface LearningCardFrameProps {
 // A quiet band: small muted text on a background a step off the card's.
 const BAND = "flex items-center justify-between gap-2 bg-muted/50 px-(--card-spacing) py-1.5";
 const INVALID_BAND = "bg-destructive/10 text-destructive";
+// Thin diagonal lines in the hairlines' color, over the band's own.
+const HATCHED =
+  "bg-[repeating-linear-gradient(135deg,var(--color-border)_0_1px,transparent_1px_6px)]";
 // The hairline above a section's content, when the section is active.
 const ACTIVE_LINE = "border-t-primary";
 
@@ -60,7 +63,10 @@ export function LearningCardFrame({
     // up with another frame's in a subgrid.
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
       {strip !== undefined && (
-        <div className={cn(BAND, "justify-end bg-muted text-foreground")}>{strip}</div>
+        <div className={cn(BAND, "justify-end bg-muted text-foreground", HATCHED)}>
+          {/* A plate in the strip's gray keeps the hatching off the text. */}
+          <span className="bg-muted pl-2">{strip}</span>
+        </div>
       )}
       <LabelBar section={title} />
       <CardHeader className={cn("py-(--card-spacing)", title.active && ACTIVE_LINE)}>
