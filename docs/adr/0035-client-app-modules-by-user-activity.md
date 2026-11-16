@@ -1,6 +1,6 @@
 # 0035. Client app modules by user activity
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-15
 - Tags: front-end, architecture
 
