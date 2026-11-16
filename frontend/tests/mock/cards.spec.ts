@@ -38,7 +38,7 @@ test("a created card opens on its page, and Back returns to the list", async ({ 
 
   // The card's page replaced the form in the history.
   await page.goBack();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 9");
   await expect(slide.getByText("Krebs cycle", { exact: true })).toBeVisible();
@@ -72,7 +72,7 @@ test("a card deleted on its page leaves the list, and Back doesn't return to it"
   const dialog = await deleteCard(page, page.getByRole("main"));
 
   await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 7");
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
@@ -80,7 +80,7 @@ test("a card deleted on its page leaves the list, and Back doesn't return to it"
   // The list replaced the card's page in the history, so Back goes to the
   // entry before it: the list the card was opened from.
   await page.goBack();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(slide).toHaveAccessibleName("1 of 7");
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toHaveCount(0);
 });
@@ -101,7 +101,7 @@ test("a card deleted on its page isn't fetched again while the list loads", asyn
 
   await deleteCard(page, page.getByRole("main"));
 
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(currentSlide(page)).toHaveAccessibleName("1 of 7");
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(fetched).toEqual([]);
@@ -137,7 +137,7 @@ test("Cancel on the new card page returns to the list, with nothing added", asyn
 
   await page.getByRole("link", { name: "Cancel" }).click();
 
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(page.getByRole("status")).toHaveText("1 / 8");
   await expect(page.getByText("Not saved", { exact: true })).toHaveCount(0);
 });

@@ -44,7 +44,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   // Deleting on the card's page ends on the list, without the card.
   const dialog = await deleteCard(page, page.getByRole("main"));
   await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 

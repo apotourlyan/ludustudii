@@ -37,7 +37,7 @@ test("Open in the list shows the card on its own page", async ({ page }) => {
 
   // The page has no link back of its own; the navigation's leads to the list.
   await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
-  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(page.getByRole("status")).toHaveText("1 / 8");
 });
 
