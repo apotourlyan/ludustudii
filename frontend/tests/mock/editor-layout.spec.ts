@@ -24,6 +24,7 @@ function panels(page: Page): { editor: Locator; preview: Locator } {
   return { editor, preview };
 }
 
+// A full frame's bands, in LearningCardFrame's order.
 const BANDS = [
   "strip",
   "title label bar",
@@ -32,30 +33,37 @@ const BANDS = [
   "description label bar",
   "description content",
   "description status bar",
-];
+] as const;
+type Band = (typeof BANDS)[number];
+
+// One of a panel's bands, by name.
+function band(bands: Locator, name: Band): Locator {
+  return bands.nth(BANDS.indexOf(name));
+}
 
 // A panel's bands, top to bottom: the children of its frame. The preview's
 // frame is inside its section; the editor is the frame itself. Each band
 // is checked by what it shows, so a missing or extra band fails here
 // rather than comparing the wrong pair.
-async function bandsOf(page: Page): Promise<{ editor: Locator[]; preview: Locator[] }> {
-  const { editor, preview } = panels(page);
-  const editorBands = editor.locator(":scope > *");
-  const previewBands = preview.locator(":scope > * > *");
-  await expect(editorBands).toHaveCount(BANDS.length);
-  await expect(previewBands).toHaveCount(BANDS.length);
+async function bandsOf(page: Page): Promise<{ editor: Locator; preview: Locator }> {
+  const panel = panels(page);
+  const editor = panel.editor.locator(":scope > *");
+  const preview = panel.preview.locator(":scope > * > *");
+  await expect(editor).toHaveCount(BANDS.length);
+  await expect(preview).toHaveCount(BANDS.length);
 
-  await expect(editorBands.nth(0)).toHaveText("Edit");
-  await expect(previewBands.nth(0)).toHaveText("Preview");
-  await expect(editorBands.nth(1).getByText("Title", { exact: true })).toBeVisible();
-  await expect(previewBands.nth(1)).toHaveText("Title");
-  await expect(editorBands.nth(2).getByLabel("Title")).toBeVisible();
-  await expect(editorBands.nth(4).getByText("Description", { exact: true })).toBeVisible();
-  await expect(previewBands.nth(4)).toHaveText("Description");
-  await expect(editorBands.nth(5).getByLabel("Description")).toBeVisible();
+  await expect(band(editor, "strip")).toHaveText("Edit");
+  await expect(band(preview, "strip")).toHaveText("Preview");
+  await expect(band(editor, "title label bar").getByText("Title", { exact: true })).toBeVisible();
+  await expect(band(preview, "title label bar")).toHaveText("Title");
+  await expect(band(editor, "title content").getByLabel("Title")).toBeVisible();
+  await expect(
+    band(editor, "description label bar").getByText("Description", { exact: true }),
+  ).toBeVisible();
+  await expect(band(preview, "description label bar")).toHaveText("Description");
+  await expect(band(editor, "description content").getByLabel("Description")).toBeVisible();
 
-  const all = (bands: Locator) => BANDS.map((_, i) => bands.nth(i));
-  return { editor: all(editorBands), preview: all(previewBands) };
+  return { editor, preview };
 }
 
 async function box(locator: Locator): Promise<{ top: number; bottom: number }> {
@@ -75,15 +83,15 @@ function expectSame(actual: number, expected: number, what: string): void {
 // from its top.
 async function expectAligned(page: Page, state: string): Promise<void> {
   const bands = await bandsOf(page);
-  for (const [i, name] of BANDS.entries()) {
-    const editor = await box(bands.editor[i]!);
-    const preview = await box(bands.preview[i]!);
+  for (const name of BANDS) {
+    const editor = await box(band(bands.editor, name));
+    const preview = await box(band(bands.preview, name));
     expectSame(editor.top, preview.top, `${state}, ${name} top`);
     expectSame(editor.bottom, preview.bottom, `${state}, ${name} bottom`);
   }
-  const band = await box(bands.editor[5]!);
+  const content = await box(band(bands.editor, "description content"));
   const field = await box(page.getByLabel("Description"));
-  expectSame(band.bottom - field.bottom, field.top - band.top, `${state}, description field`);
+  expectSame(content.bottom - field.bottom, field.top - content.top, `${state}, description field`);
 }
 
 test.describe("at 1280 px", () => {
