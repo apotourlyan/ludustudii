@@ -1,5 +1,5 @@
 import { useSuspenseQuery, type QueryClient } from "@tanstack/react-query";
-import { notFound } from "@tanstack/react-router";
+import { notFound, useNavigate } from "@tanstack/react-router";
 
 import { ApiError } from "@/api/http";
 import { lcardQueries } from "@/api/lcards";
@@ -27,9 +27,19 @@ export async function loadEditCardPage(queryClient: QueryClient, cardId: string)
   }
 }
 
-// Edits a learning card.
+// Edits a learning card, then goes back to the list.
 export function EditCardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
+  const navigate = useNavigate();
 
-  return <LearningCardForm key={card.id} card={card} />;
+  return (
+    <div className="mx-auto max-w-6xl p-6">
+      <h1 className="mb-6 text-xl font-semibold">Update Card</h1>
+      <LearningCardForm
+        key={card.id}
+        card={card}
+        onSaved={() => navigate({ to: "/library/cards" })}
+      />
+    </div>
+  );
 }

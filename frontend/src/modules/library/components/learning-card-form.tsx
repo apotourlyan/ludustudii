@@ -1,11 +1,10 @@
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Card, CardContent } from "@/shared/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
@@ -53,12 +52,16 @@ const validateDescription = ({ value }: { value: string }) => {
 
 interface LearningCardFormProps {
   card?: LearningCard;
+  // Called after a successful save, and awaited; what follows a save, such
+  // as leaving the page, is the page's (ADR 0036).
+  onSaved?: () => void | Promise<void>;
 }
 
-export function LearningCardForm({ card }: LearningCardFormProps) {
+// Creates a card, or updates the given one, with a preview beside the
+// fields. Its page places it and gives it a heading.
+export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
-  const navigate = useNavigate();
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const isEditing = Boolean(card);
@@ -93,20 +96,16 @@ export function LearningCardForm({ card }: LearningCardFormProps) {
         }
         return;
       }
-      if (card) {
-        await navigate({ to: "/library/cards" });
-      } else {
+      if (!card) {
         formApi.reset();
       }
+      await onSaved?.();
     },
   });
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 p-6 md:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
       <Card className="min-w-0">
-        <CardHeader>
-          <CardTitle>{isEditing ? "Update Card" : "Add Card"}</CardTitle>
-        </CardHeader>
         <CardContent>
           <form
             onSubmit={(e) => {
