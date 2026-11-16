@@ -5,9 +5,9 @@ import { lcardQueries } from "@/api/lcards";
 
 import { LearningCardForm } from "../components/learning-card-form";
 
-// Edits a learning card, then goes back to the list, as Cancel does. Reads what
-// loadEditCardPage, in edit-card-page.load.ts, fills; a missing card never
-// reaches it.
+// Edits a learning card, then shows it on its page, as Cancel does. Reads
+// what loadEditCardPage, in edit-card-page.load.ts, fills; a missing card
+// never reaches it.
 export function EditCardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
   const navigate = useNavigate();
@@ -18,8 +18,8 @@ export function EditCardPage({ cardId }: { cardId: string }) {
       <LearningCardForm
         key={card.id}
         card={card}
-        cancel={{ to: "/library/cards" }}
-        onSaved={() => navigate({ to: "/library/cards" })}
+        cancel={{ to: "/library/cards/$cardId", params: { cardId } }}
+        onSaved={() => navigate({ to: "/library/cards/$cardId", params: { cardId } })}
       />
     </div>
   );

@@ -3,7 +3,7 @@ import { useId } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { CardTitle } from "@/shared/ui/card";
 
-import { CardMarkdown } from "./card-markdown";
+import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
 import { LearningCardFrame } from "./learning-card-frame";
 
 // A card as it will look once saved, beside its editor: the same bands as
@@ -37,7 +37,7 @@ export function LearningCardPreview({
                 <Placeholder>Untitled</Placeholder>
               ) : (
                 <CardTitle className="min-w-0 wrap-break-word">
-                  <CardMarkdown>{card.title}</CardMarkdown>
+                  <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
                 </CardTitle>
               )}
             </div>
@@ -49,7 +49,7 @@ export function LearningCardPreview({
           content: isBlank(card.description) ? (
             <Placeholder>Nothing to preview yet</Placeholder>
           ) : (
-            <CardMarkdown>{card.description}</CardMarkdown>
+            <CardDescriptionMarkdown>{card.description}</CardDescriptionMarkdown>
           ),
           status: null,
         }}

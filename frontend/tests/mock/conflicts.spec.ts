@@ -3,7 +3,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { cardIdOf, changeCardElsewhere, deleteFromSlide } from "../support/cards";
+import { cardIdOf, changeCardElsewhere, deleteCard } from "../support/cards";
 import { currentSlide } from "../support/carousel";
 
 test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
@@ -20,7 +20,7 @@ test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
     "This card has changed. Reload it before you save your edits.",
   );
   // The edit stays, so the user can copy it before reloading.
-  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}/edit$`));
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
 });
 
@@ -29,7 +29,7 @@ test("deleting a card changed elsewhere shows the conflict", async ({ page }) =>
   const slide = currentSlide(page);
   await changeCardElsewhere(page, await cardIdOf(slide));
 
-  const dialog = await deleteFromSlide(page, slide);
+  const dialog = await deleteCard(page, slide);
 
   await expect(dialog.getByRole("alert")).toHaveText(
     "This card has changed. Reload it before you delete the card.",

@@ -1,6 +1,7 @@
 // Every library page has exactly one level-1 heading, its own, and one main
-// landmark, the root layout's (ADR 0036). A card's Markdown renders a "#"
-// line as a level-1 heading too, so the default scenario's cards have none.
+// landmark, the root layout's (ADR 0036). A card's Markdown adds none: its
+// title renders inline and its headings start at level 2, which
+// card-markdown.spec.ts checks with a card that has "#" lines.
 
 import { expect, test, type Page } from "@playwright/test";
 
@@ -35,6 +36,15 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     },
   },
   {
+    name: "a card's page",
+    heading: "Mitochondria",
+    open: async (page) => {
+      await page.goto("/library/cards");
+      await currentSlide(page).getByRole("link", { name: "Open" }).click();
+      await expect(page.getByRole("link", { name: "Update" })).toBeVisible();
+    },
+  },
+  {
     name: "the edit page",
     heading: "Update Card",
     open: async (page) => {
@@ -43,14 +53,14 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
       await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
     },
   },
-  {
-    name: "the not-found page",
+  ...["", "/edit"].map((suffix) => ({
+    name: `the not-found page at a card's ${suffix ? "editor" : "page"} URL`,
     heading: "Card not found",
-    open: async (page) => {
-      await page.goto("/library/cards/00000000-0000-7000-8000-000000000000");
+    open: async (page: Page) => {
+      await page.goto(`/library/cards/00000000-0000-7000-8000-000000000000${suffix}`);
       await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
     },
-  },
+  })),
 ];
 
 for (const { name, heading, open } of pages) {

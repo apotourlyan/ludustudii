@@ -5,25 +5,36 @@ import { expect, type Locator, type Page } from "@playwright/test";
 // The text of the not-found page for a card.
 export const NOT_FOUND_TEXT = "This card doesn't exist. It may have been deleted.";
 
-// The card ID in a card's editor path, /library/cards/<id>.
+// The card ID in the path of a card's page, /library/cards/<id>, or of its
+// editor, /library/cards/<id>/edit.
 export function cardIdFromPath(path: string | null | undefined): string {
-  const id = path?.match(/^\/library\/cards\/([^/]+)$/)?.[1];
+  // "new" is the new card form's path, not a card's.
+  const id = path?.match(/^\/library\/cards\/(?!new(?:\/|$))([^/]+)(?:\/edit)?$/)?.[1];
   if (!id) {
-    throw new Error(`not a card's editor path: ${JSON.stringify(path)}`);
+    throw new Error(`not the path of a card's page or editor: ${JSON.stringify(path)}`);
   }
   return id;
 }
 
-// The ID of the card a slide shows, from its "Update" link.
+// The ID of the card a slide shows, from its "Open" link.
 export async function cardIdOf(slide: Locator): Promise<string> {
-  return cardIdFromPath(await slide.getByRole("link", { name: "Update" }).getAttribute("href"));
+  return cardIdFromPath(await slide.getByRole("link", { name: "Open" }).getAttribute("href"));
 }
 
-// Deletes the card a slide shows through its confirmation dialog, and
-// returns the dialog, which closes once the card is deleted and stays open
-// with the error otherwise.
-export async function deleteFromSlide(page: Page, slide: Locator): Promise<Locator> {
-  await slide.getByRole("button", { name: "Delete" }).click();
+// Opens the card the list's carousel shows on its page, from the slide's
+// "Open" link, and returns the card's ID.
+export async function openCardFromList(page: Page, slide: Locator): Promise<string> {
+  const id = await cardIdOf(slide);
+  await slide.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  return id;
+}
+
+// Deletes the card shown in `scope`, a slide or the card's page, through
+// its confirmation dialog, and returns the dialog, which closes once the
+// card is deleted and stays open with the error otherwise.
+export async function deleteCard(page: Page, scope: Locator): Promise<Locator> {
+  await scope.getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("alertdialog", { name: "Delete this learning card?" });
   await dialog.getByRole("button", { name: "Delete" }).click();
   return dialog;
