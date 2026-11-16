@@ -37,12 +37,19 @@ export interface LearningCardFrameProps {
   className?: string;
 }
 
-// A quiet band: small muted text on a background a step off the card's.
-const BAND = "flex items-center justify-between gap-2 bg-muted/50 px-(--card-spacing) py-1.5";
-const INVALID_BAND = "bg-destructive/10 text-destructive";
-// Thin diagonal lines in the hairlines' color, over the band's own.
-const HATCHED =
-  "bg-[repeating-linear-gradient(135deg,var(--color-border)_0_1px,transparent_1px_6px)]";
+// What every narrow band shares: one row of small text.
+const BAND = "flex items-center gap-2 px-(--card-spacing) py-1.5";
+// The label and status bars: quiet, small muted text on a background a
+// step off the card's.
+const BAR = cn(BAND, "justify-between bg-muted/50 text-muted-foreground transition-colors");
+const INVALID_BAR = "bg-destructive/10 text-destructive";
+// The strip: a step stronger than the bars, hatched with thin diagonal
+// lines in the hairlines' color, its label at the right edge.
+const STRIP = cn(
+  BAND,
+  "justify-end bg-muted text-foreground",
+  "bg-[repeating-linear-gradient(135deg,var(--color-border)_0_1px,transparent_1px_6px)]",
+);
 // The hairline above a section's content, when the section is active.
 const ACTIVE_LINE = "border-t-primary";
 
@@ -51,6 +58,12 @@ const ACTIVE_LINE = "border-t-primary";
 // top to bottom: label bar, content, status bar. A hairline separates the
 // bands; the one between the sections is the card's separator. Layout only:
 // each mode is its own component and fills the slots.
+//
+// With every slot given, a frame has seven bands, in this order: strip,
+// title label bar, title content, title status bar, description label bar,
+// description content, description status bar. LearningCardForm's grid has
+// a row for each, so a band added, removed or moved here needs the same
+// change there (tests/mock/editor-layout.spec.ts checks the two agree).
 export function LearningCardFrame({
   strip,
   actions,
@@ -63,16 +76,16 @@ export function LearningCardFrame({
     // up with another frame's in a subgrid.
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
       {strip !== undefined && (
-        <div className={cn(BAND, "justify-end bg-muted text-foreground", HATCHED)}>
-          {/* A plate in the strip's gray keeps the hatching off the text,
-              and the hatching runs right up to it. */}
-          <span className="bg-muted">{strip}</span>
+        <div className={STRIP}>
+          {/* A plate in the strip's own color keeps the hatching off the
+              text, and the hatching runs right up to it. */}
+          <span className="bg-inherit">{strip}</span>
         </div>
       )}
       <LabelBar section={title} />
       <CardHeader className={cn("py-(--card-spacing)", title.active && ACTIVE_LINE)}>
         {title.content}
-        {actions && <CardAction>{actions}</CardAction>}
+        {actions !== undefined && <CardAction>{actions}</CardAction>}
       </CardHeader>
       <StatusBar section={title} />
       <LabelBar section={description} />
@@ -94,10 +107,10 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
   return (
     <div
       className={cn(
-        BAND,
-        "relative text-muted-foreground transition-colors",
+        BAR,
+        "relative",
         section.active && "text-foreground",
-        section.invalid && INVALID_BAND,
+        section.invalid && INVALID_BAR,
       )}
     >
       {section.label}
@@ -121,13 +134,7 @@ function StatusBar({ section }: { section: LearningCardFrameSection }) {
   return (
     // Holds one line when empty, so a message appearing shifts nothing; a
     // message fades in.
-    <div
-      className={cn(
-        BAND,
-        "min-h-8 text-muted-foreground transition-colors",
-        section.invalid && INVALID_BAND,
-      )}
-    >
+    <div className={cn(BAR, "min-h-8", section.invalid && INVALID_BAR)}>
       {section.status !== null && (
         <div className="animate-in duration-200 fade-in-0 motion-reduce:animate-none">
           {section.status}
