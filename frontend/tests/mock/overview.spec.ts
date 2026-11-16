@@ -97,6 +97,21 @@ for (const view of VIEWS) {
       await expect(open).toBeInViewport();
     });
 
+    test("a focused card stays focused when the window scrolls away from it", async ({ page }) => {
+      await openOverview(page, view, "many");
+      const update = cardAt(page, 3).getByRole("link", { name: "Update" });
+      await update.focus();
+
+      await scrollWindow(page, "bottom");
+
+      await expect(cardAt(page, LOADED)).toBeInViewport();
+      await expect(update).toBeFocused();
+      await expect(update).not.toBeInViewport();
+      // The next Tab goes on from it, to its Delete button.
+      await page.keyboard.press("Tab");
+      await expect(cardAt(page, 3).getByRole("button", { name: "Delete" })).toBeFocused();
+    });
+
     test("Open, Update and Delete work from it", async ({ page }) => {
       await openOverview(page, view);
 
