@@ -63,12 +63,10 @@ export function LearningCardFrame({
     // up with another frame's in a subgrid.
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
       {strip !== undefined && (
-        <div className={cn(BAND, "justify-end bg-muted py-0 pr-0 text-foreground", HATCHED)}>
-          {/* A tab cut out of the hatching, flush with the strip's right
-              edge and as tall as the strip, keeps the lines off the text. */}
-          <span className="flex items-center self-stretch border-l bg-muted px-(--card-spacing) py-1.5">
-            {strip}
-          </span>
+        <div className={cn(BAND, "justify-end bg-muted text-foreground", HATCHED)}>
+          {/* A plate in the strip's gray keeps the hatching off the text,
+              and the hatching runs right up to it. */}
+          <span className="bg-muted">{strip}</span>
         </div>
       )}
       <LabelBar section={title} />
