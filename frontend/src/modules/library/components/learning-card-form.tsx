@@ -128,10 +128,16 @@ interface LearningCardFormProps<
   card?: LearningCard;
   // Where Cancel goes, which is the page's decision.
   cancel: ValidateLinkOptions<TRouter, TOptions>;
-  // Called after a successful save, and awaited; what follows a save, such
-  // as leaving the page, is the page's (ADR 0036).
-  onSaved?: () => void | Promise<void>;
+  // Called with the saved card after a successful save, and awaited; what
+  // follows a save, such as going to the card's page, is the page's
+  // (ADR 0036).
+  onSaved?: (card: SavedLearningCard) => void | Promise<void>;
 }
+
+// A card as the form saved it: its ID and the title and description sent.
+// The API answers a create with the new card's ID and an update with no
+// body, so the version and timestamps come from the next read.
+type SavedLearningCard = Pick<LearningCard, "id" | "title" | "description">;
 
 // Creates a card, or updates the given one: the editor, its buttons, and
 // a preview of the card. Its page places it and gives it a heading.
@@ -152,11 +158,12 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       title: card?.title ?? "",
       description: card?.description ?? "",
     },
-    onSubmit: async ({ value, formApi }) => {
+    onSubmit: async ({ value }) => {
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
       };
+      let id: string;
       try {
         if (card) {
           await updateLearningCard.mutateAsync({
@@ -164,8 +171,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
             version: editingVersion!,
             ...input,
           });
+          id = card.id;
         } else {
-          await createLearningCard.mutateAsync(input);
+          ({ id } = await createLearningCard.mutateAsync(input));
         }
       } catch (error) {
         // The mutation's state shows the failure below the fields, and the
@@ -176,10 +184,8 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         }
         return;
       }
-      if (!card) {
-        formApi.reset();
-      }
-      await onSaved?.();
+      // The form keeps its values after a save: its page leaves it.
+      await onSaved?.({ id, ...input });
     },
   });
 

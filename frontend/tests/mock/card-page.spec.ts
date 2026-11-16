@@ -5,15 +5,13 @@
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { cardIdOf, deleteCard } from "../support/cards";
+import { openCardFromList } from "../support/cards";
 import { currentSlide } from "../support/carousel";
 
-// Opens the newest card, "Mitochondria", from the list, and returns its ID.
+// Opens the newest card, "Mitochondria", on its page, and returns its ID.
 async function openNewestCard(page: Page): Promise<string> {
   await page.goto("/library/cards");
-  const slide = currentSlide(page);
-  const id = await cardIdOf(slide);
-  await slide.getByRole("link", { name: "Open" }).click();
+  const id = await openCardFromList(page, currentSlide(page));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
   return id;
 }
@@ -58,17 +56,6 @@ test("Update on the card's page opens its editor", async ({ page }) => {
   await cardOnPage(page).getByRole("link", { name: "Update" }).click();
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}/edit$`));
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
-});
-
-test("Delete on the card's page goes to the list without the card", async ({ page }) => {
-  await openNewestCard(page);
-
-  const dialog = await deleteCard(page, cardOnPage(page));
-
-  await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/library\/cards$/);
-  await expect(currentSlide(page)).toHaveAccessibleName("1 of 7");
-  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 
 test.describe("at 1280 px", () => {

@@ -20,6 +20,15 @@ export async function cardIdOf(slide: Locator): Promise<string> {
   return cardIdFromPath(await slide.getByRole("link", { name: "Open" }).getAttribute("href"));
 }
 
+// Opens the card the list's carousel shows on its page, from the slide's
+// "Open" link, and returns the card's ID.
+export async function openCardFromList(page: Page, slide: Locator): Promise<string> {
+  const id = await cardIdOf(slide);
+  await slide.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  return id;
+}
+
 // Deletes the card shown in `scope`, a slide or the card's page, through
 // its confirmation dialog, and returns the dialog, which closes once the
 // card is deleted and stays open with the error otherwise.

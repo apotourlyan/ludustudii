@@ -42,7 +42,9 @@ export function CardPage({ cardId }: { cardId: string }) {
               <UpdateLearningCardLink card={card} />
               <DeleteLearningCardButton
                 card={card}
-                onDeleted={() => void navigate({ to: "/library/cards" })}
+                // The card is gone, so its page replaces itself in the
+                // history with the list, and Back doesn't show "Card not found".
+                onDeleted={() => void navigate({ to: "/library/cards", replace: true })}
               />
             </div>
           }

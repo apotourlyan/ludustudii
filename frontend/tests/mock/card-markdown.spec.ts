@@ -34,16 +34,15 @@ test("a title renders inline and description headings start at level 2", async (
   await expectRendered(page, page.getByRole("region", { name: "Preview" }));
 
   await page.getByRole("button", { name: "Create Card" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("");
-  await page.getByRole("link", { name: "Learning Cards" }).click();
 
+  // Creating ends on the card's page.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photosynthesis basics");
+  await expectRendered(page, page.getByRole("main"));
+
+  await page.getByRole("link", { name: "Back to learning cards" }).click();
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 9");
   await expectRendered(page, slide);
-
-  await slide.getByRole("link", { name: "Open" }).click();
-  await expectRendered(page, page.getByRole("main"));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photosynthesis basics");
 });
 
 // Block syntax in a title is unwrapped to its text, and the line breaks

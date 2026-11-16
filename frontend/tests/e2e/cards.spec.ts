@@ -24,33 +24,36 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await page.getByLabel("Title").fill(title);
   await page.getByLabel("Description").fill("Created by an **end-to-end** test.");
   await page.getByRole("button", { name: "Create Card" }).click();
-  // The form clears once the server has saved the card.
-  await expect(page.getByLabel("Title")).toHaveValue("");
 
-  await page.getByRole("link", { name: "Learning Cards" }).click();
-  let slide = await showCard(page, title);
-  await expect(slide.getByRole("strong")).toHaveText("end-to-end");
+  // Creating ends on the card's page, once the server has saved it.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  const id = cardIdFromPath(new URL(page.url()).pathname);
+  await expect(page.getByRole("main").getByRole("strong")).toHaveText("end-to-end");
 
+  await page.getByRole("link", { name: "Back to learning cards" }).click();
+  const slide = await showCard(page, title);
   await slide.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
-  const id = cardIdFromPath(new URL(page.url()).pathname);
   await page.getByLabel("Title").fill(edited);
   await page.getByRole("button", { name: "Update Card" }).click();
 
-  await expect(page).toHaveURL(/\/library\/cards$/);
-  slide = await showCard(page, edited);
-  await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+  // Editing ends on the card's page too, with the change.
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(edited);
 
-  const dialog = await deleteCard(page, slide);
+  // Deleting on the card's page ends on the list, without the card.
+  const dialog = await deleteCard(page, page.getByRole("main"));
   await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 
   // Gone from the server too, not only from the page's list.
-  await page.goto(`/library/cards/${id}/edit`);
+  await page.goto(`/library/cards/${id}`);
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
 });
 
-test("a card's editor URL opens it in the form", async ({ page, request }) => {
+test("a card's URL opens its page, and its editor's URL the form", async ({ page, request }) => {
   const title = uniqueTitle("Direct");
   const description = "Opened by its URL.";
   const created = await request.post("/api/lcards", { data: { title, description } });
@@ -59,8 +62,11 @@ test("a card's editor URL opens it in the form", async ({ page, request }) => {
   const id = location.match(/^\/api\/lcards\/([^/]+)$/)?.[1];
   expect(id, `the Location header ${JSON.stringify(location)}`).toBeTruthy();
 
-  await page.goto(`/library/cards/${id}/edit`);
+  await page.goto(`/library/cards/${id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await expect(page.getByText(description, { exact: true })).toBeVisible();
 
+  await page.goto(`/library/cards/${id}/edit`);
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await expect(page.getByLabel("Description")).toHaveValue(description);
   await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
@@ -75,7 +81,7 @@ test("a card's editor URL opens it in the form", async ({ page, request }) => {
 
 test("a nonexistent card ID shows the not-found page", async ({ page }) => {
   // A valid UUIDv7 that the database never generates: its time is 1970.
-  await page.goto("/library/cards/00000000-0000-7000-8000-000000000000/edit");
+  await page.goto("/library/cards/00000000-0000-7000-8000-000000000000");
 
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to learning cards" }).click();
