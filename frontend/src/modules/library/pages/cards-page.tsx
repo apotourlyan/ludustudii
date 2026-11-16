@@ -1,18 +1,12 @@
-import { useSuspenseQuery, type QueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { lcardQueries } from "@/api/lcards";
 
 import { LearningCardCarousel } from "../components/learning-card-carousel";
 
-// Fills what CardsPage reads: the list. Its route's loader calls it. Fills
-// the query cache without returning the data, so the router keeps no second
-// copy as loaderData.
-export async function loadCardsPage(queryClient: QueryClient): Promise<void> {
-  await queryClient.query(lcardQueries.list());
-}
-
-// The learning cards, one at a time in a carousel.
+// The learning cards, one at a time in a carousel. Reads what
+// loadCardsPage, in cards-page.load.ts, fills.
 export function CardsPage() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());
 

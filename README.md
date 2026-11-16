@@ -308,7 +308,7 @@ frontend/
 │   ├── modules/            # one folder per user activity
 │   │   └── library/        # managing content: learning cards
 │   │       ├── index.ts    # the module's public surface: its pages and their load functions
-│   │       ├── pages/      # one component per route, with the load function that fills what it reads
+│   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts)
 │   │       └── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
@@ -329,14 +329,14 @@ frontend/
   and renders a page from a module's index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
   effects (`sideEffects`), so the build drops the index's other exports from
-  each route's chunk. The router's code splitting keeps a route's loader in
-  the initial bundle, though, and the load function it calls shares a file
-  with the page, so every page and what it imports load up front; only
-  what no loader reaches is split off per route.
+  each route's chunk, and every route still gets a chunk of its own. That
+  holds because the router keeps loaders in the initial bundle and a load
+  function lives in its own file that imports no UI, so a loader never pulls
+  its page in.
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
   `model/` for plain TypeScript logic or `widgets/` once it needs one. Today
-  there is one, `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
-  are built. URLs start with the module (`/library/cards`,
+  there is one, `library`; `practice`, `planning`, `dashboard` and
+  `progress` follow as they are built. URLs start with the module (`/library/cards`,
   `/library/cards/new`, `/library/cards/$cardId`), and the route files are
   grouped the same way, in `src/routes/library/`. `/` and `/library`
   redirect to `/library/cards` until the dashboard exists.
@@ -359,10 +359,13 @@ decides what each kind of file in a module may do:
 | `components/` | never | props | no |
 | `widgets/` | its own | its own fetch | yes, itself |
 
-- **A page file** exports the page and its load function, such as
-  `loadEditCardPage(queryClient, cardId)`. The load function fills every
-  query the page reads and nothing else, returns no data, and turns a
-  missing resource into the router's `notFound()`. The page owns the
+- **A page** (`pages/<page>.tsx`) exports only its component, and its load
+  function lives beside it in `pages/<page>.load.ts`, such as
+  `loadEditCardPage(queryClient, cardId)` in `edit-card-page.load.ts`. The
+  load function fills every query the page reads and nothing else, returns
+  no data, and turns a missing resource into the router's `notFound()`. A
+  load file imports only the API layer and the router, never UI, since it
+  is in the initial bundle. The page owns the
   screen: its `<h1>`, its width and placement, and what follows a
   successful action, such as going back to the list. The root layout
   provides the `<main>` landmark around every page.
@@ -397,8 +400,13 @@ decides what each kind of file in a module may do:
   more than two folders deep can climb only two levels.
 - A module's `components/` import nothing from `@tanstack/react-query`,
   neither `useNavigate` nor `useRouter` from the router, and no `widgets/`
-  (ADR 0036). An override for `src/modules/*/components/*` repeats the
-  module boundaries of its depth and adds these.
+  (ADR 0036). An override for
+  `src/modules/*/components/*` repeats the module boundaries of its depth
+  and adds these; `components/` is flat, since the override covers only
+  files directly in it.
+- A page file exports only its component (`react/only-export-components`),
+  which keeps its load function in its own `.load.ts` file. That a load
+  file imports no UI is checked in review.
 - `src/shared/` imports nothing from `src/app/`, `src/routes/` or
   `src/modules/`, and from the API layer only `@/api/http`.
 - The API layer's boundaries apply everywhere outside `src/api/`: a service
@@ -409,7 +417,8 @@ decides what each kind of file in a module may do:
 
 | A new… | Goes in | Imported as |
 | --- | --- | --- |
-| Page | `src/modules/<module>/pages/`, with its load function in the same file, both exported from the module's `index.ts` | `@/modules/<module>`, by its route |
+| Page | `src/modules/<module>/pages/<page>.tsx`, exporting only its component, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
+| Load function | `src/modules/<module>/pages/<page>.load.ts`, beside its page: fills what the page reads, imports only the API layer and the router, exported from the module's `index.ts` | `@/modules/<module>`, by its route's loader |
 | Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks | A relative path, inside the module |
 | Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
