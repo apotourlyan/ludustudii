@@ -1,3 +1,4 @@
+import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { useId } from "react";
 
 import type { LearningCard } from "@/api/lcards";
@@ -25,7 +26,12 @@ export function LearningCardPreview({
           rows. Otherwise the frame is a grid of its own, one band per row. */}
       <LearningCardFrame
         className="row-span-full grid grid-rows-subgrid"
-        strip={<span id={stripId}>Preview</span>}
+        strip={
+          <span className="flex items-center gap-1.5">
+            <EyeIcon aria-hidden className="size-3.5" />
+            <span id={stripId}>Preview</span>
+          </span>
+        }
         title={{
           label: "Title",
           content: isBlank(card.title) ? (

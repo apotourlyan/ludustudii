@@ -1,3 +1,4 @@
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { useForm } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
 import { cn } from "cn";
@@ -181,7 +182,12 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
             {(description) => (
               <LearningCardFrame
                 className={cn(BAND_ROWS, "md:col-start-2")}
-                strip="Edit"
+                strip={
+                  <span className="flex items-center gap-1.5">
+                    <PencilSimpleIcon aria-hidden className="size-3.5" />
+                    Edit
+                  </span>
+                }
                 title={fieldSection(title, "Title", TITLE_MAX_LENGTH, {
                   className: "min-h-5",
                   placeholder: "Enter title...",
