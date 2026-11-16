@@ -5,9 +5,9 @@ import { expect, type Locator, type Page } from "@playwright/test";
 // The text of the not-found page for a card.
 export const NOT_FOUND_TEXT = "This card doesn't exist. It may have been deleted.";
 
-// The card ID in a card's editor path, /library/cards/<id>.
+// The card ID in a card's editor path, /library/cards/<id>/edit.
 export function cardIdFromPath(path: string | null | undefined): string {
-  const id = path?.match(/^\/library\/cards\/([^/]+)$/)?.[1];
+  const id = path?.match(/^\/library\/cards\/([^/]+)\/edit$/)?.[1];
   if (!id) {
     throw new Error(`not a card's editor path: ${JSON.stringify(path)}`);
   }

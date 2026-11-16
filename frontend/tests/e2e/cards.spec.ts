@@ -46,11 +46,11 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 
   // Gone from the server too, not only from the page's list.
-  await page.goto(`/library/cards/${id}`);
+  await page.goto(`/library/cards/${id}/edit`);
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
 });
 
-test("a card's URL opens it in the form", async ({ page, request }) => {
+test("a card's editor URL opens it in the form", async ({ page, request }) => {
   const title = uniqueTitle("Direct");
   const description = "Opened by its URL.";
   const created = await request.post("/api/lcards", { data: { title, description } });
@@ -59,7 +59,7 @@ test("a card's URL opens it in the form", async ({ page, request }) => {
   const id = location.match(/^\/api\/lcards\/([^/]+)$/)?.[1];
   expect(id, `the Location header ${JSON.stringify(location)}`).toBeTruthy();
 
-  await page.goto(`/library/cards/${id}`);
+  await page.goto(`/library/cards/${id}/edit`);
 
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await expect(page.getByLabel("Description")).toHaveValue(description);
@@ -75,7 +75,7 @@ test("a card's URL opens it in the form", async ({ page, request }) => {
 
 test("a nonexistent card ID shows the not-found page", async ({ page }) => {
   // A valid UUIDv7 that the database never generates: its time is 1970.
-  await page.goto("/library/cards/00000000-0000-7000-8000-000000000000");
+  await page.goto("/library/cards/00000000-0000-7000-8000-000000000000/edit");
 
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to learning cards" }).click();

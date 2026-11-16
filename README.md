@@ -560,7 +560,7 @@ produce a `412`, open a card's editor, change the card from the browser
 console, then save:
 
 ```js
-const id = location.pathname.split('/').pop()
+const id = location.pathname.split('/').at(-2) // /library/cards/<id>/edit
 const card = await (await fetch(`/api/lcards/${id}`)).json()
 await fetch(`/api/lcards/${id}`, {
   method: 'PUT',

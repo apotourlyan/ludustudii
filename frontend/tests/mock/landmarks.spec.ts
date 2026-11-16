@@ -48,7 +48,7 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     name: "the not-found page",
     heading: "Card not found",
     open: async (page) => {
-      await page.goto("/library/cards/00000000-0000-7000-8000-000000000000");
+      await page.goto("/library/cards/00000000-0000-7000-8000-000000000000/edit");
       await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
     },
   },

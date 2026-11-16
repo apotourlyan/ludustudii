@@ -1,5 +1,5 @@
-// A card URL whose ID is malformed or names no card shows the not-found
-// page, whose link leads back to the list.
+// A card's editor URL whose ID is malformed or names no card shows the
+// not-found page, whose link leads back to the list.
 
 import { expect, test } from "@playwright/test";
 
@@ -13,7 +13,7 @@ const cases = [
 
 for (const { name, id } of cases) {
   test(`${name} shows the not-found page`, async ({ page }) => {
-    await page.goto(`/library/cards/${id}`);
+    await page.goto(`/library/cards/${id}/edit`);
 
     await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Back to learning cards" }).click();

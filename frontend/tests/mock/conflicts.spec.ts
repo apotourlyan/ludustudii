@@ -20,7 +20,7 @@ test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
     "This card has changed. Reload it before you save your edits.",
   );
   // The edit stays, so the user can copy it before reloading.
-  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}/edit$`));
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
 });
 
