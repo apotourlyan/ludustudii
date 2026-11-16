@@ -71,6 +71,12 @@ interface TextField {
   handleChange: (value: string) => void;
 }
 
+// Which field has focus, by name, so its section can show it.
+interface Focus {
+  focused: string | null;
+  setFocused: (name: string | null) => void;
+}
+
 // A field as one of the editor's sections: its label and counter in the
 // label bar, the field as the content, its error in the status bar.
 function fieldSection(
@@ -78,6 +84,7 @@ function fieldSection(
   label: string,
   maxLength: number,
   control: Pick<ComponentProps<"textarea">, "className" | "placeholder">,
+  { focused, setFocused }: Focus,
 ): LearningCardFrameSection {
   const invalid = field.state.meta.errors.length > 0;
   return {
@@ -89,7 +96,11 @@ function fieldSection(
         id={field.name}
         name={field.name}
         value={field.state.value}
-        onBlur={field.handleBlur}
+        onFocus={() => setFocused(field.name)}
+        onBlur={() => {
+          field.handleBlur();
+          setFocused(null);
+        }}
         onChange={(e) => field.handleChange(e.target.value)}
         maxLength={maxLength * INPUT_SLACK}
         aria-invalid={invalid}
@@ -97,6 +108,7 @@ function fieldSection(
     ),
     status: invalid ? <FieldError errors={field.state.meta.errors} /> : null,
     invalid,
+    active: focused === field.name,
   };
 }
 
@@ -120,6 +132,8 @@ export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
 export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
+  const [focused, setFocused] = useState<string | null>(null);
+  const focus = { focused, setFocused };
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const isEditing = Boolean(card);
@@ -188,16 +202,28 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                     Edit
                   </span>
                 }
-                title={fieldSection(title, "Title", TITLE_MAX_LENGTH, {
-                  className: "min-h-5",
-                  placeholder: "Enter title...",
-                })}
-                description={fieldSection(description, "Description", DESCRIPTION_MAX_LENGTH, {
-                  // Fills its row, so it ends where the preview's description
-                  // does when the preview is the taller of the two.
-                  className: "h-full min-h-50",
-                  placeholder: "Enter description...",
-                })}
+                title={fieldSection(
+                  title,
+                  "Title",
+                  TITLE_MAX_LENGTH,
+                  {
+                    className: "min-h-5",
+                    placeholder: "Enter title...",
+                  },
+                  focus,
+                )}
+                description={fieldSection(
+                  description,
+                  "Description",
+                  DESCRIPTION_MAX_LENGTH,
+                  {
+                    // Fills its row, so it ends where the preview's description
+                    // does when the preview is the taller of the two.
+                    className: "h-full min-h-50",
+                    placeholder: "Enter description...",
+                  },
+                  focus,
+                )}
               />
             )}
           </form.Field>

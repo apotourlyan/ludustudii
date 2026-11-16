@@ -17,6 +17,9 @@ export interface LearningCardFrameSection {
   status?: ReactNode;
   // Tints the label bar and the status bar with the destructive color.
   invalid?: boolean;
+  // Marks the section being edited: a brighter label bar, and the primary
+  // color on the hairline under it.
+  active?: boolean;
 }
 
 export interface LearningCardFrameProps {
@@ -33,6 +36,8 @@ export interface LearningCardFrameProps {
 // A quiet band: small muted text on a background a step off the card's.
 const BAND = "flex items-center justify-between gap-2 bg-muted/50 px-(--card-spacing) py-1.5";
 const INVALID_BAND = "bg-destructive/10 text-destructive";
+// The hairline above a section's content, when the section is active.
+const ACTIVE_LINE = "border-t-primary";
 
 // The layout every mode of a learning card shares: an optional strip, then
 // the title section and the description section, each as bands stacked
@@ -52,13 +57,18 @@ export function LearningCardFrame({
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
       {strip !== undefined && <div className={cn(BAND, "text-muted-foreground")}>{strip}</div>}
       <LabelBar section={title} />
-      <CardHeader className="py-(--card-spacing)">
+      <CardHeader className={cn("py-(--card-spacing)", title.active && ACTIVE_LINE)}>
         {title.content}
         {actions && <CardAction>{actions}</CardAction>}
       </CardHeader>
       <StatusBar section={title} />
       <LabelBar section={description} />
-      <CardContent className="min-w-0 py-(--card-spacing) wrap-break-word">
+      <CardContent
+        className={cn(
+          "min-w-0 py-(--card-spacing) wrap-break-word",
+          description.active && ACTIVE_LINE,
+        )}
+      >
         {description.content}
       </CardContent>
       <StatusBar section={description} />
@@ -69,7 +79,14 @@ export function LearningCardFrame({
 function LabelBar({ section }: { section: LearningCardFrameSection }) {
   if (section.label === undefined && section.meta === undefined) return null;
   return (
-    <div className={cn(BAND, "text-muted-foreground", section.invalid && INVALID_BAND)}>
+    <div
+      className={cn(
+        BAND,
+        "text-muted-foreground transition-colors",
+        section.active && "text-foreground",
+        section.invalid && INVALID_BAND,
+      )}
+    >
       {section.label}
       {section.meta !== undefined && <span className="tabular-nums">{section.meta}</span>}
     </div>
