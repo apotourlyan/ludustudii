@@ -103,9 +103,11 @@ its index).
   in the neighboring load file.
 - The initial bundle doesn't grow with each page: a page stays in its
   route's chunk.
-- Components render from props alone, so component tests need no query
-  client, no router and no fake backend, and a component can be reused on
-  another page, such as the card view in a future practice session.
+- Components render their data from props alone, so a component test
+  needs no fake backend and no loaded route, and a component can be reused
+  on another page, such as the card view in a future practice session. A
+  component that renders links or calls a mutation still needs a router or
+  a query client in its test.
 - Data that is slow, optional or driven by typing has a defined home
   that can't hold up or break the rest of the page.
 - Props are passed one or two levels down, which is a cost accepted on
