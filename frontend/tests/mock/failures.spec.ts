@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 import { currentSlide } from "../support/carousel";
 
 test("a failing server shows the error page", async ({ page }) => {
-  await page.goto("/learning-cards?scenario=failing");
+  await page.goto("/library/cards?scenario=failing");
 
   // Server errors are retried twice, with a back-off of about 3 seconds in
   // all, before the error page shows.
@@ -21,7 +21,7 @@ test("a slow server shows the pending page first", async ({ page }) => {
   // the loader starts until the delayed response arrives. goto returns as
   // soon as the page starts loading, so the check below is already polling
   // when that window opens, however long the app takes to load.
-  await page.goto("/learning-cards?delay=3000", { waitUntil: "commit" });
+  await page.goto("/library/cards?delay=3000", { waitUntil: "commit" });
 
   const pending = page.getByRole("status").filter({ hasText: "Loading..." });
   await expect(pending).toBeVisible();
@@ -30,7 +30,7 @@ test("a slow server shows the pending page first", async ({ page }) => {
 });
 
 test("going offline shows the network message on the next request", async ({ page, context }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   await currentSlide(page).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
 

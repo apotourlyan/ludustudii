@@ -7,7 +7,7 @@ import { cardIdOf, changeCardElsewhere, deleteFromSlide } from "../support/cards
 import { currentSlide } from "../support/carousel";
 
 test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   const id = await cardIdOf(currentSlide(page));
   await currentSlide(page).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
@@ -20,12 +20,12 @@ test("saving a card changed elsewhere shows the conflict", async ({ page }) => {
     "This card has changed. Reload it before you save your edits.",
   );
   // The edit stays, so the user can copy it before reloading.
-  await expect(page).toHaveURL(new RegExp(`/learning-card/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
 });
 
 test("deleting a card changed elsewhere shows the conflict", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   const slide = currentSlide(page);
   await changeCardElsewhere(page, await cardIdOf(slide));
 

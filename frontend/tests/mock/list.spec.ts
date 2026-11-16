@@ -17,7 +17,7 @@ const DEFAULT_TITLES = [
 ];
 
 test("the default scenario lists its 8 cards, newest first", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
 
   await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
   const slide = currentSlide(page);
@@ -33,7 +33,7 @@ test("the default scenario lists its 8 cards, newest first", async ({ page }) =>
 });
 
 test("cards render their markdown", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   const slide = currentSlide(page);
 
   // "Ser vs. estar": two "##" headings and bold text.
@@ -52,7 +52,7 @@ test("cards render their markdown", async ({ page }) => {
 });
 
 test("the empty scenario shows the empty state", async ({ page }) => {
-  await page.goto("/learning-cards?scenario=empty");
+  await page.goto("/library/cards?scenario=empty");
 
   await expect(
     page.getByText("No learning cards yet. Add a card to get started.", { exact: true }),

@@ -20,7 +20,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   const title = uniqueTitle("Lifecycle");
   const edited = `${title} (edited)`;
 
-  await page.goto("/learning-card");
+  await page.goto("/library/cards/new");
   await page.getByLabel("Title").fill(title);
   await page.getByLabel("Description").fill("Created by an **end-to-end** test.");
   await page.getByRole("button", { name: "Create Card" }).click();
@@ -37,7 +37,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await page.getByLabel("Title").fill(edited);
   await page.getByRole("button", { name: "Update Card" }).click();
 
-  await expect(page).toHaveURL(/\/learning-cards$/);
+  await expect(page).toHaveURL(/\/library\/cards$/);
   slide = await showCard(page, edited);
   await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 
@@ -46,7 +46,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 
   // Gone from the server too, not only from the page's list.
-  await page.goto(`/learning-card/${id}`);
+  await page.goto(`/library/cards/${id}`);
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
 });
 
@@ -59,7 +59,7 @@ test("a card's URL opens it in the form", async ({ page, request }) => {
   const id = location.match(/^\/api\/lcards\/([^/]+)$/)?.[1];
   expect(id, `the Location header ${JSON.stringify(location)}`).toBeTruthy();
 
-  await page.goto(`/learning-card/${id}`);
+  await page.goto(`/library/cards/${id}`);
 
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await expect(page.getByLabel("Description")).toHaveValue(description);
@@ -75,7 +75,7 @@ test("a card's URL opens it in the form", async ({ page, request }) => {
 
 test("a nonexistent card ID shows the not-found page", async ({ page }) => {
   // A valid UUIDv7 that the database never generates: its time is 1970.
-  await page.goto("/learning-card/00000000-0000-7000-8000-000000000000");
+  await page.goto("/library/cards/00000000-0000-7000-8000-000000000000");
 
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to learning cards" }).click();

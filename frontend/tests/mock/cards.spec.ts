@@ -8,7 +8,7 @@ import { deleteFromSlide } from "../support/cards";
 import { currentSlide } from "../support/carousel";
 
 test("a created card is the newest in the list", async ({ page }) => {
-  await page.goto("/learning-card");
+  await page.goto("/library/cards/new");
 
   await page.getByLabel("Title").fill("Krebs cycle");
   await page.getByLabel("Description").fill("Happens in the **mitochondrial matrix**.");
@@ -24,7 +24,7 @@ test("a created card is the newest in the list", async ({ page }) => {
 });
 
 test("an edited card shows its changes in the list", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   await currentSlide(page).getByRole("link", { name: "Update" }).click();
 
   const title = page.getByLabel("Title");
@@ -33,7 +33,7 @@ test("an edited card shows its changes in the list", async ({ page }) => {
   await page.getByLabel("Description").fill("The *powerhouse* of the cell.");
   await page.getByRole("button", { name: "Update Card" }).click();
 
-  await expect(page).toHaveURL(/\/learning-cards$/);
+  await expect(page).toHaveURL(/\/library\/cards$/);
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 8");
   await expect(slide.getByText("Mitochondrion", { exact: true })).toBeVisible();
@@ -41,7 +41,7 @@ test("an edited card shows its changes in the list", async ({ page }) => {
 });
 
 test("a deleted card leaves the list", async ({ page }) => {
-  await page.goto("/learning-cards");
+  await page.goto("/library/cards");
   const slide = currentSlide(page);
   await expect(slide.getByText("Mitochondria", { exact: true })).toBeVisible();
 
