@@ -399,8 +399,8 @@ decides what each kind of file in a module may do:
   module: a new module needs no change to the configuration. A file nested
   more than two folders deep can climb only two levels.
 - A module's `components/` import nothing from `@tanstack/react-query`,
-  neither `useNavigate` nor `useRouter` from the router, and no `widgets/`
-  (ADR 0036). An override for
+  none of `useNavigate`, `useRouter`, `Navigate` or `redirect` from the
+  router, and no `widgets/` (ADR 0036). An override for
   `src/modules/*/components/*` repeats the module boundaries of its depth
   and adds these; `components/` is flat, since the override covers only
   files directly in it.
