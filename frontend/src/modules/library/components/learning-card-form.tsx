@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
@@ -10,6 +10,14 @@ import { Textarea } from "@/shared/ui/textarea";
 import { cardErrorMessage } from "./card-error-message";
 import { LearningCardFrame } from "./learning-card-frame";
 import { LearningCardDisplay } from "./learning-card-view";
+
+// From md up, the editor and its preview sit side by side, and each frame
+// spans the grid's four rows as a subgrid: header, separator, body (which
+// takes what is left) and footer. Their parts line up row by row, and the
+// taller of the two sets each row's height. The rows have no gap of their
+// own: each frame keeps its card spacing between its parts. Below md, one
+// column.
+const FRAME_IN_ROWS = "md:row-span-4 md:grid md:grid-rows-subgrid";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -60,6 +68,7 @@ interface LearningCardFormProps {
 // Creates a card, or updates the given one, with a preview beside the
 // fields. Its page places it and gives it a heading.
 export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
+  const previewLabelId = useId();
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
   const createLearningCard = useCreateLearningCard();
@@ -104,8 +113,9 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
   });
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:grid-rows-[auto_auto_1fr_auto] md:gap-y-0">
       <LearningCardFrame
+        className={FRAME_IN_ROWS}
         render={
           <form
             onSubmit={(e) => {
@@ -193,7 +203,9 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
           {(field) => {
             const isInvalid = field.state.meta.errors.length > 0;
             return (
-              <Field data-invalid={isInvalid}>
+              // Fills the body's row, so the field ends where the preview's
+              // body does when the preview is the taller of the two.
+              <Field data-invalid={isInvalid} className="h-full">
                 <div className="flex items-center justify-between">
                   <FieldLabel htmlFor={field.name}>Description</FieldLabel>
                   <FieldDescription>
@@ -201,7 +213,7 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
                   </FieldDescription>
                 </div>
                 <Textarea
-                  className="min-h-50"
+                  className="min-h-50 flex-1"
                   id={field.name}
                   placeholder="Enter description..."
                   name={field.name}
@@ -220,7 +232,18 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
         </form.Field>
       </LearningCardFrame>
       <form.Subscribe selector={(state) => state.values}>
-        {(values) => <LearningCardDisplay card={values} />}
+        {(values) => (
+          <LearningCardDisplay
+            card={values}
+            className={FRAME_IN_ROWS}
+            render={<section aria-labelledby={previewLabelId} />}
+            actions={
+              <span id={previewLabelId} className="text-xs text-muted-foreground">
+                Preview
+              </span>
+            }
+          />
+        )}
       </form.Subscribe>
     </div>
   );

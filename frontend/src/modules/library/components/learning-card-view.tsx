@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
@@ -19,7 +19,7 @@ import { FieldError } from "@/shared/ui/field";
 import { Separator } from "@/shared/ui/separator";
 
 import { cardErrorMessage } from "./card-error-message";
-import { LearningCardFrame } from "./learning-card-frame";
+import { LearningCardFrame, type LearningCardFrameProps } from "./learning-card-frame";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
@@ -141,14 +141,17 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
 export function LearningCardDisplay({
   card,
   actions,
+  className,
+  render,
 }: {
   card: Pick<LearningCard, "title" | "description">;
-  actions?: ReactNode;
-}) {
+} & Pick<LearningCardFrameProps, "actions" | "className" | "render">) {
   return (
     <LearningCardFrame
       title={<Markdown components={markdownComponents}>{card.title}</Markdown>}
       actions={actions}
+      className={className}
+      render={render}
     >
       <Markdown components={markdownComponents}>{card.description}</Markdown>
     </LearningCardFrame>
