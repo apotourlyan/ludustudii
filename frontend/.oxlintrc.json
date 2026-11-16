@@ -337,6 +337,77 @@
       }
     },
     {
+      // A module's components (ADR 0036): data comes in as props and
+      // outcomes go out through callbacks, so a component reads no query,
+      // doesn't navigate and renders no widget. It comes after the override
+      // above, so it applies to these files instead, and repeats that
+      // override's entries, since an override replaces a rule's options. The
+      // React Query entry covers the whole package here, which includes the
+      // hooks ADR 0030 rules out everywhere. A component may still call the
+      // API layer's mutation hooks for the interaction it owns.
+      "files": ["src/modules/*/components/*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@phosphor-icons/react",
+                "message": "Import each icon from @phosphor-icons/react/dist/csr/<Name>. In development, Vite pre-bundles the package's main entry as one module of every icon, and evaluating it blocks the page for seconds on a slow machine."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "message": "Components take data as props; pages read queries, widgets own theirs (ADR 0036)."
+              },
+              {
+                "name": "@tanstack/react-router",
+                "importNames": ["useNavigate", "useRouter"],
+                "message": "Components don't navigate; report the outcome through a callback for the page to act on (ADR 0036)."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^openapi-fetch(/|$)",
+                "message": "Only src/api/ makes requests; use the service's query options or mutation hooks from @/api/<service> (ADR 0031)."
+              },
+              {
+                "regex": "^(@|\\.{1,2}(/\\.{1,2})*)/api/[^/]+/",
+                "message": "Import a service only through its index, @/api/<service> (ADR 0030)."
+              },
+              {
+                "regex": "(^|/)fake(/|$)",
+                "message": "Only src/mock/ and tests import the fakes (ADR 0032)."
+              },
+              {
+                "regex": "^@/modules(/|$)",
+                "message": "A module doesn't import another module: modules connect through URLs, and src/app/ combines them. Inside a module, imports are relative (ADR 0035)."
+              },
+              {
+                "regex": "^@/(app|routes)(/|$)|^@/routeTree\\.gen",
+                "message": "A module doesn't import the shell (src/app/) or the routes; they import the module's index (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\./(\\./)*\\.\\.(/|$)",
+                "message": "A relative import stays inside its module. Import shared code by its alias (@/shared/...), and never another module (ADR 0035)."
+              },
+              {
+                "regex": "^(\\./)*\\.\\.(/index(\\.[jt]sx?)?)?/?$",
+                "message": "Inside a module, import the file you need, not the module's own index: the index is for code outside the module (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)([^/.][^/]*|\\.[^/.][^/]*|\\.\\.[^/]+)/\\.\\.(/|$)",
+                "message": "Write relative paths without a .. after a folder name (./pages/../x), so the boundaries can check them (ADR 0035)."
+              },
+              {
+                "regex": "(^|/)widgets(/|$)",
+                "message": "Components don't render widgets; pages do (ADR 0036)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       // A file two or more folders down in a module.
       "files": ["src/modules/**"],
       "excludeFiles": ["src/modules/*/*", "src/modules/*/*/*"],
