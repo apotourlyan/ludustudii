@@ -41,6 +41,15 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(edited);
 
+  // The grid shows the change too, and opens the card's page.
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("button", { name: "Grid view" }).click();
+  await expect(page).toHaveURL(/\/library\/cards\?view=grid$/);
+  const card = await findCard(page, edited);
+  await card.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(edited);
+
   // Deleting on the card's page ends on the list, without the card.
   const dialog = await deleteCard(page, page.getByRole("main"));
   await expect(dialog).toBeHidden();

@@ -4,7 +4,7 @@ import { Link, useElementScrollRestoration, useNavigate, useSearch } from "@tans
 import { lcardQueries } from "@/api/lcards";
 
 import { CardsViewSwitch } from "../components/cards-view-switch";
-import { LearningCardCarousel } from "../components/learning-card-carousel";
+import { LearningCardGrid } from "../components/learning-card-grid";
 import { LearningCardList } from "../components/learning-card-list";
 
 // The learning cards' overview, in the view its URL names (?view=list or
@@ -49,7 +49,7 @@ export function CardsPage() {
       ) : view === "list" ? (
         <LearningCardList cards={cards} initialScrollOffset={initialScrollOffset} />
       ) : (
-        <LearningCardCarousel cards={cards} />
+        <LearningCardGrid cards={cards} initialScrollOffset={initialScrollOffset} />
       )}
     </div>
   );

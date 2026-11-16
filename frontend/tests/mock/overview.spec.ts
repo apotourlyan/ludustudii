@@ -119,10 +119,14 @@ for (const view of VIEWS) {
     test("Back from a card far down returns to it", async ({ page }) => {
       await openOverview(page, view, "many");
       await scrollWindow(page, 4000);
-      // An item in the middle of the window.
+      // The first item wholly in the window below its top third.
       const title = await page.evaluate(() => {
-        const element = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-        return element?.closest("li")?.querySelector("[data-slot=card-title]")?.textContent;
+        const items = document.querySelectorAll("[aria-label='Learning cards'] > li");
+        const item = [...items].find((element) => {
+          const { top, bottom } = element.getBoundingClientRect();
+          return top >= window.innerHeight / 3 && bottom <= window.innerHeight;
+        });
+        return item?.querySelector("[data-slot=card-title]")?.textContent;
       });
       expect(title).toMatch(/^Card \d+ of 150$/);
 
@@ -164,3 +168,64 @@ for (const view of VIEWS) {
     });
   });
 }
+
+// The cards of the first rows rendered, each one's box.
+async function cardBoxes(page: Page) {
+  const items = cardItems(page);
+  await expect(items.first()).toBeVisible();
+  const boxes = [];
+  for (const item of await items.all()) {
+    const box = await item.boundingBox();
+    expect(box).not.toBeNull();
+    boxes.push(box!);
+  }
+  return boxes;
+}
+
+// How many cards share the first card's row.
+function perRow(boxes: { y: number }[]): number {
+  return boxes.filter((box) => Math.abs(box.y - boxes[0]!.y) < 1).length;
+}
+
+test.describe("the grid view at 1280 px", () => {
+  test.use({ viewport: { width: 1280, height: 720 } });
+
+  test("has 4 cards per row, all the same size", async ({ page }) => {
+    await openOverview(page, "grid");
+
+    const boxes = await cardBoxes(page);
+    expect(boxes).toHaveLength(8);
+    expect(perRow(boxes)).toBe(4);
+    for (const box of boxes) {
+      expect(Math.abs(box.width - boxes[0]!.width), "width").toBeLessThan(1);
+      expect(Math.abs(box.height - boxes[0]!.height), "height").toBeLessThan(1);
+    }
+  });
+
+  test("a long title keeps its card the same size as the others", async ({ page }) => {
+    await page.goto(`/library/cards/new`);
+    await page.getByLabel("Title").fill(LONG_TITLE);
+    await page.getByLabel("Description").fill("Long.");
+    await page.getByRole("button", { name: "Create Card" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("The long title");
+    await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+    await page.getByRole("button", { name: "Grid view" }).click();
+
+    const boxes = await cardBoxes(page);
+    expect(boxes).toHaveLength(9);
+    for (const box of boxes) {
+      expect(Math.abs(box.height - boxes[0]!.height), "height").toBeLessThan(1);
+    }
+  });
+});
+
+test.describe("the grid view at 390 px", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("has 1 card per row", async ({ page }) => {
+    await openOverview(page, "grid");
+
+    const boxes = await cardBoxes(page);
+    expect(perRow(boxes)).toBe(1);
+  });
+});

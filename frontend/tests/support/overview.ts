@@ -6,7 +6,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 // The overview's views, as its URL names them.
-export const VIEWS = ["list"] as const;
+export const VIEWS = ["list", "grid"] as const;
 export type View = (typeof VIEWS)[number];
 
 // The list of cards, in whichever view the page shows.
