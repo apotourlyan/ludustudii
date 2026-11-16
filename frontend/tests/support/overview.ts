@@ -71,3 +71,45 @@ export async function expectCardAt(
   await expect(item.getByText(title, { exact: true })).toBeVisible();
   await expect(item).toHaveAttribute("aria-setsize", String(total));
 }
+
+declare global {
+  interface Window {
+    // Set by watchListRequests.
+    listRequestsWatch?: { count: number; fail: boolean };
+  }
+}
+
+// Counts the requests for the list of cards (GET /api/lcards) from inside
+// the page, and fails them as a network failure would once
+// failListRequests is called. The mock mode's fake backend answers
+// requests in a service worker, before Playwright's routing sees them, so
+// this wraps the page's fetch in an init script, before the app's API
+// client takes it. Call it before page.goto.
+export async function watchListRequests(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const state = { count: 0, fail: false };
+    window.listRequestsWatch = state;
+    const original = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+      const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+      if (method.toUpperCase() === "GET" && url.pathname === "/api/lcards") {
+        state.count += 1;
+        if (state.fail) return Promise.reject(new TypeError("Failed to fetch"));
+      }
+      return original(input, init);
+    };
+  });
+}
+
+// Fails every later list request; see watchListRequests.
+export async function failListRequests(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    window.listRequestsWatch!.fail = true;
+  });
+}
+
+// How many list requests the page has made; see watchListRequests.
+export async function listRequestCount(page: Page): Promise<number> {
+  return page.evaluate(() => window.listRequestsWatch!.count);
+}

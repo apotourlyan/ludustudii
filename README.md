@@ -427,7 +427,13 @@ decides what each kind of file in a module may do:
   validator in `pages/<page>.search.ts` (`validateCardsPageSearch`), and
   turns anything invalid or missing into the default. The page reads them
   with `useSearch`, and changing them navigates with `replace: true`, so
-  Back leaves the page instead of stepping through each change.
+  Back leaves the page instead of stepping through each change. Changing
+  them doesn't reload the page's data either: the router runs a page's
+  loader again for a navigation that only changes its search params (a
+  "stay") only when it goes to the very same URL, so switching views never
+  waits for a refetch or fails on one (`tests/mock/views.spec.ts` checks
+  it). Entering the page runs the loader as on every route
+  ([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)).
 - **A component** takes data as props and owns only UI state. It may call
   a mutation hook for the interaction it owns (a delete button and its
   dialog), renders links instead of navigating, reports outcomes through
