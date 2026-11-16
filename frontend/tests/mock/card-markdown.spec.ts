@@ -1,6 +1,7 @@
 // A card's title renders only inline Markdown, and its description's
 // headings start at level 2, so the page's own <h1> stays the only one
-// (#47). Checked wherever a card renders: the editor's preview and the list.
+// (#47). Checked wherever a card renders: the editor's preview, the list
+// and the card's page, where the title is the page's heading.
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
@@ -39,6 +40,10 @@ test("a title renders inline and description headings start at level 2", async (
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 9");
   await expectRendered(page, slide);
+
+  await slide.getByRole("link", { name: "Open" }).click();
+  await expectRendered(page, page.getByRole("main"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photosynthesis basics");
 });
 
 // Block syntax in a title is unwrapped to its text, and the line breaks

@@ -4,7 +4,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { deleteFromSlide } from "../support/cards";
+import { deleteCard } from "../support/cards";
 import { currentSlide } from "../support/carousel";
 
 test("a created card is the newest in the list", async ({ page }) => {
@@ -45,7 +45,7 @@ test("a deleted card leaves the list", async ({ page }) => {
   const slide = currentSlide(page);
   await expect(slide.getByText("Mitochondria", { exact: true })).toBeVisible();
 
-  const dialog = await deleteFromSlide(page, slide);
+  const dialog = await deleteCard(page, slide);
 
   await expect(dialog).toBeHidden();
   await expect(slide).toHaveAccessibleName("1 of 7");

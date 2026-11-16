@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
 
-import { cardIdFromPath, deleteFromSlide, NOT_FOUND_TEXT } from "../support/cards";
+import { cardIdFromPath, deleteCard, NOT_FOUND_TEXT } from "../support/cards";
 import { showCard } from "../support/carousel";
 
 // A title no other test or run uses.
@@ -41,7 +41,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   slide = await showCard(page, edited);
   await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 
-  const dialog = await deleteFromSlide(page, slide);
+  const dialog = await deleteCard(page, slide);
   await expect(dialog).toBeHidden();
   await expect(page.getByText(edited, { exact: true })).toHaveCount(0);
 

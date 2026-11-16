@@ -1,5 +1,5 @@
-// A card's editor URL whose ID is malformed or names no card shows the
-// not-found page, whose link leads back to the list.
+// A card's URL, of its page or its editor, whose ID is malformed or names
+// no card shows the not-found page, whose link leads back to the list.
 
 import { expect, test } from "@playwright/test";
 
@@ -12,14 +12,19 @@ const cases = [
 ];
 
 for (const { name, id } of cases) {
-  test(`${name} shows the not-found page`, async ({ page }) => {
-    await page.goto(`/library/cards/${id}/edit`);
+  for (const { url, path } of [
+    { url: "page", path: `/library/cards/${id}` },
+    { url: "editor", path: `/library/cards/${id}/edit` },
+  ]) {
+    test(`${name} in a card's ${url} URL shows the not-found page`, async ({ page }) => {
+      await page.goto(path);
 
-    await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "Back to learning cards" }).click();
+      await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
+      await page.getByRole("link", { name: "Back to learning cards" }).click();
 
-    await expect(page).toHaveURL(/\/library\/cards$/);
-    await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("1 / 8");
-  });
+      await expect(page).toHaveURL(/\/library\/cards$/);
+      await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
+      await expect(page.getByRole("status")).toHaveText("1 / 8");
+    });
+  }
 }

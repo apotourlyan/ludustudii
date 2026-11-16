@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as LibraryCardsIndexRouteImport } from './routes/library/cards/index'
 import { Route as LibraryCardsNewRouteImport } from './routes/library/cards/new'
+import { Route as LibraryCardsCardIdIndexRouteImport } from './routes/library/cards/$cardId/index'
 import { Route as LibraryCardsCardIdEditRouteImport } from './routes/library/cards/$cardId/edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const LibraryCardsNewRoute = LibraryCardsNewRouteImport.update({
   path: '/library/cards/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryCardsCardIdIndexRoute = LibraryCardsCardIdIndexRouteImport.update({
+  id: '/library/cards/$cardId/',
+  path: '/library/cards/$cardId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryCardsCardIdEditRoute = LibraryCardsCardIdEditRouteImport.update({
   id: '/library/cards/$cardId/edit',
   path: '/library/cards/$cardId/edit',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/library/cards/new': typeof LibraryCardsNewRoute
   '/library/cards/': typeof LibraryCardsIndexRoute
   '/library/cards/$cardId/edit': typeof LibraryCardsCardIdEditRoute
+  '/library/cards/$cardId/': typeof LibraryCardsCardIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/library/cards/new': typeof LibraryCardsNewRoute
   '/library/cards': typeof LibraryCardsIndexRoute
   '/library/cards/$cardId/edit': typeof LibraryCardsCardIdEditRoute
+  '/library/cards/$cardId': typeof LibraryCardsCardIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/library/cards/new': typeof LibraryCardsNewRoute
   '/library/cards/': typeof LibraryCardsIndexRoute
   '/library/cards/$cardId/edit': typeof LibraryCardsCardIdEditRoute
+  '/library/cards/$cardId/': typeof LibraryCardsCardIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/library/cards/new'
     | '/library/cards/'
     | '/library/cards/$cardId/edit'
+    | '/library/cards/$cardId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/library/cards/new'
     | '/library/cards'
     | '/library/cards/$cardId/edit'
+    | '/library/cards/$cardId'
   id:
     | '__root__'
     | '/'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/library/cards/new'
     | '/library/cards/'
     | '/library/cards/$cardId/edit'
+    | '/library/cards/$cardId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   LibraryCardsNewRoute: typeof LibraryCardsNewRoute
   LibraryCardsIndexRoute: typeof LibraryCardsIndexRoute
   LibraryCardsCardIdEditRoute: typeof LibraryCardsCardIdEditRoute
+  LibraryCardsCardIdIndexRoute: typeof LibraryCardsCardIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -125,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryCardsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/cards/$cardId/': {
+      id: '/library/cards/$cardId/'
+      path: '/library/cards/$cardId'
+      fullPath: '/library/cards/$cardId/'
+      preLoaderRoute: typeof LibraryCardsCardIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/cards/$cardId/edit': {
       id: '/library/cards/$cardId/edit'
       path: '/library/cards/$cardId/edit'
@@ -141,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryCardsNewRoute: LibraryCardsNewRoute,
   LibraryCardsIndexRoute: LibraryCardsIndexRoute,
   LibraryCardsCardIdEditRoute: LibraryCardsCardIdEditRoute,
+  LibraryCardsCardIdIndexRoute: LibraryCardsCardIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
