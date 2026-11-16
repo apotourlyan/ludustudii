@@ -9,7 +9,12 @@ export function CardNotFoundPage() {
       <Card>
         <CardContent className="space-y-3">
           <p>This card doesn't exist. It may have been deleted.</p>
-          <Link to="/library/cards" className="text-sm text-primary underline underline-offset-4">
+          {/* Exact, so it isn't marked as the current page on the card's URL below it. */}
+          <Link
+            to="/library/cards"
+            activeOptions={{ exact: true }}
+            className="text-sm text-primary underline underline-offset-4"
+          >
             Back to learning cards
           </Link>
         </CardContent>
