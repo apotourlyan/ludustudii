@@ -45,6 +45,31 @@ test("a title renders inline and description headings start at level 2", async (
   await expectRendered(page, slide);
 });
 
+// A title whose syntax leaves no text once unwrapped shows its source, so
+// it never renders as nothing.
+for (const title of ["---", "![diagram](x.png)"]) {
+  test(`a title of only ${JSON.stringify(title)} shows its source`, async ({ page }) => {
+    await page.goto("/library/cards/new");
+    await page.getByLabel("Title").fill(title);
+
+    await expect(
+      page.getByRole("region", { name: "Preview" }).getByText(title, { exact: true }),
+    ).toBeVisible();
+  });
+}
+
+// A fenced code block in a title keeps the code style, which its language
+// class used to replace.
+test("a title's fenced code keeps the code style", async ({ page }) => {
+  await page.goto("/library/cards/new");
+  await page.getByLabel("Title").fill("```js\nfoo()\n```");
+
+  const code = page.getByRole("region", { name: "Preview" }).getByRole("code");
+  await expect(code).toHaveText("foo()");
+  await expect(code).toHaveClass(/\blanguage-js\b/);
+  await expect(code).toHaveClass(/\bfont-mono\b/);
+});
+
 // Block syntax in a title is unwrapped to its text, and the line breaks
 // between the blocks render as spaces: the title reads as one line.
 for (const { name, title } of [

@@ -8,7 +8,8 @@ export const NOT_FOUND_TEXT = "This card doesn't exist. It may have been deleted
 // The card ID in the path of a card's page, /library/cards/<id>, or of its
 // editor, /library/cards/<id>/edit.
 export function cardIdFromPath(path: string | null | undefined): string {
-  const id = path?.match(/^\/library\/cards\/([^/]+)(?:\/edit)?$/)?.[1];
+  // "new" is the new card form's path, not a card's.
+  const id = path?.match(/^\/library\/cards\/(?!new(?:\/|$))([^/]+)(?:\/edit)?$/)?.[1];
   if (!id) {
     throw new Error(`not the path of a card's page or editor: ${JSON.stringify(path)}`);
   }

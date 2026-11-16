@@ -85,6 +85,28 @@ test("a card deleted on its page leaves the list, and Back doesn't return to it"
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toHaveCount(0);
 });
 
+// The delete removes the card's cached copy while its page is still on
+// screen, waiting for the list to load. A re-render then would fetch the
+// deleted card and fail; the delay makes that wait long.
+test("a card deleted on its page isn't fetched again while the list loads", async ({ page }) => {
+  await page.goto("/library/cards?delay=800");
+  const id = await openCardFromList(page, currentSlide(page));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
+  const fetched: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "GET" && new URL(request.url()).pathname === `/api/lcards/${id}`) {
+      fetched.push(request.url());
+    }
+  });
+
+  await deleteCard(page, page.getByRole("main"));
+
+  await expect(page).toHaveURL(/\/library\/cards$/);
+  await expect(currentSlide(page)).toHaveAccessibleName("1 of 7");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(fetched).toEqual([]);
+});
+
 test("a card deleted in the list leaves it", async ({ page }) => {
   await page.goto("/library/cards");
   const slide = currentSlide(page);

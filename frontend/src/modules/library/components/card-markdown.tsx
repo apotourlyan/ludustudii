@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import Markdown, { type Components } from "react-markdown";
 
 import { Separator } from "@/shared/ui/separator";
@@ -10,8 +11,9 @@ const inlineComponents = {
       {children}
     </a>
   ),
-  code: ({ node: _node, ...props }) => (
-    <code className="bg-muted px-1 py-0.5 font-mono" {...props} />
+  // Merges a fenced block's language-* class instead of losing the style to it.
+  code: ({ node: _node, className, ...props }) => (
+    <code className={cn("bg-muted px-1 py-0.5 font-mono", className)} {...props} />
   ),
 } satisfies Components;
 
@@ -63,11 +65,39 @@ const descriptionComponents: Components = {
 // items read as one line with a space between them.
 const TITLE_ELEMENTS = ["strong", "em", "code", "a"];
 
+// The part of a rendered tree this file looks at.
+interface TreeNode {
+  type: string;
+  value?: string;
+  children?: TreeNode[];
+}
+
+// Whether the tree has text to show. Raw HTML counts: it renders as text.
+function hasText(node: TreeNode): boolean {
+  if (node.type === "text" || node.type === "raw") return Boolean(node.value?.trim());
+  return node.children?.some(hasText) ?? false;
+}
+
+// A title made only of syntax that leaves no text once unwrapped, such as
+// "---" or an image, would render as nothing, and on a card's page as an
+// empty <h1>. Such a title shows its source instead. Runs before the
+// unwrapping, which keeps every text node.
+const showSourceWhenEmpty = () => (tree: TreeNode, file: { value: unknown }) => {
+  if (!hasText(tree)) {
+    tree.children = [{ type: "text", value: String(file.value) }];
+  }
+};
+
 // A card's title, rendered from its Markdown as inline text, for its parent
 // to place in a heading or a block of its own.
 export function CardTitleMarkdown({ children }: { children: string }) {
   return (
-    <Markdown components={inlineComponents} allowedElements={TITLE_ELEMENTS} unwrapDisallowed>
+    <Markdown
+      components={inlineComponents}
+      allowedElements={TITLE_ELEMENTS}
+      unwrapDisallowed
+      rehypePlugins={[showSourceWhenEmpty]}
+    >
       {children}
     </Markdown>
   );

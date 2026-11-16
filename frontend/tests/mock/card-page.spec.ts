@@ -1,5 +1,5 @@
 // A card's own page, /library/cards/<id>: the card with its title as the
-// page's heading, its actions, and links to the list and to a new card.
+// page's heading, its actions, and a link to a new card above it.
 // The fake's state lives in the page, so each test reaches a card through
 // the list's links: page.goto would load a fresh fake.
 

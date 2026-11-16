@@ -130,8 +130,9 @@ interface LearningCardFormProps<
   cancel: ValidateLinkOptions<TRouter, TOptions>;
   // Called with the saved card after a successful save, and awaited; what
   // follows a save, such as going to the card's page, is the page's
-  // (ADR 0036).
-  onSaved?: (card: SavedLearningCard) => void | Promise<void>;
+  // (ADR 0036). Required: the form keeps its values after a save, so a page
+  // that stayed on it would let the same card be created twice.
+  onSaved: (card: SavedLearningCard) => void | Promise<void>;
 }
 
 // A card as the form saved it: its ID and the title and description sent.
@@ -185,7 +186,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         return;
       }
       // The form keeps its values after a save: its page leaves it.
-      await onSaved?.({ id, ...input });
+      await onSaved({ id, ...input });
     },
   });
 
