@@ -32,8 +32,8 @@ JSON. Node runs it directly, by stripping the types.
 - **Each restriction is written once**, as a named constant with its
   message and the ADR that decided it. An override lists the restrictions
   that apply to its files by name, so reading an override shows exactly
-  which boundaries hold there. Plain arrays and spreads, no generation
-  logic: the file reads as a list of rules, not a program.
+  which boundaries hold there. Plain constants and one helper, no
+  generation logic: the file reads as a list of rules, not a program.
 - **The reasons stay next to the rules**, as comments, as 0033 requires
   for every rule turned off.
 - **The config is type-checked** with `defineConfig`, by
