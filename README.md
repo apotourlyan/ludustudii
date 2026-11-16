@@ -330,8 +330,10 @@ frontend/
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
   `model/` for plain TypeScript logic once it needs one. Today there is one,
   `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
-  are built. URLs don't carry the module yet; ADR 0035 moves them to
-  `/library/...`, with the route files in `src/routes/library/`.
+  are built. URLs start with the module (`/library/cards`,
+  `/library/cards/new`, `/library/cards/$cardId`), and the route files are
+  grouped the same way, in `src/routes/library/`. `/` and `/library`
+  redirect to `/library/cards` until the dashboard exists.
 - **Wording:** the API layer has none
   ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
   `errorMessage` in `src/shared/error-message.ts` words the failures every
@@ -369,7 +371,7 @@ frontend/
 | --- | --- | --- |
 | Page | `src/modules/<module>/pages/`, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
 | Component | `src/modules/<module>/components/` | A relative path, inside the module |
-| Route | `src/routes/`, a file named after its URL: path, params, loader, `notFound` mapping and the page | Generated into `routeTree.gen.ts` |
+| Route | `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, loader, `notFound` mapping and the page | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
 | Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
 | Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `components/` | `@/shared/error-message`, or a relative path |
@@ -746,7 +748,7 @@ screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
 parallel and can rely on the scenario's data, totals included. The fake's
 state lives in the page, so a test moves between pages with the app's links;
 `page.goto` reloads the page and starts the fake over. Scenarios and delays
-come from the URL (`/learning-cards?scenario=empty`), and other states from
+come from the URL (`/library/cards?scenario=empty`), and other states from
 inside the page: `changeCardElsewhere` in `tests/support/cards.ts` changes a
 card with a `fetch` the fake answers, so the page's copy is stale and the next
 save gets a 412. `context.setOffline(true)` makes the fake fail requests as
