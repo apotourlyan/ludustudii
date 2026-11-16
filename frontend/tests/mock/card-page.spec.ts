@@ -35,7 +35,8 @@ test("Open in the list shows the card on its own page", async ({ page }) => {
   await expect(card.getByRole("button", { name: "Delete" })).toBeVisible();
   await expect(card.getByRole("link", { name: "Open" })).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Back to learning cards" }).click();
+  // The page has no link back of its own; the navigation's leads to the list.
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
   await expect(page).toHaveURL(/\/library\/cards$/);
   await expect(page.getByRole("status")).toHaveText("1 / 8");
 });
@@ -75,5 +76,28 @@ test.describe("at 1280 px", () => {
     expect(Math.abs(card!.x - previewBox!.x), "left edge").toBeLessThanOrEqual(1);
     expect(Math.abs(card!.y - previewBox!.y), "top edge").toBeLessThanOrEqual(1);
     expect(Math.abs(card!.width - previewBox!.width), "width").toBeLessThanOrEqual(1);
+  });
+
+  test("Add Card is above the card at its right edge, the title level with the buttons", async ({
+    page,
+  }) => {
+    await openNewestCard(page);
+    const card = (await cardOnPage(page).boundingBox())!;
+    const addCard = (await page
+      .getByRole("main")
+      .getByRole("link", { name: "Add Card" })
+      .boundingBox())!;
+    expect(addCard.y + addCard.height).toBeLessThanOrEqual(card.y);
+    expect(
+      Math.abs(addCard.x + addCard.width - (card.x + card.width)),
+      "right edges",
+    ).toBeLessThanOrEqual(1);
+
+    const title = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+    const update = (await cardOnPage(page).getByRole("link", { name: "Update" }).boundingBox())!;
+    expect(
+      Math.abs(title.y + title.height / 2 - (update.y + update.height / 2)),
+      "vertical centers",
+    ).toBeLessThanOrEqual(1);
   });
 });

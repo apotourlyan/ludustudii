@@ -39,7 +39,7 @@ test("a title renders inline and description headings start at level 2", async (
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photosynthesis basics");
   await expectRendered(page, page.getByRole("main"));
 
-  await page.getByRole("link", { name: "Back to learning cards" }).click();
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 9");
   await expectRendered(page, slide);

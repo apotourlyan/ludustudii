@@ -58,7 +58,7 @@ test("an edited card shows its changes on its page", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");
   await expect(page.getByRole("main").getByRole("emphasis")).toHaveText("powerhouse");
 
-  await page.getByRole("link", { name: "Back to learning cards" }).click();
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
   const slide = currentSlide(page);
   await expect(slide).toHaveAccessibleName("1 of 8");
   await expect(slide.getByText("Mitochondrion", { exact: true })).toBeVisible();

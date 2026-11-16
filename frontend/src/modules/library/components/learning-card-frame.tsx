@@ -83,9 +83,19 @@ export function LearningCardFrame({
         </div>
       )}
       <LabelBar section={title} />
-      <CardHeader className={cn("py-(--card-spacing)", title.active && ACTIVE_LINE)}>
+      {/* With actions, the title and the actions share one row and are
+          centered on it, so a one-line title sits level with the buttons. */}
+      <CardHeader
+        className={cn(
+          "py-(--card-spacing)",
+          actions !== undefined && "items-center",
+          title.active && ACTIVE_LINE,
+        )}
+      >
         {title.content}
-        {actions !== undefined && <CardAction>{actions}</CardAction>}
+        {actions !== undefined && (
+          <CardAction className="row-span-1 self-center">{actions}</CardAction>
+        )}
       </CardHeader>
       <StatusBar section={title} />
       <LabelBar section={description} />

@@ -30,7 +30,7 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
   const id = cardIdFromPath(new URL(page.url()).pathname);
   await expect(page.getByRole("main").getByRole("strong")).toHaveText("end-to-end");
 
-  await page.getByRole("link", { name: "Back to learning cards" }).click();
+  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
   const slide = await showCard(page, title);
   await slide.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
