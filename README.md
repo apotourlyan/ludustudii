@@ -400,7 +400,12 @@ decides what each kind of file in a module may do:
   more than two folders deep can climb only two levels.
 - A module's `components/` import nothing from `@tanstack/react-query`,
   none of `useNavigate`, `useRouter`, `Navigate` or `redirect` from the
-  router, and no `widgets/` (ADR 0036). An override for
+  router, none of the router's readers of route state (`useParams`,
+  `useSearch`, `useLoaderData`, `useLoaderDeps`, `useRouteContext`,
+  `useMatch`, `useMatches`, `useParentMatches`, `useChildMatches`,
+  `useLocation`, `useRouterState`, `getRouteApi`, `RouteApi`,
+  `useMatchRoute`, `MatchRoute`, `useCanGoBack`), and no `widgets/`
+  (ADR 0036). `Link` and `linkOptions` stay allowed. An override for
   `src/modules/*/components/*` lists the module boundaries of its depth
   and adds these; `components/` is flat, since the override covers only
   files directly in it.

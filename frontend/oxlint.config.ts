@@ -183,6 +183,32 @@ const navigationInComponents: RestrictedPath = {
     "Components don't navigate; report the outcome through a callback for the page to act on (ADR 0036).",
 };
 
+// Everything that reads the current route's state: params, search, loader
+// data and deps, route context, matches, location and router state. Links
+// and link options stay allowed.
+const routeDataInComponents: RestrictedPath = {
+  name: "@tanstack/react-router",
+  importNames: [
+    "useParams",
+    "useSearch",
+    "useLoaderData",
+    "useLoaderDeps",
+    "useRouteContext",
+    "useMatch",
+    "useMatches",
+    "useParentMatches",
+    "useChildMatches",
+    "useLocation",
+    "useRouterState",
+    "getRouteApi",
+    "RouteApi",
+    "useMatchRoute",
+    "MatchRoute",
+    "useCanGoBack",
+  ],
+  message: "Components get route data as props from their page (ADR 0036).",
+};
+
 const widgetsInComponents: RestrictedPattern = {
   regex: "(^|/)widgets(/|$)",
   message: "Components don't render widgets; pages do (ADR 0036).",
@@ -335,6 +361,7 @@ export default defineConfig({
           phosphorMainEntry,
           queryInComponents,
           navigationInComponents,
+          routeDataInComponents,
           openapiFetchOutsideApi,
           serviceIndexOnly,
           fakesOnlyInMock,
