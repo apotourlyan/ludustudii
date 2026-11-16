@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
 import {
@@ -15,54 +14,12 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { Button, buttonVariants } from "@/shared/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { CardTitle } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
-import { Separator } from "@/shared/ui/separator";
 
 import { cardErrorMessage } from "./card-error-message";
-
-// Tailwind preflight resets element styles, so markdown elements are styled here
-const markdownComponents: Components = {
-  h1: ({ node: _node, children, ...props }) => (
-    <h1 className="mt-4 mb-2 text-lg font-semibold first:mt-0" {...props}>
-      {children}
-    </h1>
-  ),
-  h2: ({ node: _node, children, ...props }) => (
-    <h2 className="mt-4 mb-2 text-base font-semibold first:mt-0" {...props}>
-      {children}
-    </h2>
-  ),
-  h3: ({ node: _node, children, ...props }) => (
-    <h3 className="mt-3 mb-1 text-sm font-semibold first:mt-0" {...props}>
-      {children}
-    </h3>
-  ),
-  h4: ({ node: _node, children, ...props }) => (
-    <h4 className="mt-3 mb-1 font-semibold first:mt-0" {...props}>
-      {children}
-    </h4>
-  ),
-  p: ({ node: _node, ...props }) => <p className="my-2 first:mt-0 last:mb-0" {...props} />,
-  a: ({ node: _node, children, ...props }) => (
-    <a className="text-primary underline underline-offset-2" {...props}>
-      {children}
-    </a>
-  ),
-  ul: ({ node: _node, ...props }) => <ul className="my-2 list-disc pl-5" {...props} />,
-  ol: ({ node: _node, ...props }) => <ol className="my-2 list-decimal pl-5" {...props} />,
-  li: ({ node: _node, ...props }) => <li className="my-0.5" {...props} />,
-  blockquote: ({ node: _node, ...props }) => (
-    <blockquote className="my-2 border-l-2 pl-3 text-muted-foreground" {...props} />
-  ),
-  code: ({ node: _node, ...props }) => (
-    <code className="bg-muted px-1 py-0.5 font-mono" {...props} />
-  ),
-  pre: ({ node: _node, ...props }) => (
-    <pre className="my-2 overflow-x-auto bg-muted p-3 font-mono [&>code]:p-0" {...props} />
-  ),
-  hr: () => <Separator className="my-4" />,
-};
+import { CardMarkdown } from "./card-markdown";
+import { LearningCardFrame } from "./learning-card-frame";
 
 // A saved card with its actions: a link to edit it, and deleting it. Its
 // parent places it.
@@ -70,7 +27,7 @@ export function LearningCardView({ card }: { card: LearningCard }) {
   return (
     <LearningCardDisplay
       card={card}
-      action={
+      actions={
         <div className="flex gap-2">
           {/* A link, so the router preloads the card while the pointer hovers it. */}
           <Link
@@ -136,25 +93,28 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
   );
 }
 
+// A card's title and description as Markdown, in the frame every mode of
+// a card shares, with no strip and no bars.
 export function LearningCardDisplay({
   card,
-  action,
+  actions,
 }: {
   card: Pick<LearningCard, "title" | "description">;
-  action?: ReactNode;
+  actions?: ReactNode;
 }) {
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle className="min-w-0 wrap-break-word">
-          <Markdown components={markdownComponents}>{card.title}</Markdown>
-        </CardTitle>
-        {action && <CardAction>{action}</CardAction>}
-      </CardHeader>
-      <Separator />
-      <CardContent className="min-w-0 wrap-break-word">
-        <Markdown components={markdownComponents}>{card.description}</Markdown>
-      </CardContent>
-    </Card>
+    <LearningCardFrame
+      actions={actions}
+      title={{
+        content: (
+          <CardTitle className="min-w-0 wrap-break-word">
+            <CardMarkdown>{card.title}</CardMarkdown>
+          </CardTitle>
+        ),
+      }}
+      description={{
+        content: <CardMarkdown>{card.description}</CardMarkdown>,
+      }}
+    />
   );
 }

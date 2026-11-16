@@ -5,7 +5,7 @@ import { lcardQueries } from "@/api/lcards";
 
 import { LearningCardForm } from "../components/learning-card-form";
 
-// Edits a learning card, then goes back to the list. Reads what
+// Edits a learning card, then goes back to the list, as Cancel does. Reads what
 // loadEditCardPage, in edit-card-page.load.ts, fills; a missing card never
 // reaches it.
 export function EditCardPage({ cardId }: { cardId: string }) {
@@ -18,6 +18,7 @@ export function EditCardPage({ cardId }: { cardId: string }) {
       <LearningCardForm
         key={card.id}
         card={card}
+        cancel={{ to: "/library/cards" }}
         onSaved={() => navigate({ to: "/library/cards" })}
       />
     </div>

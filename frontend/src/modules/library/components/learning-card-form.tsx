@@ -1,15 +1,32 @@
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
+import { cn } from "cn";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { ApiError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/shared/ui/field";
+import { Button, buttonVariants } from "@/shared/ui/button";
+import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
 import { cardErrorMessage } from "./card-error-message";
-import { LearningCardDisplay } from "./learning-card-view";
+import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
+import { LearningCardPreview } from "./learning-card-preview";
+
+// From md up, the preview on the left, the editor on the right, and the
+// buttons under the editor. Both frames span the seven band rows as
+// subgrids, so each row is as tall as the taller of the two sides and the
+// bands line up. The rows have no gap: the bands touch, as inside a frame.
+// Below md, one column in document order: editor, buttons, preview.
+//
+// Rows 1-7 are a full frame's bands, in LearningCardFrame's order: strip,
+// title label bar, title content, title status bar, description label bar,
+// description content (1fr: it takes what is left), description status
+// bar. Row 8 holds the buttons.
+const GRID =
+  "grid grid-cols-1 gap-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_auto_auto_1fr_auto_auto] md:gap-y-0";
+const BAND_ROWS = "md:row-span-7 md:row-start-1 md:grid md:grid-rows-subgrid";
+const BUTTON_ROW = "md:col-start-2 md:row-start-8";
 
 const TITLE_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -50,18 +67,81 @@ const validateDescription = ({ value }: { value: string }) => {
   return undefined;
 };
 
-interface LearningCardFormProps {
+// What the editor's bands need from a form field holding text.
+interface TextField {
+  name: string;
+  state: { value: string; meta: { errors: ({ message: string } | undefined)[] } };
+  handleBlur: () => void;
+  handleChange: (value: string) => void;
+}
+
+interface FieldSectionOptions extends Pick<
+  ComponentProps<"textarea">,
+  "className" | "placeholder"
+> {
+  label: string;
+  maxLength: number;
+  // The name of the field that has focus, so the section can show it's
+  // the one being edited, and how to change it.
+  focused: string | null;
+  setFocused: (name: string | null) => void;
+}
+
+// A field as one of the editor's sections: its label and counter in the
+// label bar, the field as the content, its error in the status bar.
+function fieldSection(
+  field: TextField,
+  { label, maxLength, focused, setFocused, ...control }: FieldSectionOptions,
+): LearningCardFrameSection {
+  const invalid = field.state.meta.errors.length > 0;
+  const length = canonicalLength(field.state.value);
+  return {
+    label: <FieldLabel htmlFor={field.name}>{label}</FieldLabel>,
+    meta: `${length}/${maxLength}`,
+    progress: length / maxLength,
+    content: (
+      <Textarea
+        {...control}
+        id={field.name}
+        name={field.name}
+        value={field.state.value}
+        onFocus={() => setFocused(field.name)}
+        onBlur={() => {
+          field.handleBlur();
+          setFocused(null);
+        }}
+        onChange={(e) => field.handleChange(e.target.value)}
+        maxLength={maxLength * INPUT_SLACK}
+        aria-invalid={invalid}
+      />
+    ),
+    status: invalid ? <FieldError errors={field.state.meta.errors} /> : null,
+    invalid,
+    active: focused === field.name,
+  };
+}
+
+interface LearningCardFormProps<
+  TRouter extends RegisteredRouter = RegisteredRouter,
+  TOptions = unknown,
+> {
   card?: LearningCard;
+  // Where Cancel goes, which is the page's decision.
+  cancel: ValidateLinkOptions<TRouter, TOptions>;
   // Called after a successful save, and awaited; what follows a save, such
   // as leaving the page, is the page's (ADR 0036).
   onSaved?: () => void | Promise<void>;
 }
 
-// Creates a card, or updates the given one, with a preview beside the
-// fields. Its page places it and gives it a heading.
-export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
+// Creates a card, or updates the given one: the editor, its buttons, and
+// a preview of the card. Its page places it and gives it a heading.
+export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
+  props: LearningCardFormProps<TRouter, TOptions>,
+): ReactNode;
+export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
+  const [focused, setFocused] = useState<string | null>(null);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const isEditing = Boolean(card);
@@ -104,121 +184,82 @@ export function LearningCardForm({ card, onSaved }: LearningCardFormProps) {
   });
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-      <Card className="min-w-0">
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // onSubmit handles a failed save itself, and the form's state
-              // shows the submission's progress, so the event handler has
-              // nothing to wait for.
-              void form.handleSubmit();
-            }}
+    <form
+      className={GRID}
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // onSubmit handles a failed save itself, and the form's state
+        // shows the submission's progress, so the event handler has
+        // nothing to wait for.
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="title" validators={{ onChange: validateTitle, onSubmit: validateTitle }}>
+        {(title) => (
+          <form.Field
+            name="description"
+            validators={{ onChange: validateDescription, onSubmit: validateDescription }}
           >
-            <FieldGroup>
-              <form.Field
-                name="title"
-                validators={{
-                  onChange: validateTitle,
-                  onSubmit: validateTitle,
-                }}
-              >
-                {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <div className="flex items-center justify-between">
-                        <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                        <FieldDescription>
-                          {canonicalLength(field.state.value)}/{TITLE_MAX_LENGTH}
-                        </FieldDescription>
-                      </div>
-                      <Textarea
-                        className="min-h-5"
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        maxLength={TITLE_MAX_LENGTH * INPUT_SLACK}
-                        aria-invalid={isInvalid}
-                        placeholder="Enter title..."
-                      />
-                      <div className="min-h-4">
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                      </div>
-                    </Field>
-                  );
-                }}
-              </form.Field>
+            {(description) => (
+              <LearningCardFrame
+                className={cn(BAND_ROWS, "md:col-start-2")}
+                strip="Edit"
+                title={fieldSection(title, {
+                  label: "Title",
+                  maxLength: TITLE_MAX_LENGTH,
+                  className: "min-h-5",
+                  placeholder: "Enter title...",
+                  focused,
+                  setFocused,
+                })}
+                description={fieldSection(description, {
+                  label: "Description",
+                  maxLength: DESCRIPTION_MAX_LENGTH,
+                  // Fills its row, so it ends where the preview's description
+                  // does when the preview is the taller of the two.
+                  className: "h-full min-h-50",
+                  placeholder: "Enter description...",
+                  focused,
+                  setFocused,
+                })}
+              />
+            )}
+          </form.Field>
+        )}
+      </form.Field>
 
-              <form.Field
-                name="description"
-                validators={{
-                  onChange: validateDescription,
-                  onSubmit: validateDescription,
-                }}
-              >
-                {(field) => {
-                  const isInvalid = field.state.meta.errors.length > 0;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <div className="flex items-center justify-between">
-                        <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                        <FieldDescription>
-                          {canonicalLength(field.state.value)}/{DESCRIPTION_MAX_LENGTH}
-                        </FieldDescription>
-                      </div>
-                      <Textarea
-                        className="min-h-50"
-                        id={field.name}
-                        placeholder="Enter description..."
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        maxLength={DESCRIPTION_MAX_LENGTH * INPUT_SLACK}
-                        aria-invalid={isInvalid}
-                      />
-                      <div className="min-h-4">
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                      </div>
-                    </Field>
-                  );
-                }}
-              </form.Field>
+      {/* The save error sits left of the buttons, next to the action that
+          failed, and adds no row, so nothing above it moves. */}
+      <div className={cn("flex items-center justify-end gap-2 md:mt-4", BUTTON_ROW)}>
+        {mutation.isError && (
+          <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
+            {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+          </FieldError>
+        )}
+        <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
+          Cancel
+        </Link>
+        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => (
+            <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
+              {isSubmitting || mutation.isPending
+                ? isEditing
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditing
+                  ? "Update Card"
+                  : "Create Card"}
+            </Button>
+          )}
+        </form.Subscribe>
+      </div>
 
-              {mutation.isError && (
-                <FieldError>
-                  {cardErrorMessage(
-                    mutation.error,
-                    isEditing ? "save your edits" : "create the card",
-                  )}
-                </FieldError>
-              )}
-
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
-                    {isSubmitting || mutation.isPending
-                      ? isEditing
-                        ? "Updating..."
-                        : "Creating..."
-                      : isEditing
-                        ? "Update Card"
-                        : "Create Card"}
-                  </Button>
-                )}
-              </form.Subscribe>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
       <form.Subscribe selector={(state) => state.values}>
-        {(values) => <LearningCardDisplay card={values} />}
+        {(values) => (
+          <LearningCardPreview card={values} className={cn(BAND_ROWS, "md:col-start-1")} />
+        )}
       </form.Subscribe>
-    </div>
+    </form>
   );
 }
