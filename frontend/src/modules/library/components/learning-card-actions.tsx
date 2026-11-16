@@ -1,3 +1,6 @@
+import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -21,14 +24,18 @@ import { cardErrorMessage } from "./card-error-message";
 // What can be done with a saved card, for the places that show one to
 // compose in their actions slot. The links let the router preload the
 // card's page while the pointer hovers them.
+//
+// Each action is an icon. Its name is hidden text, as on the carousel's
+// buttons, so assistive technology and tests find it by name.
 
-const ACTION = buttonVariants({ variant: "outline", size: "sm" });
+const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
 
 // Opens the card's own page.
 export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId" params={{ cardId: card.id }} className={ACTION}>
-      Open
+      <EyeIcon />
+      <span className="sr-only">Open</span>
     </Link>
   );
 }
@@ -37,7 +44,8 @@ export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> 
 export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId/edit" params={{ cardId: card.id }} className={ACTION}>
-      Update
+      <PencilSimpleIcon />
+      <span className="sr-only">Update</span>
     </Link>
   );
 }
@@ -65,8 +73,9 @@ export function DeleteLearningCardButton({
         setOpen(nextOpen);
       }}
     >
-      <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
-        Delete
+      <AlertDialogTrigger render={<Button variant="destructive" size="icon-sm" />}>
+        <TrashIcon />
+        <span className="sr-only">Delete</span>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
