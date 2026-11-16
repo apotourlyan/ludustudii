@@ -336,8 +336,8 @@ frontend/
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
   `model/` for plain TypeScript logic or `widgets/` once it needs one. Today
   there is one, `library`; `practice`, `planning`, `dashboard` and
-  `progress` follow as they are built. URLs start with the module (`/library/cards`,
-  `/library/cards/new`, `/library/cards/$cardId`), and the route files are
+  `progress` follow as they are built. URLs start with the module
+  ([The library](#the-library) lists its URLs), and the route files are
   grouped the same way, in `src/routes/library/`. `/` and `/library`
   redirect to `/library/cards` until the dashboard exists.
 - **Wording:** the API layer has none
@@ -347,6 +347,29 @@ frontend/
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
   (`modules/library/components/card-error-message.ts`).
+
+#### The library
+
+| URL | Page | Shows |
+| --- | --- | --- |
+| `/library/cards` | `CardsPage` | The cards, newest first, one at a time in a carousel, each with Open, Update and Delete |
+| `/library/cards/new` | `NewCardPage` | The form for a new card, with its preview |
+| `/library/cards/$cardId` | `CardPage` | One card, its title the page's `<h1>`, with Update and Delete |
+| `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
+
+Both card URLs show `CardNotFoundPage` for an ID that names no card.
+Creating a card and saving an edit end on the card's page; Cancel goes to
+the card's page from its editor, and to the list from the new card's form.
+Deleting a card on its page ends on the list; deleting one in the list
+stays there.
+
+A card's Markdown renders through two components in
+`components/card-markdown.tsx`. `CardTitleMarkdown` renders a title as
+inline Markdown only (bold, italic, code and links); other syntax is
+unwrapped to its text, so `# Photosynthesis` reads "Photosynthesis" and a
+title fits in any heading or line. `CardDescriptionMarkdown` renders a
+description with its headings one level down, `#` as `<h2>` through
+`#####` and `######` as `<h6>`, so a page's own `<h1>` stays its only one.
 
 #### Pages, components and widgets
 
@@ -364,11 +387,17 @@ decides what each kind of file in a module may do:
   `loadEditCardPage(queryClient, cardId)` in `edit-card-page.load.ts`. The
   load function fills every query the page reads and nothing else, returns
   no data, and turns a missing resource into the router's `notFound()`. A
+  page that reads exactly what another reads may call that page's load
+  function from its own (`loadEditCardPage` calls `loadCardPage`). A
   load file imports only the API layer and the router, never UI, since it
   is in the initial bundle. The page owns the
   screen: its `<h1>`, its width and placement, and what follows a
-  successful action, such as going back to the list. The root layout
+  successful action, such as going to the card's page. The root layout
   provides the `<main>` landmark around every page.
+- **History:** after an action that uses up the current page (a create)
+  or removes what it shows (a delete), a page navigates with
+  `replace: true`, so Back doesn't return to an empty form or to a missing
+  card. Any other navigation pushes.
 - **A component** takes data as props and owns only UI state. It may call
   a mutation hook for the interaction it owns (a delete button and its
   dialog), renders links instead of navigating, reports outcomes through
@@ -772,8 +801,8 @@ project:
 
 | Command | Tests | Runs against | Covers | Runs in |
 | --- | --- | --- | --- | --- |
-| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the list and its markdown, empty state, create, edit, delete, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
-| `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create, find, edit and delete a card; open a card by its URL; a nonexistent card | Its own CI job |
+| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the list and its markdown, a card's page, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
+| `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
 
 Both targets pass `ARGS` on to Playwright, for example
 `make frontend-test ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
@@ -820,7 +849,7 @@ on that data, never on totals or positions. The list is a carousel, newest
 first, and another test may create a card at any moment, so a test doesn't
 assume its card is the first slide. It finds the card by title with
 `showCard` in `tests/support/carousel.ts`, which steps through the slides
-until one shows it, or it opens the card by its ID (from the editor's URL, or
+until one shows it, or it opens the card by its ID (from its page's URL, or
 the `Location` of a card created through the API). The list loads only its
 first page (20 cards), so a test deletes the cards it creates, which keeps
 the other tests' cards on that page.
