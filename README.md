@@ -292,7 +292,9 @@ A React app in `frontend/`, built with Vite and embedded in the binary. It
 reads and changes server data through TanStack Query
 ([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)) and is
 sliced into modules by user activity
-([ADR 0035](docs/adr/0035-client-app-modules-by-user-activity.md)).
+([ADR 0035](docs/adr/0035-client-app-modules-by-user-activity.md)), whose
+pages read route data and whose components take props
+([ADR 0036](docs/adr/0036-pages-read-route-data-components-take-props.md)).
 
 ### Structure
 
@@ -301,13 +303,13 @@ frontend/
 ├── src/
 │   ├── main.tsx            # bootstrap: starts the mock mode's fake backend, if any, then renders the app
 │   ├── app/                # the shell: query client, router, root layout and navigation, pending and error pages
-│   ├── routes/             # TanStack Router's file routes: path, params, loader and a module's page
+│   ├── routes/             # TanStack Router's file routes: path, params, a loader calling the page's load function, and the page
 │   ├── routeTree.gen.ts    # generated from routes/ by the router's Vite plugin
 │   ├── modules/            # one folder per user activity
 │   │   └── library/        # managing content: learning cards
-│   │       ├── index.ts    # the module's public surface: its pages
-│   │       ├── pages/      # one component per route
-│   │       └── components/ # the pages' parts and the module's wording, private to the module
+│   │       ├── index.ts    # the module's public surface: its pages and their load functions
+│   │       ├── pages/      # one component per route, with the load function that fills what it reads
+│   │       └── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
 │   │   ├── lib/            # helpers
@@ -322,13 +324,14 @@ frontend/
 - **`src/app/`** is the only code that may combine several modules, such as
   a navigation or, later, a dashboard built from what each module exports.
 - **`src/routes/`** stays thin: a route file declares its path and params,
-  prefetches its page's data in a loader (mapping a missing resource to
-  `notFound`), and renders a page from a module's index. Pages take route
+  calls its page's load function in its loader
+  (`loader: ({ context: { queryClient } }) => loadCardsPage(queryClient)`),
+  and renders a page from a module's index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
   effects (`sideEffects`), so the build drops the index's other exports from
   each route's chunk, and every route still gets a chunk of its own.
 - **A module** has a fixed shape: `index.ts`, `pages/` and `components/`, and
-  `model/` for plain TypeScript logic once it needs one. Today there is one,
+  `model/` for plain TypeScript logic or `widgets/` once it needs one. Today there is one,
   `library`; `practice`, `planning`, `dashboard` and `progress` follow as they
   are built. URLs start with the module (`/library/cards`,
   `/library/cards/new`, `/library/cards/$cardId`), and the route files are
@@ -341,6 +344,36 @@ frontend/
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
   (`modules/library/components/card-error-message.ts`).
+
+#### Pages, components and widgets
+
+[ADR 0036](docs/adr/0036-pages-read-route-data-components-take-props.md)
+decides what each kind of file in a module may do:
+
+| Folder | Reads queries | Gets its data from | Handles loading and failure |
+| --- | --- | --- | --- |
+| `pages/` | with `useSuspenseQuery`, only what its load function fills | the cache, filled before it renders | no: the route's pending and error components do |
+| `components/` | never | props | no |
+| `widgets/` | its own | its own fetch | yes, itself |
+
+- **A page file** exports the page and its load function, such as
+  `loadEditCardPage(queryClient, cardId)`. The load function fills every
+  query the page reads and nothing else, returns no data, and turns a
+  missing resource into the router's `notFound()`. The page owns the
+  screen: its `<h1>`, its width and placement, and what follows a
+  successful action, such as going back to the list. The root layout
+  provides the `<main>` landmark around every page.
+- **A component** takes data as props and owns only UI state. It may call
+  a mutation hook for the interaction it owns (a delete button and its
+  dialog), renders links instead of navigating, reports outcomes through
+  callbacks (`onSaved`), and leaves its page width and outer margins to its
+  parent.
+- **A widget** is data the page shouldn't wait for: it owns its query and
+  shows its own loading and failure, behind its own Suspense and error
+  boundary, or inline with `useQuery` where suspending would be wrong. A
+  page renders widgets, and `src/app/` composes them across modules through
+  each module's index. The `widgets/` folder is created with the first
+  widget; none exists yet.
 
 ### Boundaries
 
@@ -359,6 +392,10 @@ frontend/
   overrides (the module's root, one folder down, two or more), and names no
   module: a new module needs no change to the configuration. A file nested
   more than two folders deep can climb only two levels.
+- A module's `components/` import nothing from `@tanstack/react-query`,
+  neither `useNavigate` nor `useRouter` from the router, and no `widgets/`
+  (ADR 0036). An override for `src/modules/*/components/*` repeats the
+  module boundaries of its depth and adds these.
 - `src/shared/` imports nothing from `src/app/`, `src/routes/` or
   `src/modules/`, and from the API layer only `@/api/http`.
 - The API layer's boundaries apply everywhere outside `src/api/`: a service
@@ -369,9 +406,10 @@ frontend/
 
 | A new… | Goes in | Imported as |
 | --- | --- | --- |
-| Page | `src/modules/<module>/pages/`, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
-| Component | `src/modules/<module>/components/` | A relative path, inside the module |
-| Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, loader, `notFound` mapping and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
+| Page | `src/modules/<module>/pages/`, with its load function in the same file, both exported from the module's `index.ts` | `@/modules/<module>`, by its route |
+| Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks | A relative path, inside the module |
+| Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
+| Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
 | Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
 | Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `components/` | `@/shared/error-message`, or a relative path |
