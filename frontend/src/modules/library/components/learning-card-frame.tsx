@@ -1,44 +1,87 @@
-import type { useRender } from "@base-ui/react/use-render";
 import { cn } from "cn";
 import type { ReactNode } from "react";
 
-import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
-import { Separator } from "@/shared/ui/separator";
+import { Card, CardAction, CardContent, CardHeader } from "@/shared/ui/card";
 
-export interface LearningCardFrameProps {
-  title: ReactNode;
-  actions?: ReactNode;
-  // The body.
-  children: ReactNode;
-  footer?: ReactNode;
-  // Lets a parent place the frame, for example as a subgrid item.
-  className?: string;
-  // Replaces the root element, as base-ui's render prop does, so that a
-  // mode's own element, such as the editor's <form>, is the frame itself
-  // rather than a wrapper around it.
-  render?: useRender.ComponentProps<"div">["render"];
+// One of a card's sections, the title or the description. Every part but
+// the content is a slot: its band is rendered only when the slot is given.
+export interface LearningCardFrameSection {
+  // The section's own band: the rendered value, or the field.
+  content: ReactNode;
+  // The label bar: a label on the left, and a meta text, such as a
+  // counter, on the right.
+  label?: ReactNode;
+  meta?: ReactNode;
+  // The status bar under the content, such as the field's error. null
+  // gives an empty bar, which keeps its height.
+  status?: ReactNode;
+  // Tints the label bar and the status bar with the destructive color.
+  invalid?: boolean;
 }
 
-// The layout every mode of a learning card shares: a header with the title
-// and actions, a separator, the body, and a footer if given. Layout only;
+export interface LearningCardFrameProps {
+  // A band above the title section that names the panel, such as "Edit".
+  strip?: ReactNode;
+  // Shown next to the title's content, such as buttons.
+  actions?: ReactNode;
+  title: LearningCardFrameSection;
+  description: LearningCardFrameSection;
+  // Lets a parent place the frame, for example as a subgrid item.
+  className?: string;
+}
+
+// A quiet band: small muted text on a background a step off the card's.
+const BAND = "flex items-center justify-between gap-2 bg-muted/50 px-(--card-spacing) py-1.5";
+const INVALID_BAND = "bg-destructive/10 text-destructive";
+
+// The layout every mode of a learning card shares: an optional strip, then
+// the title section and the description section, each as bands stacked
+// top to bottom: label bar, content, status bar. A hairline separates the
+// bands; the one between the sections is the card's separator. Layout only:
 // each mode is its own component and fills the slots.
 export function LearningCardFrame({
-  title,
+  strip,
   actions,
-  children,
-  footer,
+  title,
+  description,
   className,
-  render,
 }: LearningCardFrameProps) {
   return (
-    <Card render={render} className={cn("min-w-0", className)}>
-      <CardHeader>
-        <CardTitle className="min-w-0 wrap-break-word">{title}</CardTitle>
+    // The bands are the card's direct children, so a parent can line them
+    // up with another frame's in a subgrid.
+    <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
+      {strip !== undefined && <div className={cn(BAND, "text-muted-foreground")}>{strip}</div>}
+      <LabelBar section={title} />
+      <CardHeader className="py-(--card-spacing)">
+        {title.content}
         {actions && <CardAction>{actions}</CardAction>}
       </CardHeader>
-      <Separator />
-      <CardContent className="min-w-0 wrap-break-word">{children}</CardContent>
-      {footer && <CardFooter>{footer}</CardFooter>}
+      <StatusBar section={title} />
+      <LabelBar section={description} />
+      <CardContent className="min-w-0 py-(--card-spacing) wrap-break-word">
+        {description.content}
+      </CardContent>
+      <StatusBar section={description} />
     </Card>
+  );
+}
+
+function LabelBar({ section }: { section: LearningCardFrameSection }) {
+  if (section.label === undefined && section.meta === undefined) return null;
+  return (
+    <div className={cn(BAND, "text-muted-foreground", section.invalid && INVALID_BAND)}>
+      {section.label}
+      {section.meta !== undefined && <span className="tabular-nums">{section.meta}</span>}
+    </div>
+  );
+}
+
+function StatusBar({ section }: { section: LearningCardFrameSection }) {
+  if (section.status === undefined) return null;
+  return (
+    // Holds one line when empty, so a message appearing shifts nothing.
+    <div className={cn(BAND, "min-h-8 text-muted-foreground", section.invalid && INVALID_BAND)}>
+      {section.status}
+    </div>
   );
 }

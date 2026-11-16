@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Markdown, { type Components } from "react-markdown";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
@@ -15,11 +15,12 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { Button, buttonVariants } from "@/shared/ui/button";
+import { CardTitle } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
 import { Separator } from "@/shared/ui/separator";
 
 import { cardErrorMessage } from "./card-error-message";
-import { LearningCardFrame, type LearningCardFrameProps } from "./learning-card-frame";
+import { LearningCardFrame } from "./learning-card-frame";
 
 // Tailwind preflight resets element styles, so markdown elements are styled here
 const markdownComponents: Components = {
@@ -137,23 +138,27 @@ function DeleteLearningCardButton({ card }: { card: LearningCard }) {
 }
 
 // A card's title and description as Markdown, in the frame every mode of
-// a card shares.
+// a card shares, with no strip and no bars.
 export function LearningCardDisplay({
   card,
   actions,
-  className,
-  render,
 }: {
   card: Pick<LearningCard, "title" | "description">;
-} & Pick<LearningCardFrameProps, "actions" | "className" | "render">) {
+  actions?: ReactNode;
+}) {
   return (
     <LearningCardFrame
-      title={<Markdown components={markdownComponents}>{card.title}</Markdown>}
       actions={actions}
-      className={className}
-      render={render}
-    >
-      <Markdown components={markdownComponents}>{card.description}</Markdown>
-    </LearningCardFrame>
+      title={{
+        content: (
+          <CardTitle className="min-w-0 wrap-break-word">
+            <Markdown components={markdownComponents}>{card.title}</Markdown>
+          </CardTitle>
+        ),
+      }}
+      description={{
+        content: <Markdown components={markdownComponents}>{card.description}</Markdown>,
+      }}
+    />
   );
 }
