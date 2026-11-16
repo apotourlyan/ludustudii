@@ -12,6 +12,9 @@ export interface LearningCardFrameSection {
   // counter, on the right.
   label?: ReactNode;
   meta?: ReactNode;
+  // How far the meta's count is toward its limit, from 0 to 1: a thin bar
+  // along the label bar's bottom edge. The meta says the same in text.
+  progress?: number;
   // The status bar under the content, such as the field's error. null
   // gives an empty bar, which keeps its height.
   status?: ReactNode;
@@ -82,13 +85,23 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
     <div
       className={cn(
         BAND,
-        "text-muted-foreground transition-colors",
+        "relative text-muted-foreground transition-colors",
         section.active && "text-foreground",
         section.invalid && INVALID_BAND,
       )}
     >
       {section.label}
       {section.meta !== undefined && <span className="tabular-nums">{section.meta}</span>}
+      {section.progress !== undefined && (
+        <div
+          aria-hidden
+          className={cn(
+            "absolute bottom-0 left-0 h-0.5 bg-primary/40 transition-[width]",
+            section.invalid && "bg-destructive",
+          )}
+          style={{ width: `${Math.min(Math.max(section.progress, 0), 1) * 100}%` }}
+        />
+      )}
     </div>
   );
 }

@@ -87,9 +87,11 @@ function fieldSection(
   { focused, setFocused }: Focus,
 ): LearningCardFrameSection {
   const invalid = field.state.meta.errors.length > 0;
+  const length = canonicalLength(field.state.value);
   return {
     label: <FieldLabel htmlFor={field.name}>{label}</FieldLabel>,
-    meta: `${canonicalLength(field.state.value)}/${maxLength}`,
+    meta: `${length}/${maxLength}`,
+    progress: length / maxLength,
     content: (
       <Textarea
         {...control}
