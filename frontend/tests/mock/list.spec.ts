@@ -36,10 +36,10 @@ test("cards render their markdown", async ({ page }) => {
   await page.goto("/library/cards");
   const slide = currentSlide(page);
 
-  // "Ser vs. estar": two "##" headings and bold text.
+  // "Ser vs. estar": two "##" headings, one level down as <h3>s, and bold text.
   await goToSlide(page, DEFAULT_TITLES.indexOf("Ser vs. estar") + 1);
   await expect(slide.getByText("Ser vs. estar", { exact: true })).toBeVisible();
-  await expect(slide.getByRole("heading", { level: 2 })).toHaveText(["Ser", "Estar"]);
+  await expect(slide.getByRole("heading", { level: 3 })).toHaveText(["Ser", "Estar"]);
   await expect(slide.getByRole("strong")).toHaveText(["DOCTOR", "PLACE"]);
 
   // "Binary search": a numbered list, bold text and inline code.

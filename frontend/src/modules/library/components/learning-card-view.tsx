@@ -18,7 +18,7 @@ import { CardTitle } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
 
 import { cardErrorMessage } from "./card-error-message";
-import { CardMarkdown } from "./card-markdown";
+import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
 import { LearningCardFrame } from "./learning-card-frame";
 
 // A saved card with its actions: a link to edit it, and deleting it. Its
@@ -108,12 +108,12 @@ export function LearningCardDisplay({
       title={{
         content: (
           <CardTitle className="min-w-0 wrap-break-word">
-            <CardMarkdown>{card.title}</CardMarkdown>
+            <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
           </CardTitle>
         ),
       }}
       description={{
-        content: <CardMarkdown>{card.description}</CardMarkdown>,
+        content: <CardDescriptionMarkdown>{card.description}</CardDescriptionMarkdown>,
       }}
     />
   );
