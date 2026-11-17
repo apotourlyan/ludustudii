@@ -1,4 +1,4 @@
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
 import { cn } from "cn";
 import { useRef, useState, type ComponentProps, type ReactNode } from "react";
@@ -224,9 +224,10 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     }
   }
 
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
-  const busy = isSubmitting || mutation.isPending;
+  // Saving: the form is submitting, or its request is in flight.
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  const submitDisabled = useSelector(form.store, (state) => !state.canSubmit) || saving;
+  const submitLabel = saving ? text.submitting : text.submit;
   // The line next to the buttons, for a failed save no field shows.
   const saveError =
     saveFailed && mutation.isError ? cardErrorMessage(mutation.error, text.action) : undefined;
@@ -285,8 +286,8 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>
-        <Button type="submit" disabled={!canSubmit || busy}>
-          {busy ? text.submitting : text.submit}
+        <Button type="submit" disabled={submitDisabled}>
+          {submitLabel}
         </Button>
       </div>
 
