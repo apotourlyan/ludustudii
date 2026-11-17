@@ -1,10 +1,11 @@
 // Makes the API answer a save with a 400 validation_error of the test's
-// choosing. The mock mode's fake backend only rejects what the form already
-// prevents, and answers requests in a service worker, before Playwright's
-// routing sees them, so this wraps the page's fetch in an init script, as
-// watchListRequests does (support/overview.ts). Call it before page.goto.
+// choosing, from inside the page (see support/fetch.ts). The mock mode's
+// fake backend only rejects what the form already prevents. Call
+// rejectSaves before page.goto.
 
 import type { Page } from "@playwright/test";
+
+import { interceptFetch } from "./fetch";
 
 export interface FieldError {
   field: string;
@@ -22,28 +23,20 @@ declare global {
 }
 
 export async function rejectSaves(page: Page): Promise<void> {
+  await interceptFetch(page);
   await page.addInitScript((requestId) => {
     window.saveRejection = null;
-    const original = window.fetch.bind(window);
-    window.fetch = (input, init) => {
-      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
-      const method = (
-        init?.method ?? (input instanceof Request ? input.method : "GET")
-      ).toUpperCase();
-      if (
-        window.saveRejection &&
-        (method === "POST" || method === "PUT") &&
-        url.pathname.startsWith("/api/lcards")
-      ) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ code: "validation_error", errors: window.saveRejection }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-          }),
-        );
-      }
-      return original(input, init);
-    };
+    window.fetchInterceptors!.push(({ url, method }) => {
+      const errors = window.saveRejection;
+      if (!errors || (method !== "POST" && method !== "PUT")) return undefined;
+      if (!url.pathname.startsWith("/api/lcards")) return undefined;
+      return Promise.resolve(
+        new Response(JSON.stringify({ code: "validation_error", errors }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
+        }),
+      );
+    });
   }, REJECTION_REQUEST_ID);
 }
 
