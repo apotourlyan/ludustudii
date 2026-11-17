@@ -78,3 +78,4 @@ Records in force. Superseded records are kept as history in
 | [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md) | front-end, architecture |
 | [0036](0036-pages-read-route-data-components-take-props.md) | Pages read route data, components take props, widgets own theirs | Accepted | front-end, architecture |
 | [0037](0037-client-lint-config-written-in-typescript.md) | Client lint config written in TypeScript | Accepted | front-end, tooling |
+| [0038](0038-form-validation-errors.md) | Form validation errors | Accepted | front-end, forms, api |
