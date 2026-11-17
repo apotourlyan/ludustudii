@@ -113,3 +113,45 @@ for (const mode of ["create", "update"] as const) {
     });
   });
 }
+
+test.describe("focus after a failed submit", () => {
+  test("an empty form focuses the title", async ({ page }) => {
+    await page.goto("/library/cards/new");
+
+    await page.getByRole("button", { name: "Create Card" }).click();
+
+    // Both fields are invalid; the first in the form's order gets the focus.
+    await expect(page.getByText(TITLE_REQUIRED, { exact: true })).toBeVisible();
+    await expect(page.getByText("Description is required", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Title")).toBeFocused();
+  });
+
+  test("an empty description alone focuses the description", async ({ page }) => {
+    await page.goto("/library/cards/new");
+    await page.getByLabel("Title").fill("Photosynthesis");
+
+    await page.getByRole("button", { name: "Create Card" }).click();
+
+    await expect(page.getByLabel("Description")).toBeFocused();
+  });
+
+  test("an API error on the description alone focuses the description", async ({ page }) => {
+    const submit = await openForm(page, "create");
+    await setRejection(page, [{ field: "description", code: "max_length" }]);
+
+    await submit.click();
+
+    await expect(page.getByText(DESCRIPTION_TOO_LONG, { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Description")).toBeFocused();
+  });
+
+  test("API errors on both fields focus the title", async ({ page }) => {
+    const submit = await openForm(page, "update");
+    await setRejection(page, BOTH);
+
+    await submit.click();
+
+    await expect(page.getByText(TITLE_REQUIRED, { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Title")).toBeFocused();
+  });
+});

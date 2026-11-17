@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
 import { cn } from "cn";
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import { ApiError, type ApiFieldError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
@@ -136,6 +136,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
   // Whether the last save failed in a way no field shows, so the line next
   // to the buttons has to (ADR 0038: a placeholder until notifications).
   const [saveFailed, setSaveFailed] = useState(false);
+  const formElement = useRef<HTMLFormElement>(null);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const isEditing = Boolean(card);
@@ -147,6 +148,8 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       description: card?.description ?? "",
     },
     validationLogic: keepServerErrorsOnBlur,
+    // The form's own checks stopped the submit.
+    onSubmitInvalid: () => focusFirstInvalidField(),
     onSubmit: async ({ value }) => {
       setSaveFailed(false);
       const input = {
@@ -190,6 +193,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
             );
           }
         }
+        focusFirstInvalidField();
         return;
       }
       // The form keeps its values after a save: its page leaves it.
@@ -197,8 +201,19 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     },
   });
 
+  // Moves the focus to the first field, in the form's order, that shows an
+  // error, whoever found it (ADR 0038).
+  function focusFirstInvalidField() {
+    const name = CARD_FIELDS.find((field) => form.getFieldMeta(field)?.errors.length);
+    const element = name && formElement.current?.elements.namedItem(name);
+    if (element instanceof HTMLElement) {
+      element.focus();
+    }
+  }
+
   return (
     <form
+      ref={formElement}
       className={GRID}
       onSubmit={(e) => {
         e.preventDefault();
