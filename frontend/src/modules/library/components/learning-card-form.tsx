@@ -20,7 +20,7 @@ import {
   type CardField,
 } from "../model/card-fields";
 import { cardErrorMessage } from "./card-error-message";
-import { cardFieldMessage } from "./card-field-message";
+import { CARD_FIELD_LABELS, cardFieldMessage } from "./card-field-message";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 import { LearningCardPreview } from "./learning-card-preview";
 
@@ -57,7 +57,6 @@ interface FieldSectionOptions extends Pick<
   ComponentProps<"textarea">,
   "className" | "placeholder"
 > {
-  label: string;
   // The name of the field that has focus, so the section can show it's
   // the one being edited, and how to change it.
   focused: string | null;
@@ -68,7 +67,7 @@ interface FieldSectionOptions extends Pick<
 // label bar, the field as the content, its error in the status bar.
 function fieldSection(
   field: TextField,
-  { label, focused, setFocused, ...control }: FieldSectionOptions,
+  { focused, setFocused, ...control }: FieldSectionOptions,
 ): LearningCardFrameSection {
   const maxLength = CARD_LIMITS[field.name];
   const errors = field.state.meta.errors.flatMap((code) => {
@@ -78,7 +77,7 @@ function fieldSection(
   const invalid = field.state.meta.errors.length > 0;
   const length = canonicalLength(field.state.value);
   return {
-    label: <FieldLabel htmlFor={field.name}>{label}</FieldLabel>,
+    label: <FieldLabel htmlFor={field.name}>{CARD_FIELD_LABELS[field.name]}</FieldLabel>,
     meta: `${length}/${maxLength}`,
     progress: length / maxLength,
     content: (
@@ -256,14 +255,12 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                 className={cn(BAND_ROWS, "md:col-start-2")}
                 strip="Edit"
                 title={fieldSection(title, {
-                  label: "Title",
                   className: "min-h-5",
                   placeholder: "Enter title...",
                   focused,
                   setFocused,
                 })}
                 description={fieldSection(description, {
-                  label: "Description",
                   // Fills its row, so it ends where the preview's description
                   // does when the preview is the taller of the two.
                   className: "h-full min-h-50",

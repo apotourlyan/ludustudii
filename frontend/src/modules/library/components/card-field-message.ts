@@ -2,7 +2,8 @@ import type { ApiFieldError } from "@/api/http";
 
 import { CARD_LIMITS, type CardField } from "../model/card-fields";
 
-const LABELS = {
+// A card field's label, on the field and in its messages.
+export const CARD_FIELD_LABELS = {
   title: "Title",
   description: "Description",
 } as const satisfies Record<CardField, string>;
@@ -16,9 +17,9 @@ export function cardFieldMessage(
 ): string | undefined {
   switch (code) {
     case "required":
-      return `${LABELS[field]} is required`;
+      return `${CARD_FIELD_LABELS[field]} is required`;
     case "max_length":
-      return `${LABELS[field]} must be at most ${CARD_LIMITS[field]} characters`;
+      return `${CARD_FIELD_LABELS[field]} must be at most ${CARD_LIMITS[field]} characters`;
     default:
       return undefined;
   }
