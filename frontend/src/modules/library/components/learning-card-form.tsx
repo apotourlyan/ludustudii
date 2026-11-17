@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
 import { cn } from "cn";
 import { useRef, useState, type ComponentProps, type ReactNode } from "react";
@@ -122,6 +122,20 @@ interface LearningCardFormProps<
 // body, so the version and timestamps come from the next read.
 type SavedLearningCard = Pick<LearningCard, "id" | "title" | "description">;
 
+// The form's wording for creating a card and for updating one.
+const MODE_TEXT = {
+  create: {
+    action: "create the card",
+    submit: "Create Card",
+    submitting: "Creating...",
+  },
+  update: {
+    action: "save your edits",
+    submit: "Update Card",
+    submitting: "Updating...",
+  },
+} as const;
+
 // Creates a card, or updates the given one: the editor, its buttons, and
 // a preview of the card. Its page places it and gives it a heading.
 export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
@@ -137,8 +151,8 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
   const formElement = useRef<HTMLFormElement>(null);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
-  const isEditing = Boolean(card);
-  const mutation = isEditing ? updateLearningCard : createLearningCard;
+  const mutation = card ? updateLearningCard : createLearningCard;
+  const text = MODE_TEXT[card ? "update" : "create"];
 
   const form = useForm({
     defaultValues: {
@@ -211,6 +225,13 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     }
   }
 
+  const canSubmit = useStore(form.store, (state) => state.canSubmit);
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const busy = isSubmitting || mutation.isPending;
+  // The line next to the buttons, for a failed save no field shows.
+  const saveError =
+    saveFailed && mutation.isError ? cardErrorMessage(mutation.error, text.action) : undefined;
+
   return (
     <form
       ref={formElement}
@@ -259,27 +280,17 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       {/* The save error sits left of the buttons, next to the action that
           failed, and adds no row, so nothing above it moves. */}
       <div className={cn("flex items-center justify-end gap-2 md:mt-4", BUTTON_ROW)}>
-        {saveFailed && mutation.isError && (
+        {saveError !== undefined && (
           <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
-            {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+            {saveError}
           </FieldError>
         )}
         <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-          {([canSubmit, isSubmitting]) => (
-            <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
-              {isSubmitting || mutation.isPending
-                ? isEditing
-                  ? "Updating..."
-                  : "Creating..."
-                : isEditing
-                  ? "Update Card"
-                  : "Create Card"}
-            </Button>
-          )}
-        </form.Subscribe>
+        <Button type="submit" disabled={!canSubmit || busy}>
+          {busy ? text.submitting : text.submit}
+        </Button>
       </div>
 
       <form.Subscribe selector={(state) => state.values}>
