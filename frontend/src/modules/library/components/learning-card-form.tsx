@@ -3,13 +3,22 @@ import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack
 import { cn } from "cn";
 import { useState, type ComponentProps, type ReactNode } from "react";
 
-import { ApiError } from "@/api/http";
+import { ApiError, type ApiFieldError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
+import {
+  canonicalize,
+  canonicalLength,
+  CARD_LIMITS,
+  validateDescription,
+  validateTitle,
+  type CardField,
+} from "../model/card-fields";
 import { cardErrorMessage } from "./card-error-message";
+import { cardFieldMessage } from "./card-field-message";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 import { LearningCardPreview } from "./learning-card-preview";
 
@@ -28,49 +37,14 @@ const GRID =
 const BAND_ROWS = "md:row-span-7 md:row-start-1 md:grid md:grid-rows-subgrid";
 const BUTTON_ROW = "md:col-start-2 md:row-start-8";
 
-const TITLE_MAX_LENGTH = 200;
-const DESCRIPTION_MAX_LENGTH = 2000;
-
 // The maxLength attribute counts UTF-16 code units of the raw value, so it
 // only caps runaway pastes; validation reports the real limit.
 const INPUT_SLACK = 2;
 
-// The server stores fields in this form and checks their length after
-// applying it. JS trim() also strips U+FEFF and keeps U+0085, unlike Go's
-// strings.TrimSpace; at worst the server rejects what the form accepted.
-const canonicalize = (value: string) => value.normalize("NFC").trim();
-
-// Counts code points, as the server does, rather than UTF-16 code units.
-const canonicalLength = (value: string) => [...canonicalize(value)].length;
-
-const validateTitle = ({ value }: { value: string }) => {
-  const length = canonicalLength(value);
-  if (length === 0) {
-    return { message: "Title is required" };
-  }
-  if (length > TITLE_MAX_LENGTH) {
-    return { message: `Title must be at most ${TITLE_MAX_LENGTH} characters` };
-  }
-  return undefined;
-};
-
-const validateDescription = ({ value }: { value: string }) => {
-  const length = canonicalLength(value);
-  if (length === 0) {
-    return { message: "Description is required" };
-  }
-  if (length > DESCRIPTION_MAX_LENGTH) {
-    return {
-      message: `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters`,
-    };
-  }
-  return undefined;
-};
-
 // What the editor's bands need from a form field holding text.
 interface TextField {
-  name: string;
-  state: { value: string; meta: { errors: ({ message: string } | undefined)[] } };
+  name: CardField;
+  state: { value: string; meta: { errors: readonly (ApiFieldError["code"] | undefined)[] } };
   handleBlur: () => void;
   handleChange: (value: string) => void;
 }
@@ -80,7 +54,6 @@ interface FieldSectionOptions extends Pick<
   "className" | "placeholder"
 > {
   label: string;
-  maxLength: number;
   // The name of the field that has focus, so the section can show it's
   // the one being edited, and how to change it.
   focused: string | null;
@@ -91,8 +64,13 @@ interface FieldSectionOptions extends Pick<
 // label bar, the field as the content, its error in the status bar.
 function fieldSection(
   field: TextField,
-  { label, maxLength, focused, setFocused, ...control }: FieldSectionOptions,
+  { label, focused, setFocused, ...control }: FieldSectionOptions,
 ): LearningCardFrameSection {
+  const maxLength = CARD_LIMITS[field.name];
+  const errors = field.state.meta.errors.flatMap((code) => {
+    const message = code && cardFieldMessage(field.name, code);
+    return message ? [{ message }] : [];
+  });
   const invalid = field.state.meta.errors.length > 0;
   const length = canonicalLength(field.state.value);
   return {
@@ -115,7 +93,7 @@ function fieldSection(
         aria-invalid={invalid}
       />
     ),
-    status: invalid ? <FieldError errors={field.state.meta.errors} /> : null,
+    status: invalid ? <FieldError errors={errors} /> : null,
     invalid,
     active: focused === field.name,
   };
@@ -214,7 +192,6 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                 strip="Edit"
                 title={fieldSection(title, {
                   label: "Title",
-                  maxLength: TITLE_MAX_LENGTH,
                   className: "min-h-5",
                   placeholder: "Enter title...",
                   focused,
@@ -222,7 +199,6 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                 })}
                 description={fieldSection(description, {
                   label: "Description",
-                  maxLength: DESCRIPTION_MAX_LENGTH,
                   // Fills its row, so it ends where the preview's description
                   // does when the preview is the taller of the two.
                   className: "h-full min-h-50",
