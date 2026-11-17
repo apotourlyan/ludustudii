@@ -118,6 +118,25 @@ for (const mode of ["create", "update"] as const) {
   });
 }
 
+test("a validation error without field errors shows below the fields and in the console", async ({
+  page,
+}) => {
+  const submit = await openForm(page, "create");
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await setRejection(page, []);
+
+  await submit.click();
+
+  await expect(page.getByText(SAVE_FAILED)).toBeVisible();
+  await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "false");
+  await expect(page.getByLabel("Description")).toHaveAttribute("aria-invalid", "false");
+  expect(errors).toHaveLength(1);
+  expect(errors[0]).toContain(REJECTION_REQUEST_ID);
+});
+
 test.describe("focus after a failed submit", () => {
   test("an empty form focuses the title", async ({ page }) => {
     await page.goto("/library/cards/new");

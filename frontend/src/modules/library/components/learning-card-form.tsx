@@ -185,7 +185,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         // goes on that field; the rest shows below the fields. An error that
         // isn't an ApiError is a bug behind "Something went wrong", so it
         // goes to the console.
-        const { fields, leftover, unplaced } = placeFieldErrors(
+        const { fields, leftover, mismatch, unplaced } = placeFieldErrors(
           error,
           CARD_FIELDS,
           cardFieldMessage,
@@ -202,7 +202,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           setSaveFailed(true);
           if (!(error instanceof ApiError)) {
             console.error(error);
-          } else if (unplaced.length > 0) {
+          } else if (mismatch) {
             // The API and the form disagree about the contract.
             console.error(`${error.message}: the form can't place ${JSON.stringify(unplaced)}`);
           }

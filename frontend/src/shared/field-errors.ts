@@ -14,8 +14,11 @@ export interface PlacedFieldErrors<Field extends string> {
   // validation error, or it has no field errors, or one names a field the
   // form doesn't have or a code its wording doesn't know.
   readonly leftover: boolean;
-  // The validation error's field errors the form can't place: the API and
-  // the form disagree about the contract.
+  // True for a validation error the form can't fully place: one without
+  // field errors, or with some in `unplaced`. The API and the form disagree
+  // about the contract, which the form logs with the request ID.
+  readonly mismatch: boolean;
+  // The validation error's field errors the form can't place.
   readonly unplaced: readonly ApiFieldError[];
 }
 
@@ -37,7 +40,7 @@ export function placeFieldErrors<Field extends string>(
     error.failure.kind !== "http" ||
     error.failure.code !== "validation_error"
   ) {
-    return { fields: placed, leftover: true, unplaced: [] };
+    return { fields: placed, leftover: true, mismatch: false, unplaced: [] };
   }
   const unplaced: ApiFieldError[] = [];
   for (const fieldError of error.failure.fieldErrors) {
@@ -51,8 +54,8 @@ export function placeFieldErrors<Field extends string>(
     }
     (placed[name] ??= []).push(code);
   }
-  const leftover = error.failure.fieldErrors.length === 0 || unplaced.length > 0;
-  return { fields: placed, leftover, unplaced };
+  const mismatch = error.failure.fieldErrors.length === 0 || unplaced.length > 0;
+  return { fields: placed, leftover: mismatch, mismatch, unplaced };
 }
 
 // TanStack Form drops a field's server error (its `onServer` error) when
