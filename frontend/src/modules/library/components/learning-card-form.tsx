@@ -43,14 +43,12 @@ const BUTTON_ROW = "md:col-start-2 md:row-start-8";
 // only caps runaway pastes; validation reports the real limit.
 const INPUT_SLACK = 2;
 
-// A field's errors: the code of the form's own check, or the codes the API
-// reported for it (its `onServer` error).
-type ApiFieldCodes = ApiFieldError["code"] | readonly ApiFieldError["code"][];
-
-// What the editor's bands need from a form field holding text.
+// What the editor's bands need from a form field holding text. Its errors
+// are codes: its own check's, and the API's from its `onServer` error, which
+// TanStack Form flattens into the list.
 interface TextField {
   name: CardField;
-  state: { value: string; meta: { errors: readonly (ApiFieldCodes | undefined)[] } };
+  state: { value: string; meta: { errors: readonly (ApiFieldError["code"] | undefined)[] } };
   handleBlur: () => void;
   handleChange: (value: string) => void;
 }
@@ -73,7 +71,7 @@ function fieldSection(
   { label, focused, setFocused, ...control }: FieldSectionOptions,
 ): LearningCardFrameSection {
   const maxLength = CARD_LIMITS[field.name];
-  const errors = field.state.meta.errors.flat().flatMap((code) => {
+  const errors = field.state.meta.errors.flatMap((code) => {
     const message = code && cardFieldMessage(field.name, code);
     return message ? [{ message }] : [];
   });
@@ -173,7 +171,11 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         // goes on that field; the rest shows below the fields. An error that
         // isn't an ApiError is a bug behind "Something went wrong", so it
         // goes to the console.
-        const { fields, leftover } = placeFieldErrors(error, CARD_FIELDS, cardFieldMessage);
+        const { fields, leftover, unplaced } = placeFieldErrors(
+          error,
+          CARD_FIELDS,
+          cardFieldMessage,
+        );
         for (const name of CARD_FIELDS) {
           // The server's error, which TanStack Form clears when the field
           // changes (see keepServerErrorsOnBlur).
@@ -186,11 +188,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           setSaveFailed(true);
           if (!(error instanceof ApiError)) {
             console.error(error);
-          } else if (error.failure.kind === "http" && error.failure.code === "validation_error") {
+          } else if (unplaced.length > 0) {
             // The API and the form disagree about the contract.
-            console.error(
-              `${error.message}: the form can't place ${JSON.stringify(error.failure.fieldErrors)}`,
-            );
+            console.error(`${error.message}: the form can't place ${JSON.stringify(unplaced)}`);
           }
         }
         focusFirstInvalidField();

@@ -110,6 +110,10 @@ for (const mode of ["create", "update"] as const) {
       await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "false");
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain(REJECTION_REQUEST_ID);
+      // It names what the form couldn't place, not what it could.
+      expect(errors[0]).toContain('"tags"');
+      expect(errors[0]).toContain('"untrimmed"');
+      expect(errors[0]).not.toContain('"description"');
     });
   });
 }
