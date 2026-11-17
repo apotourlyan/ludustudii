@@ -5,6 +5,7 @@ import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { ApiError, type ApiFieldError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
+import { keepServerErrorsOnBlur, placeFieldErrors } from "@/shared/field-errors";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
@@ -12,6 +13,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import {
   canonicalize,
   canonicalLength,
+  CARD_FIELDS,
   CARD_LIMITS,
   validateDescription,
   validateTitle,
@@ -41,10 +43,14 @@ const BUTTON_ROW = "md:col-start-2 md:row-start-8";
 // only caps runaway pastes; validation reports the real limit.
 const INPUT_SLACK = 2;
 
+// A field's errors: the code of the form's own check, or the codes the API
+// reported for it (its `onServer` error).
+type ApiFieldCodes = ApiFieldError["code"] | readonly ApiFieldError["code"][];
+
 // What the editor's bands need from a form field holding text.
 interface TextField {
   name: CardField;
-  state: { value: string; meta: { errors: readonly (ApiFieldError["code"] | undefined)[] } };
+  state: { value: string; meta: { errors: readonly (ApiFieldCodes | undefined)[] } };
   handleBlur: () => void;
   handleChange: (value: string) => void;
 }
@@ -67,7 +73,7 @@ function fieldSection(
   { label, focused, setFocused, ...control }: FieldSectionOptions,
 ): LearningCardFrameSection {
   const maxLength = CARD_LIMITS[field.name];
-  const errors = field.state.meta.errors.flatMap((code) => {
+  const errors = field.state.meta.errors.flat().flatMap((code) => {
     const message = code && cardFieldMessage(field.name, code);
     return message ? [{ message }] : [];
   });
@@ -127,6 +133,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
   const [focused, setFocused] = useState<string | null>(null);
+  // Whether the last save failed in a way no field shows, so the line next
+  // to the buttons has to (ADR 0038: a placeholder until notifications).
+  const [saveFailed, setSaveFailed] = useState(false);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const isEditing = Boolean(card);
@@ -137,7 +146,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       title: card?.title ?? "",
       description: card?.description ?? "",
     },
+    validationLogic: keepServerErrorsOnBlur,
     onSubmit: async ({ value }) => {
+      setSaveFailed(false);
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
@@ -155,11 +166,29 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           ({ id } = await createLearningCard.mutateAsync(input));
         }
       } catch (error) {
-        // The mutation's state shows the failure below the fields, and the
-        // form keeps the user's input. An error that isn't an ApiError is a
-        // bug behind "Something went wrong", so it goes to the console.
-        if (!(error instanceof ApiError)) {
-          console.error(error);
+        // The form keeps the user's input. What the API says about a field
+        // goes on that field; the rest shows below the fields. An error that
+        // isn't an ApiError is a bug behind "Something went wrong", so it
+        // goes to the console.
+        const { fields, leftover } = placeFieldErrors(error, CARD_FIELDS, cardFieldMessage);
+        for (const name of CARD_FIELDS) {
+          // The server's error, which TanStack Form clears when the field
+          // changes (see keepServerErrorsOnBlur).
+          form.setFieldMeta(name, (meta) => ({
+            ...meta,
+            errorMap: { ...meta.errorMap, onServer: fields[name] },
+          }));
+        }
+        if (leftover) {
+          setSaveFailed(true);
+          if (!(error instanceof ApiError)) {
+            console.error(error);
+          } else if (error.failure.kind === "http" && error.failure.code === "validation_error") {
+            // The API and the form disagree about the contract.
+            console.error(
+              `${error.message}: the form can't place ${JSON.stringify(error.failure.fieldErrors)}`,
+            );
+          }
         }
         return;
       }
@@ -215,7 +244,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       {/* The save error sits left of the buttons, next to the action that
           failed, and adds no row, so nothing above it moves. */}
       <div className={cn("flex items-center justify-end gap-2 md:mt-4", BUTTON_ROW)}>
-        {mutation.isError && (
+        {saveFailed && mutation.isError && (
           <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
             {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
           </FieldError>
