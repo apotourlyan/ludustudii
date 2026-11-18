@@ -1,7 +1,7 @@
--- $1 id, $2 expected version
+-- $1 id, $2 whether to check the version, $3 expected version
 WITH del AS (
     DELETE FROM learning_cards
-    WHERE id = $1 AND version = $2
+    WHERE id = $1 AND (NOT $2 OR version = $3)
     RETURNING id
 )
 SELECT EXISTS (

@@ -77,12 +77,6 @@ func TestHandler_Handle(t *testing.T) {
 			wantErrCode: erresp.CodeValidation,
 		},
 		{
-			name:        "parser error",
-			setup:       func(h *Handler) { h.parseVersion = func(string) (int64, error) { return 0, errors.New("invalid") } },
-			wantCode:    http.StatusPreconditionRequired,
-			wantErrCode: erresp.CodePreconditionRequired,
-		},
-		{
 			name: "version conflict",
 			store: func(m *mockStore) {
 				m.deleteFn = func(_ context.Context, _ deleteParams) error { return kit.ErrVersionConflict }
@@ -198,6 +192,7 @@ func TestHandler_Wiring(t *testing.T) {
 
 	wantParams := deleteParams{
 		ID:      "01a1730e-199d-7f9f-b59d-3bcd6f84066c", // lowercased
+		IfMatch: true,
 		Version: 7,
 	}
 	if gotParams != wantParams {
@@ -206,5 +201,51 @@ func TestHandler_Wiring(t *testing.T) {
 
 	if rec.Body.Len() != 0 {
 		t.Errorf("body: got %q, want empty", rec.Body.String())
+	}
+}
+
+// A missing If-Match makes the delete unconditional; a malformed one expects
+// version 0, which no card has.
+func TestHandler_IfMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		ifMatch     []string
+		wantIfMatch bool
+		wantVersion int64
+	}{
+		{name: "missing", wantIfMatch: false, wantVersion: 0},
+		{name: "valid", ifMatch: []string{`"7"`}, wantIfMatch: true, wantVersion: 7},
+		{name: "malformed", ifMatch: []string{`W/"7"`}, wantIfMatch: true, wantVersion: 0},
+		{name: "several", ifMatch: []string{`"7"`, `"7"`}, wantIfMatch: true, wantVersion: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, rec := testContext(t, "01a1730e-199d-7f9f-b59d-3bcd6f84066c")
+			c.Header.Del("If-Match")
+			for _, v := range tt.ifMatch {
+				c.Header.Add("If-Match", v)
+			}
+
+			var got deleteParams
+			h := NewHandler(&mockStore{
+				deleteFn: func(_ context.Context, p deleteParams) error {
+					got = p
+					return nil
+				},
+			})
+
+			if err := h.Handle(rec, c); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.IfMatch != tt.wantIfMatch || got.Version != tt.wantVersion {
+				t.Errorf("params: got IfMatch %t, Version %d; want %t, %d",
+					got.IfMatch, got.Version, tt.wantIfMatch, tt.wantVersion)
+			}
+		})
 	}
 }

@@ -103,12 +103,6 @@ func TestHandler_Handle(t *testing.T) {
 			wantErrCode: erresp.CodeValidation,
 		},
 		{
-			name:        "parser error",
-			setup:       func(h *Handler) { h.parseVersion = func(string) (int64, error) { return 0, errors.New("invalid") } },
-			wantCode:    http.StatusPreconditionRequired,
-			wantErrCode: erresp.CodePreconditionRequired,
-		},
-		{
 			name: "version conflict",
 			store: func(m *mockStore) {
 				m.updateFn = func(_ context.Context, _ updateParams) (int64, error) { return 0, kit.ErrVersionConflict }
@@ -269,6 +263,7 @@ func TestHandler_Wiring(t *testing.T) {
 	}
 
 	wantParams := updateParams{
+		IfMatch:     true,
 		Version:     7,
 		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c", // lowercased
 		Title:       "Caf\u00E9 Title",                      // composed é
@@ -280,6 +275,55 @@ func TestHandler_Wiring(t *testing.T) {
 
 	if rec.Body.Len() != 0 {
 		t.Errorf("body: got %q, want empty", rec.Body.String())
+	}
+}
+
+// A missing If-Match makes the update unconditional; a malformed one expects
+// version 0, which no card has.
+func TestHandler_IfMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		ifMatch     []string
+		wantIfMatch bool
+		wantVersion int64
+	}{
+		{name: "missing", wantIfMatch: false, wantVersion: 0},
+		{name: "valid", ifMatch: []string{`"7"`}, wantIfMatch: true, wantVersion: 7},
+		{name: "malformed", ifMatch: []string{`W/"7"`}, wantIfMatch: true, wantVersion: 0},
+		{name: "several", ifMatch: []string{`"7"`, `"7"`}, wantIfMatch: true, wantVersion: 0},
+	}
+
+	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
+	body, _ := json.Marshal(request{Title: "Title", Description: "Description"})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, rec := testContext(t, id, body)
+			c.Header.Del("If-Match")
+			for _, v := range tt.ifMatch {
+				c.Header.Add("If-Match", v)
+			}
+
+			var got updateParams
+			h := NewHandler(&mockStore{
+				updateFn: func(_ context.Context, p updateParams) (int64, error) {
+					got = p
+					return 8, nil
+				},
+			})
+
+			if err := h.Handle(rec, c); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.IfMatch != tt.wantIfMatch || got.Version != tt.wantVersion {
+				t.Errorf("params: got IfMatch %t, Version %d; want %t, %d",
+					got.IfMatch, got.Version, tt.wantIfMatch, tt.wantVersion)
+			}
+		})
 	}
 }
 
@@ -337,8 +381,8 @@ func TestToParams(t *testing.T) {
 	t.Parallel()
 
 	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
-	got := toParams(request{Title: "Title", Description: "Description"}, id, 7)
-	want := updateParams{Version: 7, ID: id, Title: "Title", Description: "Description"}
+	got := toParams(request{Title: "Title", Description: "Description"}, id, true, 7)
+	want := updateParams{IfMatch: true, Version: 7, ID: id, Title: "Title", Description: "Description"}
 	if got != want {
 		t.Errorf("params: got %+v, want %+v", got, want)
 	}

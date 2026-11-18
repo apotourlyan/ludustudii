@@ -110,7 +110,7 @@ func TestStore_Delete_StaleVersion(t *testing.T) {
 	s := NewStore(db)
 	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
 	insertCard(t, db, id, "Original", "Original description")
-	if err := s.Delete(t.Context(), deleteParams{ID: id, Version: 99}); !errors.Is(err, kit.ErrVersionConflict) {
+	if err := s.Delete(t.Context(), deleteParams{ID: id, IfMatch: true, Version: 99}); !errors.Is(err, kit.ErrVersionConflict) {
 		t.Fatalf("stale delete: %v", err)
 	}
 	var title, description string
@@ -121,10 +121,30 @@ func TestStore_Delete_StaleVersion(t *testing.T) {
 	if title != "Original" || description != "Original description" || version != 1 {
 		t.Fatalf("stale delete changed row: %s, %s, %d", title, description, version)
 	}
-	if err := s.Delete(t.Context(), deleteParams{ID: id, Version: 1}); err != nil {
+	if err := s.Delete(t.Context(), deleteParams{ID: id, IfMatch: true, Version: 1}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Delete(t.Context(), deleteParams{ID: id, Version: 99}); !errors.Is(err, kit.ErrNotFound) {
+	if err := s.Delete(t.Context(), deleteParams{ID: id, IfMatch: true, Version: 99}); !errors.Is(err, kit.ErrNotFound) {
+		t.Fatalf("unknown card: %v", err)
+	}
+}
+
+func TestStore_Delete_WithoutIfMatch(t *testing.T) {
+	t.Parallel()
+	db := testkit.NewDB(t)
+	s := NewStore(db)
+	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
+	insertCard(t, db, id, "Original", "Original description")
+	if _, err := db.ExecContext(t.Context(), `UPDATE learning_cards SET version = 5 WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Delete(t.Context(), deleteParams{ID: id}); err != nil {
+		t.Fatal(err)
+	}
+	if cardExists(t, db, id) {
+		t.Fatal("card still exists after delete")
+	}
+	if err := s.Delete(t.Context(), deleteParams{ID: id}); !errors.Is(err, kit.ErrNotFound) {
 		t.Fatalf("unknown card: %v", err)
 	}
 }

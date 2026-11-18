@@ -68,8 +68,6 @@ put:
       $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
     '412':
       $ref: '../components/responses/errors.yml#/PreconditionFailed'
-    '428':
-      $ref: '../components/responses/errors.yml#/PreconditionRequired'
     '500':
       $ref: '../components/responses/errors.yml#/UnexpectedError'
 delete:
@@ -92,7 +90,5 @@ delete:
       $ref: '../components/responses/errors.yml#/PayloadTooLarge'
     '412':
       $ref: '../components/responses/errors.yml#/PreconditionFailed'
-    '428':
-      $ref: '../components/responses/errors.yml#/PreconditionRequired'
     '500':
       $ref: '../components/responses/errors.yml#/UnexpectedError'

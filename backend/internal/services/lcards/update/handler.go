@@ -46,8 +46,9 @@ func NewHandler(s updater) *Handler {
 // Handle sanitizes and validates the JSON title and description, replaces
 // them on the card whose ID is the {id} path parameter and responds 204.
 // Invalid input or an ID that is not a UUIDv7 (case-insensitive) gets 400,
-// an unknown ID gets 404, missing or invalid If-Match gets 428, and a stale
-// version gets 412. Success includes the new version as an ETag. An oversized
+// an unknown ID gets 404, and a stale or malformed If-Match gets 412; without
+// If-Match the update applies whatever the version. Success includes the new
+// version as an ETag. An oversized
 // body (413) or an unsupported Content-Type (415) is returned for the router's
 // error handler to report.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
@@ -56,11 +57,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	id := strings.ToLower(r.PathValue("id"))
 	if err := h.validateParamID(id); err != nil {
 		return httpkit.Validation(err)
-	}
-
-	version, err := h.parseVersion(strings.Join(r.Header.Values("If-Match"), ","))
-	if err != nil {
-		return httpkit.PreconditionRequired(err)
 	}
 
 	var req request
@@ -74,7 +70,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return httpkit.Validation(err)
 	}
 
-	newVersion, err := h.store.Update(ctx, toParams(req, id, version))
+	ifMatch := r.Header.Values("If-Match")
+	var version int64
+	if len(ifMatch) > 0 {
+		// A malformed tag leaves version 0, which no card has, so it fails as stale.
+		version, _ = h.parseVersion(strings.Join(ifMatch, ","))
+	}
+
+	newVersion, err := h.store.Update(ctx, toParams(req, id, len(ifMatch) > 0, version))
 	if err != nil {
 		return err
 	}
@@ -103,8 +106,9 @@ func sanitize(req *request) {
 	req.Description = sanitizer.String(req.Description)
 }
 
-func toParams(req request, id string, version int64) updateParams {
+func toParams(req request, id string, ifMatch bool, version int64) updateParams {
 	return updateParams{
+		IfMatch:     ifMatch,
 		Version:     version,
 		ID:          id,
 		Title:       req.Title,

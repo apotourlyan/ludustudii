@@ -13,7 +13,9 @@ import (
 var removeSQL string
 
 type deleteParams struct {
-	ID      string
+	ID string
+	// IfMatch makes the delete conditional on Version.
+	IfMatch bool
 	Version int64
 }
 
@@ -27,11 +29,11 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-// Delete removes the card only when p.Version matches. It returns
+// Delete removes the card, only when p.Version matches if p.IfMatch is set. It returns
 // kit.ErrNotFound for an unknown ID or kit.ErrVersionConflict for a stale version.
 func (s *Store) Delete(ctx context.Context, p deleteParams) error {
 	var deleted, exists bool
-	if err := s.db.QueryRowContext(ctx, removeSQL, p.ID, p.Version).Scan(&deleted, &exists); err != nil {
+	if err := s.db.QueryRowContext(ctx, removeSQL, p.ID, p.IfMatch, p.Version).Scan(&deleted, &exists); err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
 	if deleted {

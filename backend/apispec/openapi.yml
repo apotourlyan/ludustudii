@@ -93,8 +93,6 @@ components:
       $ref: './components/responses/probes.yml#/HeadProbeUnavailable'
     PreconditionFailed:
       $ref: './components/responses/errors.yml#/PreconditionFailed'
-    PreconditionRequired:
-      $ref: './components/responses/errors.yml#/PreconditionRequired'
     HeadCardSuccess:
       $ref: './components/responses/head.yml#/HeadCardSuccess'
     InvalidQuery:

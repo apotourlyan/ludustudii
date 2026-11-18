@@ -893,11 +893,11 @@ func TestPreconditions(t *testing.T) {
 	for _, method := range []string{http.MethodPut, http.MethodDelete} {
 		for _, value := range []string{"", "*", `W/"1"`, `"1", "2"`, "1", `"0"`, `"-1"`, `"9223372036854775808"`} {
 			resp := testkit.Do(t, srv, testkit.DoOpts{Method: method, Path: path, Headers: http.Header{"If-Match": {value}}, ContentType: "application/json", Body: body})
-			testkit.AssertStatus(t, resp, http.StatusPreconditionRequired)
-			testkit.AssertJSON(t, resp.Body, `{"code":"precondition_required"}`)
+			testkit.AssertStatus(t, resp, http.StatusPreconditionFailed)
+			testkit.AssertJSON(t, resp.Body, `{"code":"precondition_failed"}`)
 		}
 		resp := testkit.Do(t, srv, testkit.DoOpts{Method: method, Path: path, Headers: http.Header{"If-Match": {`"1"`, `"1"`}}, ContentType: "application/json", Body: body})
-		testkit.AssertStatus(t, resp, http.StatusPreconditionRequired)
+		testkit.AssertStatus(t, resp, http.StatusPreconditionFailed)
 	}
 	put := testkit.DoOpts{Method: http.MethodPut, Path: path, Headers: http.Header{"If-Match": {get.Header.Get("ETag")}}, ContentType: "application/json", Body: body}
 	updated := testkit.Do(t, srv, put)
@@ -920,8 +920,17 @@ func TestPreconditions(t *testing.T) {
 	if got := final.Header.Get("ETag"); got != `"2"` {
 		t.Fatalf("version after stale writes: %q", got)
 	}
-	deleted := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodDelete, Path: path, Headers: http.Header{"If-Match": {`"2"`}}})
+	unconditional := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodPut, Path: path, ContentType: "application/json", Body: body})
+	testkit.AssertStatus(t, unconditional, http.StatusNoContent)
+	if got := unconditional.Header.Get("ETag"); got != `"3"` {
+		t.Fatalf("PUT without If-Match ETag: %q", got)
+	}
+	deleted := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodDelete, Path: path})
 	testkit.AssertStatus(t, deleted, http.StatusNoContent)
+	for _, method := range []string{http.MethodPut, http.MethodDelete} {
+		gone := testkit.Do(t, srv, testkit.DoOpts{Method: method, Path: path, ContentType: "application/json", Body: body})
+		testkit.AssertStatus(t, gone, http.StatusNotFound)
+	}
 }
 
 func TestConcurrentUpdates(t *testing.T) {

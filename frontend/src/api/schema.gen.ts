@@ -342,7 +342,7 @@ export interface components {
             };
         };
         /**
-         * @description An invalid path ID returns validation_error with id/invalid_uuid7 before If-Match parsing and body binding. Malformed
+         * @description An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed
          *     JSON or incompatible JSON types return bind_error. Empty bodies and
          *     invalid field values return validation_error.
          */
@@ -385,7 +385,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description The card exists but its version does not match If-Match. */
+        /** @description The card exists but its version does not match If-Match, or If-Match is not exactly one strong ETag containing a positive int64. */
         PreconditionFailed: {
             headers: {
                 "X-Request-Id": components["headers"]["RequestId"];
@@ -395,21 +395,6 @@ export interface components {
                 /**
                  * @example {
                  *       "code": "precondition_failed"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description If-Match is missing or is not exactly one strong ETag containing a positive int64. */
-        PreconditionRequired: {
-            headers: {
-                "X-Request-Id": components["headers"]["RequestId"];
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "code": "precondition_required"
                  *     }
                  */
                 "application/json": components["schemas"]["ErrorResponse"];
@@ -484,7 +469,7 @@ export interface components {
         /** @description Opaque pagination token from a previous page's next_cursor. Pass the value unchanged. Omit or send an empty value for the first page. Invalid tokens return validation_error with cursor/invalid_cursor. */
         Cursor: string;
         /**
-         * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
+         * @description Optional. Without it, the write applies whatever the card's version. When present, it must be exactly one strong quoted positive int64 version matching the card's; a stale or malformed value returns 412. Unknown cards return 404 before version mismatch.
          * @example "1"
          */
         IfMatch: string;
@@ -688,7 +673,7 @@ export interface operations {
     replaceLearningCard: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description Optional client-supplied request ID. The first value is reused unchanged only
                  *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
@@ -698,10 +683,10 @@ export interface operations {
                  */
                 "X-Request-Id"?: components["parameters"]["RequestId"];
                 /**
-                 * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
+                 * @description Optional. Without it, the write applies whatever the card's version. When present, it must be exactly one strong quoted positive int64 version matching the card's; a stale or malformed value returns 412. Unknown cards return 404 before version mismatch.
                  * @example "1"
                  */
-                "If-Match": components["parameters"]["IfMatch"];
+                "If-Match"?: components["parameters"]["IfMatch"];
             };
             path: {
                 /** @description Hyphenated UUIDv7 with the RFC 9562 variant. Hexadecimal letters are case-insensitive. */
@@ -725,14 +710,13 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
-            428: components["responses"]["PreconditionRequired"];
             500: components["responses"]["UnexpectedError"];
         };
     };
     deleteLearningCard: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description Optional client-supplied request ID. The first value is reused unchanged only
                  *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
@@ -742,10 +726,10 @@ export interface operations {
                  */
                 "X-Request-Id"?: components["parameters"]["RequestId"];
                 /**
-                 * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
+                 * @description Optional. Without it, the write applies whatever the card's version. When present, it must be exactly one strong quoted positive int64 version matching the card's; a stale or malformed value returns 412. Unknown cards return 404 before version mismatch.
                  * @example "1"
                  */
-                "If-Match": components["parameters"]["IfMatch"];
+                "If-Match"?: components["parameters"]["IfMatch"];
             };
             path: {
                 /** @description Hyphenated UUIDv7 with the RFC 9562 variant. Hexadecimal letters are case-insensitive. */
@@ -767,7 +751,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
-            428: components["responses"]["PreconditionRequired"];
             500: components["responses"]["UnexpectedError"];
         };
     };

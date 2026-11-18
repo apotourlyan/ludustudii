@@ -256,7 +256,7 @@ func TestStore_Update_VersionAndTimestamps(t *testing.T) {
 		t.Fatalf("insert card: %v", err)
 	}
 	createdBefore, updatedBefore := getTimestamps(t, db, id)
-	p := updateParams{Version: 1, ID: id, Title: "Updated", Description: "Updated description"}
+	p := updateParams{IfMatch: true, Version: 1, ID: id, Title: "Updated", Description: "Updated description"}
 	version, err := s.Update(t.Context(), p)
 	if err != nil || version != 2 {
 		t.Fatalf("update: version %d, error %v", version, err)
@@ -266,7 +266,7 @@ func TestStore_Update_VersionAndTimestamps(t *testing.T) {
 		t.Fatalf("timestamps after update: created_at %v (was %v), updated_at %v (was %v)",
 			createdAfter, createdBefore, updatedAfter, updatedBefore)
 	}
-	stale := updateParams{Version: 1, ID: id, Title: "Stale", Description: "Stale description"}
+	stale := updateParams{IfMatch: true, Version: 1, ID: id, Title: "Stale", Description: "Stale description"}
 	if _, err := s.Update(t.Context(), stale); !errors.Is(err, kit.ErrVersionConflict) {
 		t.Fatalf("stale update: %v", err)
 	}
@@ -284,7 +284,29 @@ func TestStore_Update_VersionAndTimestamps(t *testing.T) {
 	if storedVersion != 2 {
 		t.Fatalf("stored version: %d", storedVersion)
 	}
-	if _, err := s.Update(t.Context(), updateParams{Version: 99, ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066d"}); !errors.Is(err, kit.ErrNotFound) {
+	if _, err := s.Update(t.Context(), updateParams{IfMatch: true, Version: 99, ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066d"}); !errors.Is(err, kit.ErrNotFound) {
+		t.Fatalf("unknown card: %v", err)
+	}
+}
+
+func TestStore_Update_WithoutIfMatch(t *testing.T) {
+	t.Parallel()
+	db := testkit.NewDB(t)
+	s := NewStore(db)
+	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
+	insertCard(t, db, id, "Original", "Original description")
+	if _, err := db.ExecContext(t.Context(), `UPDATE learning_cards SET version = 5 WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	p := updateParams{ID: id, Title: "Updated", Description: "Updated description"}
+	version, err := s.Update(t.Context(), p)
+	if err != nil || version != 6 {
+		t.Fatalf("update: version %d, error %v", version, err)
+	}
+	if got := getCard(t, db, id); got != (cardRow{ID: p.ID, Title: p.Title, Description: p.Description}) {
+		t.Fatalf("updated card: %+v", got)
+	}
+	if _, err := s.Update(t.Context(), updateParams{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066d"}); !errors.Is(err, kit.ErrNotFound) {
 		t.Fatalf("unknown card: %v", err)
 	}
 }

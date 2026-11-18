@@ -1,8 +1,8 @@
 // The fake lcards service's state and its rules, without HTTP (ADR 0032).
 // It mirrors the backend's stores: IDs are UUIDv7, so ordering by ID is
 // creation order; versions start at 1 and every replace increments them;
-// replace and remove check the expected version and report an unknown card
-// before a stale version. Handlers map the outcomes to HTTP.
+// replace and remove check the expected version, if one is given, and report
+// an unknown card before a stale version. Handlers map the outcomes to HTTP.
 
 import { uuidv7 } from "../../fake/uuidv7";
 import type { components } from "../../schema.gen";
@@ -83,12 +83,12 @@ export class CardStore {
     return { ...card };
   }
 
-  replace(id: string, expectedVersion: number, content: CardContent): ReplaceResult {
+  replace(id: string, expectedVersion: number | undefined, content: CardContent): ReplaceResult {
     const card = this.#cards.get(id);
     if (!card) {
       return { outcome: "not_found" };
     }
-    if (card.version !== expectedVersion) {
+    if (expectedVersion !== undefined && card.version !== expectedVersion) {
       return { outcome: "stale" };
     }
     const version = card.version + 1;
@@ -96,12 +96,12 @@ export class CardStore {
     return { outcome: "replaced", version };
   }
 
-  remove(id: string, expectedVersion: number): RemoveResult {
+  remove(id: string, expectedVersion: number | undefined): RemoveResult {
     const card = this.#cards.get(id);
     if (!card) {
       return { outcome: "not_found" };
     }
-    if (card.version !== expectedVersion) {
+    if (expectedVersion !== undefined && card.version !== expectedVersion) {
       return { outcome: "stale" };
     }
     this.#cards.delete(id);

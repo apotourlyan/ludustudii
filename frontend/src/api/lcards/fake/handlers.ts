@@ -103,9 +103,6 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
       }
 
       const version = ifMatchVersion(request);
-      if (version === undefined) {
-        return response(428).json({ code: "precondition_required" }, { headers });
-      }
 
       const content = trimmed(await request.json());
       const errors = validateContent(content);
@@ -135,9 +132,6 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
       }
 
       const version = ifMatchVersion(request);
-      if (version === undefined) {
-        return response(428).json({ code: "precondition_required" }, { headers });
-      }
 
       const result = store.remove(id, version);
       switch (result.outcome) {

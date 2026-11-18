@@ -53,11 +53,10 @@
         }
       },
       "IfMatch": {
-        "description": "Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.",
+        "description": "Optional. Without it, the write applies whatever the card's version. When present, it must be exactly one strong quoted positive int64 version matching the card's; a stale or malformed value returns 412. Unknown cards return 404 before version mismatch.",
         "example": "\"1\"",
         "in": "header",
         "name": "If-Match",
-        "required": true,
         "schema": {
           "type": "string"
         }
@@ -299,7 +298,7 @@
             }
           }
         },
-        "description": "An invalid path ID returns validation_error with id/invalid_uuid7 before If-Match parsing and body binding. Malformed\nJSON or incompatible JSON types return bind_error. Empty bodies and\ninvalid field values return validation_error.\n",
+        "description": "An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed\nJSON or incompatible JSON types return bind_error. Empty bodies and\ninvalid field values return validation_error.\n",
         "headers": {
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
@@ -353,25 +352,7 @@
             }
           }
         },
-        "description": "The card exists but its version does not match If-Match.",
-        "headers": {
-          "X-Request-Id": {
-            "$ref": "#/components/headers/RequestId"
-          }
-        }
-      },
-      "PreconditionRequired": {
-        "content": {
-          "application/json": {
-            "example": {
-              "code": "precondition_required"
-            },
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        },
-        "description": "If-Match is missing or is not exactly one strong ETag containing a positive int64.",
+        "description": "The card exists but its version does not match If-Match, or If-Match is not exactly one strong ETag containing a positive int64.",
         "headers": {
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
@@ -807,9 +788,6 @@
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
           },
-          "428": {
-            "$ref": "#/components/responses/PreconditionRequired"
-          },
           "500": {
             "$ref": "#/components/responses/UnexpectedError"
           }
@@ -928,9 +906,6 @@
           },
           "415": {
             "$ref": "#/components/responses/UnsupportedMediaType"
-          },
-          "428": {
-            "$ref": "#/components/responses/PreconditionRequired"
           },
           "500": {
             "$ref": "#/components/responses/UnexpectedError"
