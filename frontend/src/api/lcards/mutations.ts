@@ -1,13 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "../http";
 import { lcardKeys } from "./queries";
-import {
-  createLearningCard,
-  deleteLearningCard,
-  updateLearningCard,
-  type LearningCard,
-} from "./requests";
+import { createLearningCard, deleteLearningCard, updateLearningCard } from "./requests";
 
 // The mutations don't wait for their invalidations: a mutation settles as soon
 // as the server answers, and the UI navigates or resets at once while the
@@ -28,21 +23,10 @@ export function useCreateLearningCard() {
 export function useUpdateLearningCard() {
   const queryClient = useQueryClient();
 
-  // The card's cached copies are refetched after a save, and after a 404:
-  // the card was deleted elsewhere, so the list drops it and its page shows
-  // the not-found page. Its editor stays on screen with the error; a failed
-  // refetch keeps the copy it shows.
-  function refetchCard(id: string) {
-    void queryClient.invalidateQueries({ queryKey: lcardKeys.lists() });
-    void queryClient.invalidateQueries({ queryKey: lcardKeys.detail(id) });
-  }
-
   return useMutation({
     mutationFn: updateLearningCard,
-    onSuccess: (_data, { id }) => refetchCard(id),
-    onError: (error, { id }) => {
-      if (isNotFound(error)) refetchCard(id);
-    },
+    onSuccess: (_data, { id }) => invalidateCard(queryClient, id),
+    onError: (error, { id }) => invalidateIfNotFound(queryClient, error, id),
   });
 }
 
@@ -50,25 +34,27 @@ export function useDeleteLearningCard() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // A 404 means the card is already gone, deleted elsewhere, which is what
-    // the delete wanted: it resolves, so the cached copies are dropped as
-    // after any delete, instead of failing while the list still shows it.
-    mutationFn: async (card: Pick<LearningCard, "id">) => {
-      try {
-        await deleteLearningCard(card);
-      } catch (error) {
-        if (!isNotFound(error)) throw error;
-      }
-    },
+    mutationFn: deleteLearningCard,
     onSuccess: (_data, { id }) => {
       // Drop the deleted card's cache entry so it is not refetched into a 404.
       queryClient.removeQueries({ queryKey: lcardKeys.detail(id), exact: true });
       void queryClient.invalidateQueries({ queryKey: lcardKeys.lists() });
     },
+    onError: (error, { id }) => invalidateIfNotFound(queryClient, error, id),
   });
 }
 
-// The card the request names doesn't exist.
-function isNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.failure.kind === "http" && error.failure.status === 404;
+// Marks the card's list and detail queries stale, refetching those on screen.
+function invalidateCard(queryClient: QueryClient, id: string): void {
+  void queryClient.invalidateQueries({ queryKey: lcardKeys.lists() });
+  void queryClient.invalidateQueries({ queryKey: lcardKeys.detail(id) });
+}
+
+// A 404 from a write means the card was deleted elsewhere. The mutation
+// still fails, so its error is shown (a notification later, ADR 0038), and
+// the card's queries refetch, so the list stops showing it.
+function invalidateIfNotFound(queryClient: QueryClient, error: Error, id: string): void {
+  if (error instanceof ApiError && error.failure.kind === "http" && error.failure.status === 404) {
+    invalidateCard(queryClient, id);
+  }
 }

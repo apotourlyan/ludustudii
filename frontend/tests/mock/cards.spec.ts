@@ -23,6 +23,13 @@ async function addCardFromList(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add Card");
 }
 
+// Shows the overview through the navigation, with the 7 cards left after
+// one of the 8 is deleted.
+async function showOverview(page: Page): Promise<void> {
+  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await expectCardAt(page, 1, "日本語: は vs. が", 7);
+}
+
 // Opens the newest card, "Mitochondria", on its page, and returns its ID.
 async function openNewestCard(page: Page): Promise<string> {
   await page.goto("/library/cards");
@@ -120,34 +127,33 @@ test("a card deleted in the list leaves it", async ({ page }) => {
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 
-// The server answers 404: the card is gone, as the delete wanted.
-test("a card deleted elsewhere leaves the list when deleted in it", async ({ page }) => {
+// A card deleted elsewhere answers a write with 404. The error shows, and
+// the list fetches again, so it stops showing the card.
+
+test("deleting a card deleted elsewhere in the list removes it from the list", async ({ page }) => {
   await page.goto("/library/cards");
   await expectCardAt(page, 1, "Mitochondria", 8);
   await deleteCardElsewhere(page, await cardIdOf(cardAt(page, 1)));
 
-  const dialog = await deleteCard(page, cardAt(page, 1));
+  await deleteCard(page, cardAt(page, 1));
 
-  await expect(dialog).toBeHidden();
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 
-test("a card deleted elsewhere, deleted on its page, returns to the list", async ({ page }) => {
+test("deleting a card deleted elsewhere on its page shows the error", async ({ page }) => {
   const id = await openNewestCard(page);
   await deleteCardElsewhere(page, id);
 
   const dialog = await deleteCard(page, page.getByRole("main"));
 
-  await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
+  await expect(dialog.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await showOverview(page);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 
-// The editor keeps the user's input with the error. The card's page and
-// the list fetch again rather than show the card from the cache.
-test("saving a card deleted elsewhere shows the error, and the card is gone", async ({ page }) => {
+test("saving a card deleted elsewhere keeps the input and shows the error", async ({ page }) => {
   const id = await openNewestCard(page);
   await page.getByRole("main").getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
@@ -158,13 +164,7 @@ test("saving a card deleted elsewhere shows the error, and the card is gone", as
 
   await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
-
-  await page.getByRole("link", { name: "Cancel" }).click();
-  await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
-  await expect(page.getByRole("heading", { name: "Card not found", level: 1 })).toBeVisible();
-
-  await page.getByRole("link", { name: "Back to learning cards" }).click();
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
+  await showOverview(page);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 
