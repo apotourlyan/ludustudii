@@ -2,10 +2,7 @@ import { ApiError, type ApiFailure } from "@/api/http";
 
 // A module's wording for an HTTP failure of its own resources, such as a
 // missing card (ADR 0035), or undefined to leave it to errorMessage.
-export type FailureWording = (
-  failure: Extract<ApiFailure, { kind: "http" }>,
-  action: string,
-) => string | undefined;
+export type FailureWording = (failure: Extract<ApiFailure, { kind: "http" }>) => string | undefined;
 
 // The only place generic user-facing error text is built. The API layer has no
 // wording (ADR 0031), so the message is chosen from the failure and from the
@@ -17,7 +14,7 @@ export function errorMessage(error: unknown, action: string, wording?: FailureWo
     if (failure.kind === "network") {
       return "Can't reach the server. Check your connection and try again.";
     }
-    const message = wording?.(failure, action);
+    const message = wording?.(failure);
     if (message !== undefined) {
       return message;
     }
