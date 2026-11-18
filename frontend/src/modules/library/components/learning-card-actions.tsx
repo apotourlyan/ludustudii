@@ -62,8 +62,9 @@ export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"
 }
 
 // Deletes the card after the user confirms. The dialog stays open with the
-// error when the delete fails; when it succeeds, the dialog closes and
-// onDeleted tells the page, which may leave (ADR 0036).
+// error when the delete fails; when it succeeds, or the card was already
+// deleted elsewhere, the dialog closes and onDeleted tells the page, which
+// may leave (ADR 0036).
 export function DeleteLearningCardButton({
   card,
   onDeleted,
