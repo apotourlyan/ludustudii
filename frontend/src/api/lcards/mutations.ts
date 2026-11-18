@@ -50,24 +50,22 @@ export function useDeleteLearningCard() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteMissingOk,
+    // A 404 means the card is already gone, deleted elsewhere, which is what
+    // the delete wanted: it resolves, so the cached copies are dropped as
+    // after any delete, instead of failing while the list still shows it.
+    mutationFn: async (card: Pick<LearningCard, "id">) => {
+      try {
+        await deleteLearningCard(card);
+      } catch (error) {
+        if (!isNotFound(error)) throw error;
+      }
+    },
     onSuccess: (_data, { id }) => {
       // Drop the deleted card's cache entry so it is not refetched into a 404.
       queryClient.removeQueries({ queryKey: lcardKeys.detail(id), exact: true });
       void queryClient.invalidateQueries({ queryKey: lcardKeys.lists() });
     },
   });
-}
-
-// Deletes the card. A 404 means it is already gone, deleted elsewhere, which
-// is what the delete wanted: it resolves, so the cached copies are dropped
-// as after any delete, instead of failing while the list still shows it.
-async function deleteMissingOk(card: Pick<LearningCard, "id">): Promise<void> {
-  try {
-    await deleteLearningCard(card);
-  } catch (error) {
-    if (!isNotFound(error)) throw error;
-  }
 }
 
 // The card the request names doesn't exist.
