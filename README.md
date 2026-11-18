@@ -356,7 +356,7 @@ frontend/
 
 | URL | Page | Shows |
 | --- | --- | --- |
-| `/library/cards?view=list` | `CardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete |
+| `/library/cards?view=list` | `CardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
 | `/library/cards?view=grid` | `CardsPage` | The same, as a grid of cards of one size |
 | `/library/cards/new` | `NewCardPage` | The form for a new card, with its preview |
 | `/library/cards/$cardId` | `CardPage` | One card, its title the page's `<h1>`, with Update and Delete |
@@ -380,6 +380,27 @@ page reads the position it is about to restore with
 `useElementScrollRestoration` and passes it to the view as its initial
 offset, so the first render already shows the items there. The overview
 loads the first page of cards, 100, the most the API serves at once.
+
+The overview marks the cards created or updated in the last 5 minutes, so
+cards just added or edited, here or in another tab or device, are found at
+a glance. A card created in that window is new, a blue sparkle; otherwise
+one updated in it is updated, an amber clockwise clock; a card created and
+then edited within it stays new. The window is `RECENT_CHANGE_WINDOW_MS`
+in `model/recent-change.ts`, and the times are the API's `created_at` and
+`updated_at`, compared with the device's clock
+([ADR 0040](docs/adr/0040-row-timestamps-in-the-api.md)). The page reads
+the time once with `useNow` (`src/shared/lib/use-now.ts`), which renders
+it again every minute, so a mark goes within a minute of its window's end
+without a reload. In the list, the mark leads the title, and every row
+keeps its space, so the titles line up; in the grid, it sits in the
+card's top right corner, and every card's title stops short of it, so
+titles wrap the same with or without one. The icon has no frame and
+isn't interactive, so it doesn't read as a button; it is hidden from
+assistive technology, and hidden text, "New" or "Updated", is read before
+the title. Its colors are the
+theme's `--recent-new` and `--recent-updated` (`src/styles/global.css`),
+each at least 3:1 against a card in both themes. The marks are only on
+the overview, which keeps its newest-first order.
 
 Both card URLs show `CardNotFoundPage` for an ID that names no card.
 Creating a card and saving an edit end on the card's page; Cancel goes to
