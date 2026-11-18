@@ -451,6 +451,35 @@ decides what each kind of file in a module may do:
   each module's index. The `widgets/` folder is created with the first
   widget; none exists yet.
 
+### Forms
+
+[ADR 0038](docs/adr/0038-form-validation-errors.md) decides how a form
+shows what is wrong with its fields. The card form is the reference
+(`modules/library/components/learning-card-form.tsx`).
+
+- **Validators return the API's field codes**, not text
+  (`model/card-fields.ts`: `required`, `max_length`). The limits live in
+  that file, next to the checks.
+- **One wording function per module** turns a field and a code into the
+  message, or undefined for a pair it has no wording for
+  (`components/card-field-message.ts`). The form renders its field's codes
+  through it, so a client error and the API's read the same.
+- **The API's field errors go on their fields.** `placeFieldErrors` in
+  `src/shared/field-errors.ts` splits a failed save's field errors into the
+  codes per form field that the wording can place and whether anything was
+  left over; a form that names a field differently from the API passes a
+  name map. The form puts the codes in the field's `onServer` error, so
+  `canSubmit`, the invalid look and the error rendering are TanStack Form's
+  own. A field's server error clears when its value changes, not when it
+  loses focus (`keepServerErrorsOnBlur`, the form's `validationLogic`).
+- **After a failed submit the first invalid field, in the form's order,
+  gets the focus**, whoever rejected it.
+- **Everything that isn't about a field will be a notification**: an error
+  the form can't place (an unknown field or code, which is also logged to
+  the console with its request ID), a `bind_error`, other HTTP failures and
+  network failures. Until notifications exist, a form keeps its line next to
+  the buttons for them.
+
 ### Boundaries
 
 `make frontend-lint` enforces them with `no-restricted-imports` overrides in

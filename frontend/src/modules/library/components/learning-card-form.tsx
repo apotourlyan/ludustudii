@@ -1,15 +1,26 @@
-import { useForm } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { Link, type RegisteredRouter, type ValidateLinkOptions } from "@tanstack/react-router";
 import { cn } from "cn";
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useRef, useState, type ComponentProps, type ReactNode } from "react";
 
-import { ApiError } from "@/api/http";
+import { ApiError, type ApiFieldError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
+import { keepServerErrorsOnBlur, placeFieldErrors } from "@/shared/field-errors";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
+import {
+  canonicalize,
+  canonicalLength,
+  CARD_FIELDS,
+  CARD_LIMITS,
+  validateDescription,
+  validateTitle,
+  type CardField,
+} from "../model/card-fields";
 import { cardErrorMessage } from "./card-error-message";
+import { CARD_FIELD_LABELS, cardFieldMessage } from "./card-field-message";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 import { LearningCardPreview } from "./learning-card-preview";
 
@@ -28,49 +39,16 @@ const GRID =
 const BAND_ROWS = "md:row-span-7 md:row-start-1 md:grid md:grid-rows-subgrid";
 const BUTTON_ROW = "md:col-start-2 md:row-start-8";
 
-const TITLE_MAX_LENGTH = 200;
-const DESCRIPTION_MAX_LENGTH = 2000;
-
 // The maxLength attribute counts UTF-16 code units of the raw value, so it
 // only caps runaway pastes; validation reports the real limit.
 const INPUT_SLACK = 2;
 
-// The server stores fields in this form and checks their length after
-// applying it. JS trim() also strips U+FEFF and keeps U+0085, unlike Go's
-// strings.TrimSpace; at worst the server rejects what the form accepted.
-const canonicalize = (value: string) => value.normalize("NFC").trim();
-
-// Counts code points, as the server does, rather than UTF-16 code units.
-const canonicalLength = (value: string) => [...canonicalize(value)].length;
-
-const validateTitle = ({ value }: { value: string }) => {
-  const length = canonicalLength(value);
-  if (length === 0) {
-    return { message: "Title is required" };
-  }
-  if (length > TITLE_MAX_LENGTH) {
-    return { message: `Title must be at most ${TITLE_MAX_LENGTH} characters` };
-  }
-  return undefined;
-};
-
-const validateDescription = ({ value }: { value: string }) => {
-  const length = canonicalLength(value);
-  if (length === 0) {
-    return { message: "Description is required" };
-  }
-  if (length > DESCRIPTION_MAX_LENGTH) {
-    return {
-      message: `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters`,
-    };
-  }
-  return undefined;
-};
-
-// What the editor's bands need from a form field holding text.
+// What the editor's bands need from a form field holding text. Its errors
+// are codes: its own check's, and the API's from its `onServer` error, which
+// TanStack Form flattens into the list.
 interface TextField {
-  name: string;
-  state: { value: string; meta: { errors: ({ message: string } | undefined)[] } };
+  name: CardField;
+  state: { value: string; meta: { errors: readonly (ApiFieldError["code"] | undefined)[] } };
   handleBlur: () => void;
   handleChange: (value: string) => void;
 }
@@ -79,8 +57,6 @@ interface FieldSectionOptions extends Pick<
   ComponentProps<"textarea">,
   "className" | "placeholder"
 > {
-  label: string;
-  maxLength: number;
   // The name of the field that has focus, so the section can show it's
   // the one being edited, and how to change it.
   focused: string | null;
@@ -91,12 +67,17 @@ interface FieldSectionOptions extends Pick<
 // label bar, the field as the content, its error in the status bar.
 function fieldSection(
   field: TextField,
-  { label, maxLength, focused, setFocused, ...control }: FieldSectionOptions,
+  { focused, setFocused, ...control }: FieldSectionOptions,
 ): LearningCardFrameSection {
+  const maxLength = CARD_LIMITS[field.name];
+  const errors = field.state.meta.errors.flatMap((code) => {
+    const message = code && cardFieldMessage(field.name, code);
+    return message ? [{ message }] : [];
+  });
   const invalid = field.state.meta.errors.length > 0;
   const length = canonicalLength(field.state.value);
   return {
-    label: <FieldLabel htmlFor={field.name}>{label}</FieldLabel>,
+    label: <FieldLabel htmlFor={field.name}>{CARD_FIELD_LABELS[field.name]}</FieldLabel>,
     meta: `${length}/${maxLength}`,
     progress: length / maxLength,
     content: (
@@ -115,7 +96,7 @@ function fieldSection(
         aria-invalid={invalid}
       />
     ),
-    status: invalid ? <FieldError errors={field.state.meta.errors} /> : null,
+    status: invalid ? <FieldError errors={errors} /> : null,
     invalid,
     active: focused === field.name,
   };
@@ -140,6 +121,20 @@ interface LearningCardFormProps<
 // body, so the version and timestamps come from the next read.
 type SavedLearningCard = Pick<LearningCard, "id" | "title" | "description">;
 
+// The form's wording for creating a card and for updating one.
+const MODE_TEXT = {
+  create: {
+    action: "create the card",
+    submit: "Create Card",
+    submitting: "Creating...",
+  },
+  update: {
+    action: "save your edits",
+    submit: "Update Card",
+    submitting: "Updating...",
+  },
+} as const;
+
 // Creates a card, or updates the given one: the editor, its buttons, and
 // a preview of the card. Its page places it and gives it a heading.
 export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
@@ -149,17 +144,25 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
   // Retain the version the form opened with across background query refetches.
   const [editingVersion] = useState(card?.version);
   const [focused, setFocused] = useState<string | null>(null);
+  // Whether the last save failed in a way no field shows, so the line next
+  // to the buttons has to (ADR 0038: a placeholder until notifications).
+  const [saveFailed, setSaveFailed] = useState(false);
+  const formElement = useRef<HTMLFormElement>(null);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
-  const isEditing = Boolean(card);
-  const mutation = isEditing ? updateLearningCard : createLearningCard;
+  const mutation = card ? updateLearningCard : createLearningCard;
+  const text = MODE_TEXT[card ? "update" : "create"];
 
   const form = useForm({
     defaultValues: {
       title: card?.title ?? "",
       description: card?.description ?? "",
     },
+    validationLogic: keepServerErrorsOnBlur,
+    // The form's own checks stopped the submit.
+    onSubmitInvalid: () => focusFirstInvalidField(),
     onSubmit: async ({ value }) => {
+      setSaveFailed(false);
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
@@ -177,12 +180,33 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           ({ id } = await createLearningCard.mutateAsync(input));
         }
       } catch (error) {
-        // The mutation's state shows the failure below the fields, and the
-        // form keeps the user's input. An error that isn't an ApiError is a
-        // bug behind "Something went wrong", so it goes to the console.
-        if (!(error instanceof ApiError)) {
-          console.error(error);
+        // The form keeps the user's input. What the API says about a field
+        // goes on that field; the rest shows below the fields. An error that
+        // isn't an ApiError is a bug behind "Something went wrong", so it
+        // goes to the console.
+        const { fields, leftover, mismatch, unplaced } = placeFieldErrors(
+          error,
+          CARD_FIELDS,
+          cardFieldMessage,
+        );
+        for (const name of CARD_FIELDS) {
+          // The server's error, which TanStack Form clears when the field
+          // changes (see keepServerErrorsOnBlur).
+          form.setFieldMeta(name, (meta) => ({
+            ...meta,
+            errorMap: { ...meta.errorMap, onServer: fields[name] },
+          }));
         }
+        if (leftover) {
+          setSaveFailed(true);
+          if (!(error instanceof ApiError)) {
+            console.error(error);
+          } else if (mismatch) {
+            // The API and the form disagree about the contract.
+            console.error(`${error.message}: the form can't place ${JSON.stringify(unplaced)}`);
+          }
+        }
+        focusFirstInvalidField();
         return;
       }
       // The form keeps its values after a save: its page leaves it.
@@ -190,8 +214,27 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     },
   });
 
+  // Moves the focus to the first field, in the form's order, that shows an
+  // error, whoever found it (ADR 0038).
+  function focusFirstInvalidField() {
+    const name = CARD_FIELDS.find((field) => form.getFieldMeta(field)?.errors.length);
+    const element = name && formElement.current?.elements.namedItem(name);
+    if (element instanceof HTMLElement) {
+      element.focus();
+    }
+  }
+
+  // Saving: the form is submitting, or its request is in flight.
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  const submitDisabled = useSelector(form.store, (state) => !state.canSubmit) || saving;
+  const submitLabel = saving ? text.submitting : text.submit;
+  // The line next to the buttons, for a failed save no field shows.
+  const saveError =
+    saveFailed && mutation.isError ? cardErrorMessage(mutation.error, text.action) : undefined;
+
   return (
     <form
+      ref={formElement}
       className={GRID}
       onSubmit={(e) => {
         e.preventDefault();
@@ -213,16 +256,12 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
                 className={cn(BAND_ROWS, "md:col-start-2")}
                 strip="Edit"
                 title={fieldSection(title, {
-                  label: "Title",
-                  maxLength: TITLE_MAX_LENGTH,
                   className: "min-h-5",
                   placeholder: "Enter title...",
                   focused,
                   setFocused,
                 })}
                 description={fieldSection(description, {
-                  label: "Description",
-                  maxLength: DESCRIPTION_MAX_LENGTH,
                   // Fills its row, so it ends where the preview's description
                   // does when the preview is the taller of the two.
                   className: "h-full min-h-50",
@@ -239,27 +278,17 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       {/* The save error sits left of the buttons, next to the action that
           failed, and adds no row, so nothing above it moves. */}
       <div className={cn("flex items-center justify-end gap-2 md:mt-4", BUTTON_ROW)}>
-        {mutation.isError && (
+        {saveError !== undefined && (
           <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
-            {cardErrorMessage(mutation.error, isEditing ? "save your edits" : "create the card")}
+            {saveError}
           </FieldError>
         )}
         <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-          {([canSubmit, isSubmitting]) => (
-            <Button type="submit" disabled={!canSubmit || isSubmitting || mutation.isPending}>
-              {isSubmitting || mutation.isPending
-                ? isEditing
-                  ? "Updating..."
-                  : "Creating..."
-                : isEditing
-                  ? "Update Card"
-                  : "Create Card"}
-            </Button>
-          )}
-        </form.Subscribe>
+        <Button type="submit" disabled={submitDisabled}>
+          {submitLabel}
+        </Button>
       </div>
 
       <form.Subscribe selector={(state) => state.values}>

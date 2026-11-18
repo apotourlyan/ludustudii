@@ -5,6 +5,8 @@
 
 import { expect, type Locator, type Page } from "@playwright/test";
 
+import { interceptFetch } from "./fetch";
+
 // The overview's views, as its URL names them.
 export const VIEWS = ["list", "grid"] as const;
 export type View = (typeof VIEWS)[number];
@@ -81,24 +83,18 @@ declare global {
 
 // Counts the requests for the list of cards (GET /api/lcards) from inside
 // the page, and fails them as a network failure would once
-// failListRequests is called. The mock mode's fake backend answers
-// requests in a service worker, before Playwright's routing sees them, so
-// this wraps the page's fetch in an init script, before the app's API
-// client takes it. Call it before page.goto.
+// failListRequests is called (see support/fetch.ts). Call it before
+// page.goto.
 export async function watchListRequests(page: Page): Promise<void> {
+  await interceptFetch(page);
   await page.addInitScript(() => {
     const state = { count: 0, fail: false };
     window.listRequestsWatch = state;
-    const original = window.fetch.bind(window);
-    window.fetch = (input, init) => {
-      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
-      const method = init?.method ?? (input instanceof Request ? input.method : "GET");
-      if (method.toUpperCase() === "GET" && url.pathname === "/api/lcards") {
-        state.count += 1;
-        if (state.fail) return Promise.reject(new TypeError("Failed to fetch"));
-      }
-      return original(input, init);
-    };
+    window.fetchInterceptors!.push(({ url, method }) => {
+      if (method !== "GET" || url.pathname !== "/api/lcards") return undefined;
+      state.count += 1;
+      return state.fail ? Promise.reject(new TypeError("Failed to fetch")) : undefined;
+    });
   });
 }
 

@@ -96,3 +96,22 @@ test("a nonexistent card ID shows the not-found page", async ({ page }) => {
   await page.getByRole("link", { name: "Back to learning cards" }).click();
   await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
 });
+
+// JavaScript's trim() keeps U+0085 where Go's strings.TrimSpace strips it,
+// so the form accepts a title of only that character and the API rejects it
+// (ADR 0038). The API's verdict lands on the title field.
+test("the API's required error for a title the form accepted shows on the title", async ({
+  page,
+}) => {
+  await page.goto("/library/cards/new");
+  await page.getByLabel("Title").fill("\u0085");
+  await page.getByLabel("Description").fill("A title the browser trims less than the server.");
+
+  await page.getByRole("button", { name: "Create Card" }).click();
+
+  await expect(page.getByText("Title is required", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByLabel("Title")).toBeFocused();
+  await expect(page).toHaveURL(/\/library\/cards\/new$/);
+  await expect(page.getByText(/Something went wrong/)).toHaveCount(0);
+});
