@@ -12,13 +12,6 @@ import (
 //go:embed remove.sql
 var removeSQL string
 
-type deleteParams struct {
-	ID string
-	// IfMatch makes the delete conditional on Version.
-	IfMatch bool
-	Version int64
-}
-
 // Store deletes learning cards from the database.
 type Store struct {
 	db *sql.DB
@@ -29,18 +22,19 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-// Delete removes the card, only when p.Version matches if p.IfMatch is set. It returns
-// kit.ErrNotFound for an unknown ID or kit.ErrVersionConflict for a stale version.
-func (s *Store) Delete(ctx context.Context, p deleteParams) error {
-	var deleted, exists bool
-	if err := s.db.QueryRowContext(ctx, removeSQL, p.ID, p.IfMatch, p.Version).Scan(&deleted, &exists); err != nil {
+// Delete removes the card with the given ID, or returns kit.ErrNotFound for
+// an unknown ID.
+func (s *Store) Delete(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, removeSQL, id)
+	if err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
-	if deleted {
-		return nil
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete: rows affected: %w", err)
 	}
-	if !exists {
+	if n == 0 {
 		return kit.ErrNotFound
 	}
-	return kit.ErrVersionConflict
+	return nil
 }

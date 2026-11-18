@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/apotourlyan/ludustudii/internal/kit/etag"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/sanitizer"
 	"github.com/apotourlyan/ludustudii/internal/services/lcards/domain"
@@ -64,7 +63,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.Header().Set("ETag", etag.Format(data.Version))
 	w.Header().Set("Location", domain.CardsPath+"/"+data.ID)
 	return httpkit.JSON(w, http.StatusCreated, toResp(data))
 }
@@ -90,5 +88,5 @@ func toParams(req request) createParams {
 }
 
 func toResp(data row) response {
-	return response{ID: data.ID}
+	return response(data)
 }

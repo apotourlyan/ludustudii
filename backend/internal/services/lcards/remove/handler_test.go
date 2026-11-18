@@ -15,17 +15,16 @@ import (
 )
 
 type mockStore struct {
-	deleteFn func(ctx context.Context, p deleteParams) error
+	deleteFn func(ctx context.Context, id string) error
 }
 
-func (m *mockStore) Delete(ctx context.Context, p deleteParams) error {
-	return m.deleteFn(ctx, p)
+func (m *mockStore) Delete(ctx context.Context, id string) error {
+	return m.deleteFn(ctx, id)
 }
 
 func testContext(t *testing.T, id string) (*http.Request, *httptest.ResponseRecorder) {
 	t.Helper()
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/api/lcards/"+id, nil)
-	req.Header.Set("If-Match", `"1"`)
 	rec := httptest.NewRecorder()
 	req.SetPathValue("id", id)
 	return req, rec
@@ -35,7 +34,7 @@ func testHandler(t *testing.T, store func(*mockStore), setup func(*Handler)) *Ha
 	t.Helper()
 
 	m := &mockStore{
-		deleteFn: func(ctx context.Context, p deleteParams) error {
+		deleteFn: func(ctx context.Context, id string) error {
 			t.Fatal("unexpected call to deleteFn")
 			return errors.New("")
 		},
@@ -46,7 +45,6 @@ func testHandler(t *testing.T, store func(*mockStore), setup func(*Handler)) *Ha
 
 	h := &Handler{
 		store:           m,
-		parseVersion:    func(string) (int64, error) { return 1, nil },
 		validateParamID: func(id string) error { return nil },
 	}
 	if setup != nil {
@@ -77,17 +75,9 @@ func TestHandler_Handle(t *testing.T) {
 			wantErrCode: erresp.CodeValidation,
 		},
 		{
-			name: "version conflict",
-			store: func(m *mockStore) {
-				m.deleteFn = func(_ context.Context, _ deleteParams) error { return kit.ErrVersionConflict }
-			},
-			wantCode:    http.StatusPreconditionFailed,
-			wantErrCode: erresp.CodePreconditionFailed,
-		},
-		{
 			name: "not found error",
 			store: func(m *mockStore) {
-				m.deleteFn = func(_ context.Context, _ deleteParams) error {
+				m.deleteFn = func(_ context.Context, _ string) error {
 					return kit.ErrNotFound
 				}
 			},
@@ -97,7 +87,7 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "delete error",
 			store: func(m *mockStore) {
-				m.deleteFn = func(_ context.Context, _ deleteParams) error {
+				m.deleteFn = func(_ context.Context, _ string) error {
 					return errors.New("")
 				}
 			},
@@ -107,7 +97,7 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "success",
 			store: func(m *mockStore) {
-				m.deleteFn = func(_ context.Context, _ deleteParams) error {
+				m.deleteFn = func(_ context.Context, _ string) error {
 					return nil
 				}
 			},
@@ -144,10 +134,6 @@ func TestHandler_Handle(t *testing.T) {
 					if !errors.Is(err, kit.ErrNotFound) {
 						t.Fatalf("expected not found, got %v", err)
 					}
-				case http.StatusPreconditionFailed:
-					if !errors.Is(err, kit.ErrVersionConflict) {
-						t.Fatalf("expected version conflict, got %v", err)
-					}
 				default:
 					typed, ok := errors.AsType[*httpkit.StatusError](err)
 					if !ok || typed.Code != tt.wantCode || typed.Response.Code != tt.wantErrCode {
@@ -173,15 +159,14 @@ func TestHandler_Wiring(t *testing.T) {
 
 	c, rec := testContext(t, "01A1730E-199D-7F9F-B59D-3BCD6F84066C")
 
-	var gotParams deleteParams
+	var gotID string
 	m := &mockStore{
-		deleteFn: func(_ context.Context, p deleteParams) error {
-			gotParams = p
+		deleteFn: func(_ context.Context, id string) error {
+			gotID = id
 			return nil
 		},
 	}
 	h := NewHandler(m)
-	c.Header.Set("If-Match", `"7"`)
 
 	if err := h.Handle(rec, c); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -190,62 +175,12 @@ func TestHandler_Wiring(t *testing.T) {
 		t.Fatalf("status: got %d, want %d", rec.Code, http.StatusNoContent)
 	}
 
-	wantParams := deleteParams{
-		ID:      "01a1730e-199d-7f9f-b59d-3bcd6f84066c", // lowercased
-		IfMatch: true,
-		Version: 7,
-	}
-	if gotParams != wantParams {
-		t.Errorf("params: got %+v, want %+v", gotParams, wantParams)
+	wantID := "01a1730e-199d-7f9f-b59d-3bcd6f84066c" // lowercased
+	if gotID != wantID {
+		t.Errorf("id: got %q, want %q", gotID, wantID)
 	}
 
 	if rec.Body.Len() != 0 {
 		t.Errorf("body: got %q, want empty", rec.Body.String())
-	}
-}
-
-// A missing If-Match makes the delete unconditional; a malformed one expects
-// version 0, which no card has.
-func TestHandler_IfMatch(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name        string
-		ifMatch     []string
-		wantIfMatch bool
-		wantVersion int64
-	}{
-		{name: "missing", wantIfMatch: false, wantVersion: 0},
-		{name: "valid", ifMatch: []string{`"7"`}, wantIfMatch: true, wantVersion: 7},
-		{name: "malformed", ifMatch: []string{`W/"7"`}, wantIfMatch: true, wantVersion: 0},
-		{name: "several", ifMatch: []string{`"7"`, `"7"`}, wantIfMatch: true, wantVersion: 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			c, rec := testContext(t, "01a1730e-199d-7f9f-b59d-3bcd6f84066c")
-			c.Header.Del("If-Match")
-			for _, v := range tt.ifMatch {
-				c.Header.Add("If-Match", v)
-			}
-
-			var got deleteParams
-			h := NewHandler(&mockStore{
-				deleteFn: func(_ context.Context, p deleteParams) error {
-					got = p
-					return nil
-				},
-			})
-
-			if err := h.Handle(rec, c); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got.IfMatch != tt.wantIfMatch || got.Version != tt.wantVersion {
-				t.Errorf("params: got IfMatch %t, Version %d; want %t, %d",
-					got.IfMatch, got.Version, tt.wantIfMatch, tt.wantVersion)
-			}
-		})
 	}
 }

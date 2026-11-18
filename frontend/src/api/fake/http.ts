@@ -11,11 +11,6 @@ export function isUuid7(id: string): boolean {
   return UUID7.test(id);
 }
 
-// The strong ETag for a version.
-export function etag(version: number): string {
-  return `"${version}"`;
-}
-
 // The X-Request-Id header every response carries.
 export function requestIdHeader(): { "X-Request-Id": string } {
   return { "X-Request-Id": crypto.randomUUID() };

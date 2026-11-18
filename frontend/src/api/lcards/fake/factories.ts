@@ -7,12 +7,11 @@ import type { LearningCard } from "./store";
 
 let sequence = 0;
 
-// A valid card at version 1 with a unique title, overridden field by field.
+// A valid card with a unique title, overridden field by field.
 export function makeCard(overrides: Partial<LearningCard> = {}): LearningCard {
   sequence += 1;
   return {
     id: uuidv7(),
-    version: 1,
     title: `Card ${sequence}`,
     description: `The description of card ${sequence}.`,
     ...overrides,
@@ -29,7 +28,7 @@ export function makeCards(
 }
 
 // A small library of realistic cards, oldest first: markdown of different
-// kinds and lengths, non-ASCII text, and one card edited twice.
+// kinds and lengths, and non-ASCII text.
 export function sampleCards(): LearningCard[] {
   return SAMPLES.map((sample) => makeCard(sample));
 }
@@ -84,7 +83,6 @@ const SAMPLES: Partial<LearningCard>[] = [
   },
   {
     title: "Pythagorean theorem",
-    version: 3,
     description:
       "In a right triangle, the square of the hypotenuse equals the sum of the squares of the other two sides: *a² + b² = c²*.",
   },

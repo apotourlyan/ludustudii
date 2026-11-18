@@ -123,14 +123,3 @@ UnexpectedError:
         $ref: '../schemas/errors.yml#/ErrorResponse'
       example:
         code: unexpected_error
-PreconditionFailed:
-  description: The card exists but its version does not match If-Match, or If-Match is not exactly one strong ETag containing a positive int64.
-  headers:
-    X-Request-Id:
-      $ref: '../headers.yml#/RequestId'
-  content:
-    application/json:
-      schema:
-        $ref: '../schemas/errors.yml#/ErrorResponse'
-      example:
-        code: precondition_failed

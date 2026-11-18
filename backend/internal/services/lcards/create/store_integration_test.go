@@ -35,9 +35,6 @@ func TestStore_Create(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data.Version != 1 {
-		t.Errorf("version: got %d, want 1", data.Version)
-	}
 	if err := validator.UUID7("id", data.ID); err != nil {
 		t.Errorf("id %q: %v", data.ID, err)
 	}
@@ -80,9 +77,6 @@ func TestStore_Create_MaxLengths(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if data.Version != 1 {
-		t.Errorf("version: got %d, want 1", data.Version)
-	}
 	var got createParams
 	err = db.QueryRowContext(t.Context(),
 		`SELECT title, description FROM learning_cards WHERE id = $1`, data.ID,

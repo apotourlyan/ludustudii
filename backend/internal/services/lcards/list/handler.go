@@ -21,7 +21,6 @@ type item struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Version     int64  `json:"version"`
 }
 
 type response struct {

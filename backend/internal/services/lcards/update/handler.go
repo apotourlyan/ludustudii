@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/apotourlyan/ludustudii/internal/kit/etag"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/sanitizer"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
@@ -20,7 +19,7 @@ type request struct {
 }
 
 type updater interface {
-	Update(ctx context.Context, p updateParams) (int64, error)
+	Update(ctx context.Context, p updateParams) error
 }
 
 // Handler serves the PUT /api/lcards/{id} endpoint.
@@ -29,7 +28,6 @@ type Handler struct {
 	bind            func(r *http.Request, i any) error
 	validate        func(req request) error
 	validateParamID func(id string) error
-	parseVersion    func(string) (int64, error)
 }
 
 // NewHandler returns a Handler that uses s for storage.
@@ -38,19 +36,15 @@ func NewHandler(s updater) *Handler {
 		store:           s,
 		bind:            bind,
 		validate:        validate,
-		parseVersion:    etag.ParseVersion,
 		validateParamID: validateParamID,
 	}
 }
 
 // Handle sanitizes and validates the JSON title and description, replaces
 // them on the card whose ID is the {id} path parameter and responds 204.
-// Invalid input or an ID that is not a UUIDv7 (case-insensitive) gets 400,
-// an unknown ID gets 404, and a stale or malformed If-Match gets 412; without
-// If-Match the update applies whatever the version. Success includes the new
-// version as an ETag. An oversized
-// body (413) or an unsupported Content-Type (415) is returned for the router's
-// error handler to report.
+// Invalid input or an ID that is not a UUIDv7 (case-insensitive) gets 400 and
+// an unknown ID gets 404. An oversized body (413) or an unsupported
+// Content-Type (415) is returned for the router's error handler to report.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
@@ -70,19 +64,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return httpkit.Validation(err)
 	}
 
-	ifMatch := r.Header.Values("If-Match")
-	var version int64
-	if len(ifMatch) > 0 {
-		// A malformed tag leaves version 0, which no card has, so it fails as stale.
-		version, _ = h.parseVersion(strings.Join(ifMatch, ","))
-	}
-
-	newVersion, err := h.store.Update(ctx, toParams(req, id, len(ifMatch) > 0, version))
-	if err != nil {
+	if err := h.store.Update(ctx, toParams(req, id)); err != nil {
 		return err
 	}
 
-	w.Header().Set("ETag", etag.Format(newVersion))
 	return httpkit.NoContent(w, http.StatusNoContent)
 }
 
@@ -106,10 +91,8 @@ func sanitize(req *request) {
 	req.Description = sanitizer.String(req.Description)
 }
 
-func toParams(req request, id string, ifMatch bool, version int64) updateParams {
+func toParams(req request, id string) updateParams {
 	return updateParams{
-		IfMatch:     ifMatch,
-		Version:     version,
 		ID:          id,
 		Title:       req.Title,
 		Description: req.Description,

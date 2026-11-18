@@ -8,8 +8,6 @@ ErrorResponse:
       enum:
         - bind_error
         - validation_error
-        - precondition_required
-        - precondition_failed
         - not_found
         - method_not_allowed
         - payload_too_large

@@ -7,8 +7,6 @@ import (
 
 // Machine-readable error codes sent in ErrorResponse.Code.
 const (
-	CodePreconditionRequired = "precondition_required"
-	CodePreconditionFailed   = "precondition_failed"
 	CodeBinding              = "bind_error"
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
@@ -102,19 +100,5 @@ func Validation(err error) ErrorResponse {
 	return ErrorResponse{
 		Code:   CodeValidation,
 		Errors: errs,
-	}
-}
-
-// PreconditionRequired returns the response for a missing or invalid If-Match.
-func PreconditionRequired() ErrorResponse {
-	return ErrorResponse{
-		Code: CodePreconditionRequired,
-	}
-}
-
-// PreconditionFailed returns the response for a stale resource version.
-func PreconditionFailed() ErrorResponse {
-	return ErrorResponse{
-		Code: CodePreconditionFailed,
 	}
 }

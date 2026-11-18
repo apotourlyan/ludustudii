@@ -104,7 +104,6 @@ func TestHandler_Handle(t *testing.T) {
 						ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 						Title:       "Title",
 						Description: "Description",
-						Version:     3,
 					}, nil
 				}
 			},
@@ -113,7 +112,6 @@ func TestHandler_Handle(t *testing.T) {
 				ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 				Title:       "Title",
 				Description: "Description",
-				Version:     3,
 			},
 		},
 	}
@@ -147,10 +145,6 @@ func TestHandler_Handle(t *testing.T) {
 					if !errors.Is(err, kit.ErrNotFound) {
 						t.Fatalf("expected not found, got %v", err)
 					}
-				case http.StatusPreconditionFailed:
-					if !errors.Is(err, kit.ErrVersionConflict) {
-						t.Fatalf("expected version conflict, got %v", err)
-					}
 				default:
 					typed, ok := errors.AsType[*httpkit.StatusError](err)
 					if !ok || typed.Code != tt.wantCode || typed.Response.Code != tt.wantErrCode {
@@ -168,9 +162,6 @@ func TestHandler_Handle(t *testing.T) {
 				t.Fatalf("status: got %d, want %d", rec.Code, tt.wantCode)
 			}
 
-			if tt.wantCode == http.StatusOK && rec.Header().Get("ETag") != `"3"` {
-				t.Errorf("ETag: got %q, want quoted 3", rec.Header().Get("ETag"))
-			}
 			// Check the response body if expected response is provided
 			if tt.wantResp != nil {
 				var got response
@@ -189,8 +180,8 @@ func TestToResp(t *testing.T) {
 	t.Parallel()
 
 	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
-	got := toResp(row{ID: id, Title: "Title", Description: "Description", Version: 3})
-	want := response{ID: id, Title: "Title", Description: "Description", Version: 3}
+	got := toResp(row{ID: id, Title: "Title", Description: "Description"})
+	want := response{ID: id, Title: "Title", Description: "Description"}
 	if got != want {
 		t.Errorf("resp: got %+v, want %+v", got, want)
 	}
@@ -209,7 +200,6 @@ func TestHandler_Wiring(t *testing.T) {
 				ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 				Title:       "Title",
 				Description: "Description",
-				Version:     3,
 			}, nil
 		},
 	}
@@ -236,7 +226,6 @@ func TestHandler_Wiring(t *testing.T) {
 		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 		Title:       "Title",
 		Description: "Description",
-		Version:     3,
 	}
 	if gotResp != wantResp {
 		t.Errorf("resp: got %+v, want %+v", gotResp, wantResp)

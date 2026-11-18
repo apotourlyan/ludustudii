@@ -20,7 +20,7 @@ func TestCheckResponse(t *testing.T) {
 	t.Parallel()
 
 	const validID = "019a0000-0000-7000-8000-000000000001"
-	const cardBody = `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","version":1}`
+	const cardBody = `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test"}`
 
 	jsonHeaders := func(extra ...string) http.Header {
 		if len(extra)%2 != 0 {
@@ -29,7 +29,6 @@ func TestCheckResponse(t *testing.T) {
 		h := http.Header{
 			"Content-Type": {"application/json"},
 			"X-Request-Id": {"req-1"},
-			"Etag":         {`"1"`},
 		}
 		for i := 0; i < len(extra); i += 2 {
 			h.Set(extra[i], extra[i+1])
@@ -61,7 +60,7 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","version":1,"extra":true}`,
+			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","extra":true}`,
 			wantErr: `property "extra" is unsupported`,
 		},
 		{
@@ -78,7 +77,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
-			headers: http.Header{"Content-Type": {"application/json"}, "Etag": {`"1"`}},
+			headers: http.Header{"Content-Type": {"application/json"}},
 			body:    cardBody,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -96,7 +95,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 			body:    cardBody,
 			wantErr: `Content-Type has unexpected value: ""`,
 		},
@@ -131,7 +130,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodDelete,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusNoContent,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 			body:    `{}`,
 			wantErr: "status 204 declares no content",
 		},
@@ -140,7 +139,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 		},
 		{
 			name:    "HEAD missing X-Request-Id fails",
@@ -155,7 +154,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 			body:    `x`,
 			wantErr: "status 200 declares no content",
 		},
@@ -198,7 +197,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"Content-Type": {"application/json"}, "Etag": {`"1"`}},
+			headers: http.Header{"Content-Type": {"application/json"}},
 			body:    `{"code":"not_found"}`,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -207,14 +206,14 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 		},
 		{
 			name:    "undocumented API endpoint HEAD 404 with body fails",
 			method:  http.MethodHead,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 			body:    `x`,
 			wantErr: "HEAD returned 1-byte body, want empty",
 		},
@@ -337,7 +336,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusNotModified,
-			headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}},
+			headers: http.Header{"X-Request-Id": {"req-1"}},
 			wantErr: "status 304 is not documented",
 		},
 		{
@@ -465,7 +464,7 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards",
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"items":[{"id":"019A0000-0000-7000-8000-000000000001","title":"OpenAPI","description":"Contract test","version":1}],"next_cursor":null}`,
+			body:    `{"items":[{"id":"019A0000-0000-7000-8000-000000000001","title":"OpenAPI","description":"Contract test"}],"next_cursor":null}`,
 			wantErr: `string doesn't match the regular expression`,
 		},
 		{
@@ -482,7 +481,7 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards",
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"items":[{"id":"019a0000-0000-4000-8000-000000000001","title":"OpenAPI","description":"Contract test","version":1}],"next_cursor":null}`,
+			body:    `{"items":[{"id":"019a0000-0000-4000-8000-000000000001","title":"OpenAPI","description":"Contract test"}],"next_cursor":null}`,
 			wantErr: `string doesn't match the regular expression`,
 		},
 		{
@@ -596,7 +595,7 @@ func TestCheckUnmatchedRouteHEADMethodNotAllowed(t *testing.T) {
 	}{
 		{name: "valid", headers: http.Header{"Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}},
 		{name: "missing request ID", headers: http.Header{"Allow": {"GET, POST"}}, wantErr: `header "X-Request-Id" missing`},
-		{name: "missing Allow", headers: http.Header{"X-Request-Id": {"req-1"}, "Etag": {`"1"`}}, wantErr: "405 response missing Allow header"},
+		{name: "missing Allow", headers: http.Header{"X-Request-Id": {"req-1"}}, wantErr: "405 response missing Allow header"},
 		{name: "body", headers: http.Header{"Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}, body: "x", wantErr: "HEAD returned 1-byte body, want empty"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
