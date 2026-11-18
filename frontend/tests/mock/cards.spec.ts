@@ -6,7 +6,13 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { deleteCard, NOT_FOUND_TEXT, openCardFromList } from "../support/cards";
+import {
+  cardIdOf,
+  deleteCard,
+  deleteCardElsewhere,
+  NOT_FOUND_TEXT,
+  openCardFromList,
+} from "../support/cards";
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
 
 // The list's own "Add Card" link, not the navigation's.
@@ -15,6 +21,13 @@ async function addCardFromList(page: Page): Promise<void> {
   await expect(cardItems(page)).toHaveCount(8);
   await page.getByRole("main").getByRole("link", { name: "Add Card" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add Card");
+}
+
+// Shows the overview through the navigation, with the 7 cards left after
+// one of the 8 is deleted.
+async function showOverview(page: Page): Promise<void> {
+  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await expectCardAt(page, 1, "日本語: は vs. が", 7);
 }
 
 // Opens the newest card, "Mitochondria", on its page, and returns its ID.
@@ -111,6 +124,47 @@ test("a card deleted in the list leaves it", async ({ page }) => {
   await expect(dialog).toBeHidden();
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(cardItems(page)).toHaveCount(7);
+  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
+});
+
+// A card deleted elsewhere answers a write with 404. The error shows, and
+// the list fetches again, so it stops showing the card.
+
+test("deleting a card deleted elsewhere in the list removes it from the list", async ({ page }) => {
+  await page.goto("/library/cards");
+  await expectCardAt(page, 1, "Mitochondria", 8);
+  await deleteCardElsewhere(page, await cardIdOf(cardAt(page, 1)));
+
+  await deleteCard(page, cardAt(page, 1));
+
+  await expectCardAt(page, 1, "日本語: は vs. が", 7);
+  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
+});
+
+test("deleting a card deleted elsewhere on its page shows the error", async ({ page }) => {
+  const id = await openNewestCard(page);
+  await deleteCardElsewhere(page, id);
+
+  const dialog = await deleteCard(page, page.getByRole("main"));
+
+  await expect(dialog.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await showOverview(page);
+  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
+});
+
+test("saving a card deleted elsewhere keeps the input and shows the error", async ({ page }) => {
+  const id = await openNewestCard(page);
+  await page.getByRole("main").getByRole("link", { name: "Update" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
+  await deleteCardElsewhere(page, id);
+
+  await page.getByLabel("Title").fill("Mitochondrion");
+  await page.getByRole("button", { name: "Update Card" }).click();
+
+  await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
+  await showOverview(page);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
 

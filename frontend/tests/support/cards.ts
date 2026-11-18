@@ -40,6 +40,16 @@ export async function deleteCard(page: Page, scope: Locator): Promise<Locator> {
   return dialog;
 }
 
+// Deletes a card the way another client would, with a request from inside
+// the page (see changeCardElsewhere). The page still shows it.
+export async function deleteCardElsewhere(page: Page, id: string): Promise<void> {
+  const status = await page.evaluate(async (cardId) => {
+    const response = await fetch(`/api/lcards/${cardId}`, { method: "DELETE" });
+    return response.status;
+  }, id);
+  expect(status, "the delete from inside the page").toBe(204);
+}
+
 // Replaces a card's title and description the way another client would,
 // with requests from inside the page. In the mock mode the page's fake
 // backend answers them, so this is the only way to reach its state. A copy
