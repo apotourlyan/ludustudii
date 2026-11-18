@@ -135,7 +135,7 @@ before routing, such as a `413` for a declared body over the limit.
 
 Handlers return failures to the app's central error handler, which writes the
 shared JSON error shape. `httpkit` request errors retain their causes and named
-responses; `kit.ErrNotFound` and `kit.ErrVersionConflict` map to 404 and 412.
+responses; `kit.ErrNotFound` maps to 404.
 Status errors carry their own status and response body and are logged at debug
 level. All other errors are logged at error level and returned as a generic 500.
 Handler function fields remain the seams for isolating binding and validation
@@ -165,15 +165,11 @@ is the source of truth; the notes below summarize it.
   validation. Title is 1–200 and description 1–2000 code points; the database
   enforces the same limits with `CHECK` constraints.
 - **IDs** are hyphenated UUIDv7, accepted in any letter case.
-- **Concurrency**: cards returned by GET and list include an integer `version`.
-  GET/HEAD of a card, POST (201), and PUT (204) return a strong `ETag`, such as
-  `"3"`, derived from that version. PUT and DELETE require `If-Match` with
-  exactly one strong quoted positive integer. Missing or malformed values
-  (including wildcards, lists and weak tags) return `428 precondition_required`.
-  Stale versions return `412 precondition_failed`; unknown cards return 404
-  before version mismatch. Requests check path ID, If-Match, binding,
-  sanitization, validation, then storage. Each successful update increments
-  the version atomically; clients must reload after a conflict.
+- **Concurrency**: the last write wins
+  ([ADR 0039](docs/adr/0039-last-write-wins-for-user-edited-resources.md)).
+  PUT replaces a card and DELETE removes it, whatever the client read before;
+  cards have no version, and there are no conditional requests. Requests check
+  path ID, binding, sanitization, validation, then storage.
 - **Pagination**: `limit` (1–100, default 20) and `cursor` (the previous
   page's `next_cursor`, an opaque token to pass unchanged). `next_cursor` is
   `null` on the last page. Invalid tokens report `invalid_cursor`. Malformed
@@ -201,8 +197,6 @@ is the source of truth; the notes below summarize it.
   | --- | --- | --- |
   | `bind_error` | 400 | Body could not be decoded |
   | `validation_error` | 400 | A body field, path parameter or query parameter failed validation |
-  | `precondition_required` | 428 | Missing or malformed If-Match |
-  | `precondition_failed` | 412 | Stale resource version |
   | `not_found` | 404 | Unknown card or unknown `/api` path |
   | `method_not_allowed` | 405 | Unsupported method, with an `Allow` header |
   | `payload_too_large` | 413 | Body over 1 MiB |
@@ -622,10 +616,9 @@ Open http://localhost:5173. [MSW](https://mswjs.io) intercepts the client
 app's API requests and answers them from in-memory fakes in
 `frontend/src/api/<service>/fake/`, so no Go server, database or migrations
 are needed. The fake implements only what the client app's flows depend on:
-state across requests, versions with `ETag` and `If-Match` (428 without it,
-404 before 412), malformed IDs, opaque cursors and minimal validation
-(trimmed, required, maximum length, page size). It doesn't reproduce the
-backend's input parsing
+state across requests, not found, malformed IDs, opaque cursors and minimal
+validation (trimmed, required, maximum length, page size). It doesn't
+reproduce the backend's input parsing
 ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). An API request
 the fake has no handler for fails as a network error, with the request named
 in the console, instead of reaching a server. The mock mode doesn't proxy to
@@ -651,15 +644,15 @@ the address bar. In-app links drop them, so a reload after navigating starts
 the default scenario. Seeded cards get new IDs on every load, so a card's
 URL, such as its editor, shows "doesn't exist" after a reload. Each tab
 runs its own fake, so a change made in one tab is invisible to another. To
-produce a `412`, open a card's editor, change the card from the browser
-console, then save:
+see the last write win, open a card's editor, change the card from the
+browser console, then save: the form's values replace the change.
 
 ```js
 const id = location.pathname.split('/').at(-2) // /library/cards/<id>/edit
 const card = await (await fetch(`/api/lcards/${id}`)).json()
 await fetch(`/api/lcards/${id}`, {
   method: 'PUT',
-  headers: { 'Content-Type': 'application/json', 'If-Match': `"${card.version}"` },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ title: 'Changed elsewhere', description: card.description }),
 })
 ```
@@ -867,7 +860,7 @@ project:
 
 | Command | Tests | Runs against | Covers | Runs in |
 | --- | --- | --- | --- | --- |
-| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the overview's list and grid views (the view in the URL, rendering only what is near the window, item positions, cut titles, the grid's columns, tabbing through the actions, Back to the same position), a card's page and its markdown, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, 412 conflicts on save and delete, not-found pages, a failing server, a slow server, going offline | `make check` |
+| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the overview's list and grid views (the view in the URL, rendering only what is near the window, item positions, cut titles, the grid's columns, tabbing through the actions, Back to the same position), a card's page and its markdown, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, saving and deleting a card changed elsewhere (the last write wins), not-found pages, a failing server, a slow server, going offline | `make check` |
 | `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, find it in the grid and open it, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
 
 Both targets pass `ARGS` on to Playwright, for example
@@ -905,8 +898,8 @@ state lives in the page, so a test moves between pages with the app's links;
 `page.goto` reloads the page and starts the fake over. Scenarios and delays
 come from the URL (`/library/cards?scenario=empty`), and other states from
 inside the page: `changeCardElsewhere` in `tests/support/cards.ts` changes a
-card with a `fetch` the fake answers, so the page's copy is stale and the next
-save gets a 412. `context.setOffline(true)` makes the fake fail requests as
+card with a `fetch` the fake answers, as another tab would, so the page's
+copy no longer matches it. `context.setOffline(true)` makes the fake fail requests as
 the network would.
 
 **End-to-end tests** share one database and run in parallel, so every test

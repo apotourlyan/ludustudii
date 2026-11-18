@@ -146,14 +146,10 @@ Surfaces and startup).
 
 ## Rules not enforced by tooling
 
-- Every UPDATE/DELETE on a user-editable table requires `If-Match` and checks
-  the expected `version` in its SQL predicate. UPDATE also bumps `version` in
-  the same statement; DELETE removes the matching row. Follow `lcards/update`
-  as the reference pattern.
 - Every table has `created_at` and `updated_at` (`timestamptz NOT NULL`, no
   default). INSERT sets both explicitly to `now()`. Every UPDATE sets
-  `updated_at = now()` alongside the `version` bump. Never use `time.Now()`
-  for row timestamps, and never write `created_at` after insert.
+  `updated_at = now()`. Never use `time.Now()` for row timestamps, and never
+  write `created_at` after insert.
 - Prefer the standard library. Ask before adding a Go dependency.
 - Write SQL by hand, without an ORM or query builder.
 - Errors reach clients only through the shared error shape in `README.md`
