@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/testkit"
 )
@@ -17,29 +18,48 @@ func TestMain(m *testing.M) {
 	os.Exit(testkit.Run(m))
 }
 
-func insertCard(t *testing.T, db *sql.DB, id, title, description string) {
+// insertCard inserts card as it is, timestamps included.
+func insertCard(t *testing.T, db *sql.DB, card row) {
 	t.Helper()
 	_, err := db.ExecContext(t.Context(),
-		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, now(), now())`,
-		id, title, description,
+		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+		card.ID, card.Title, card.Description, card.CreatedAt, card.UpdatedAt,
 	)
 	if err != nil {
 		t.Fatalf("insert card: %v", err)
 	}
 }
 
+// at returns the time of day on 2026-11-18 in UTC.
+func at(hour, minute int) time.Time {
+	return time.Date(2026, 11, 18, hour, minute, 0, 0, time.UTC)
+}
+
+// The cards' timestamps all differ, so a row that gets another card's or
+// swaps its own fails the comparison.
 var (
-	cardA = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066a", Title: "Title A", Description: "Description A"}
-	cardB = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066b", Title: "Title B", Description: "Description B"}
-	cardC = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c", Title: "Title C", Description: "Description C"}
+	cardA = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066a", Title: "Title A", Description: "Description A", CreatedAt: at(9, 0), UpdatedAt: at(9, 30)}
+	cardB = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066b", Title: "Title B", Description: "Description B", CreatedAt: at(10, 0), UpdatedAt: at(10, 45)}
+	cardC = row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c", Title: "Title C", Description: "Description C", CreatedAt: at(11, 0), UpdatedAt: at(11, 0)}
 )
 
 // seedABC inserts the cards out of order to verify ORDER BY id DESC.
 func seedABC(t *testing.T, db *sql.DB) {
 	t.Helper()
-	insertCard(t, db, cardB.ID, cardB.Title, cardB.Description)
-	insertCard(t, db, cardA.ID, cardA.Title, cardA.Description)
-	insertCard(t, db, cardC.ID, cardC.Title, cardC.Description)
+	insertCard(t, db, cardB)
+	insertCard(t, db, cardA)
+	insertCard(t, db, cardC)
+}
+
+// inUTC returns p with its rows' timestamps in UTC, so it compares with
+// reflect.DeepEqual against rows built with time.UTC, whatever location the
+// driver returns them in.
+func inUTC(p page) page {
+	for i := range p.Rows {
+		p.Rows[i].CreatedAt = p.Rows[i].CreatedAt.UTC()
+		p.Rows[i].UpdatedAt = p.Rows[i].UpdatedAt.UTC()
+	}
+	return p
 }
 
 func TestStore_List_Empty(t *testing.T) {
@@ -70,7 +90,7 @@ func TestStore_List_OrderedByIDDesc(t *testing.T) {
 	}
 
 	want := page{Rows: []row{cardC, cardB, cardA}}
-	if !reflect.DeepEqual(got, want) {
+	if !reflect.DeepEqual(inUTC(got), want) {
 		t.Errorf("page: got %+v, want %+v", got, want)
 	}
 }
@@ -87,7 +107,7 @@ func TestStore_List_Pages(t *testing.T) {
 		t.Fatalf("first page: unexpected error: %v", err)
 	}
 	wantFirst := page{Rows: []row{cardC, cardB}, NextCursor: cardB.ID}
-	if !reflect.DeepEqual(first, wantFirst) {
+	if !reflect.DeepEqual(inUTC(first), wantFirst) {
 		t.Errorf("first page: got %+v, want %+v", first, wantFirst)
 	}
 
@@ -96,7 +116,7 @@ func TestStore_List_Pages(t *testing.T) {
 		t.Fatalf("second page: unexpected error: %v", err)
 	}
 	wantSecond := page{Rows: []row{cardA}}
-	if !reflect.DeepEqual(second, wantSecond) {
+	if !reflect.DeepEqual(inUTC(second), wantSecond) {
 		t.Errorf("second page: got %+v, want %+v", second, wantSecond)
 	}
 }
@@ -114,7 +134,7 @@ func TestStore_List_ExactlyLimit(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	want := page{Rows: []row{cardC, cardB, cardA}}
-	if !reflect.DeepEqual(got, want) {
+	if !reflect.DeepEqual(inUTC(got), want) {
 		t.Errorf("page: got %+v, want %+v", got, want)
 	}
 }
@@ -137,7 +157,7 @@ func TestStore_List_DeletedCursor(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	want := page{Rows: []row{cardA}}
-	if !reflect.DeepEqual(got, want) {
+	if !reflect.DeepEqual(inUTC(got), want) {
 		t.Errorf("page: got %+v, want %+v", got, want)
 	}
 }

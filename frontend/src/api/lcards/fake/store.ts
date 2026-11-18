@@ -1,7 +1,10 @@
 // The fake lcards service's state and its rules, without HTTP (ADR 0032).
 // It mirrors the backend's stores: IDs are UUIDv7, so ordering by ID is
 // creation order; the last write wins, so replace and remove check nothing
-// but that the card exists (ADR 0039). Handlers map the outcomes to HTTP.
+// but that the card exists (ADR 0039); create sets created_at and
+// updated_at to the same time, and replace moves updated_at (ADR 0040).
+// The time is the page's clock, which tests control with page.clock.
+// Handlers map the outcomes to HTTP.
 
 import { uuidv7 } from "../../fake/uuidv7";
 import type { components } from "../../schema.gen";
@@ -74,7 +77,8 @@ export class CardStore {
   }
 
   create(content: CardContent): LearningCard {
-    const card: LearningCard = { id: uuidv7(), ...content };
+    const now = new Date().toISOString();
+    const card: LearningCard = { id: uuidv7(), ...content, created_at: now, updated_at: now };
     this.#cards.set(card.id, card);
     return { ...card };
   }
@@ -84,7 +88,7 @@ export class CardStore {
     if (!card) {
       return { outcome: "not_found" };
     }
-    this.#cards.set(id, { ...card, ...content });
+    this.#cards.set(id, { ...card, ...content, updated_at: new Date().toISOString() });
     return { outcome: "replaced" };
   }
 

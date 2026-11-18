@@ -31,7 +31,7 @@ LearningCardInput:
 LearningCard:
   type: object
   additionalProperties: false
-  required: [id, title, description]
+  required: [id, title, description, created_at, updated_at]
   properties:
     id:
       $ref: '#/CardId'
@@ -39,6 +39,23 @@ LearningCard:
       $ref: '#/LearningCardInput/properties/title'
     description:
       $ref: '#/LearningCardInput/properties/description'
+    created_at:
+      type: string
+      format: date-time
+      readOnly: true
+      description: |
+        When the card was created, as an RFC 3339 timestamp in UTC, from the
+        database's clock. Read-only: request bodies don't take it.
+      example: '2026-11-18T09:30:00.123456Z'
+    updated_at:
+      type: string
+      format: date-time
+      readOnly: true
+      description: |
+        When the card was last changed, as an RFC 3339 timestamp in UTC, from
+        the database's clock. Equals created_at until the first update, and
+        changes with every update. Read-only: request bodies don't take it.
+      example: '2026-11-18T09:42:10.654321Z'
 CreatedLearningCard:
   type: object
   additionalProperties: false

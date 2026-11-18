@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit"
 	"github.com/apotourlyan/ludustudii/internal/kit/erresp"
@@ -180,10 +181,45 @@ func TestToResp(t *testing.T) {
 	t.Parallel()
 
 	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
-	got := toResp(row{ID: id, Title: "Title", Description: "Description"})
-	want := response{ID: id, Title: "Title", Description: "Description"}
+	// The store may return the timestamps in any location; the response
+	// gives the same instants in UTC.
+	plusOne := time.FixedZone("UTC+1", 60*60)
+	got := toResp(row{
+		ID:          id,
+		Title:       "Title",
+		Description: "Description",
+		CreatedAt:   time.Date(2026, 11, 18, 10, 0, 0, 0, plusOne),
+		UpdatedAt:   time.Date(2026, 11, 18, 10, 30, 0, 0, plusOne),
+	})
+	want := response{
+		ID:          id,
+		Title:       "Title",
+		Description: "Description",
+		CreatedAt:   time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC),
+		UpdatedAt:   time.Date(2026, 11, 18, 9, 30, 0, 0, time.UTC),
+	}
 	if got != want {
 		t.Errorf("resp: got %+v, want %+v", got, want)
+	}
+}
+
+func TestToResp_JSON(t *testing.T) {
+	t.Parallel()
+
+	got, err := json.Marshal(toResp(row{
+		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
+		Title:       "Title",
+		Description: "Description",
+		CreatedAt:   time.Date(2026, 11, 18, 10, 0, 0, 123456000, time.FixedZone("UTC+1", 60*60)),
+		UpdatedAt:   time.Date(2026, 11, 18, 9, 30, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	want := `{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066c","title":"Title","description":"Description",` +
+		`"created_at":"2026-11-18T09:00:00.123456Z","updated_at":"2026-11-18T09:30:00Z"}`
+	if string(got) != want {
+		t.Errorf("json:\n got %s\nwant %s", got, want)
 	}
 }
 

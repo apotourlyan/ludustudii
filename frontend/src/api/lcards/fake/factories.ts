@@ -1,19 +1,29 @@
 // Valid learning cards for seeding the fake lcards store and for tests.
 // IDs come from the shared monotonic generator, so cards built later sort
 // as newer, and cards created through the store sort after all of them.
+// Their timestamps are a day old, so a fresh mock session marks none of
+// them as recently created or updated.
 
 import { uuidv7 } from "../../fake/uuidv7";
 import type { LearningCard } from "./store";
 
+// How long before it is built a card was created and last updated.
+const SEED_AGE_MS = 24 * 60 * 60 * 1000;
+
 let sequence = 0;
 
-// A valid card with a unique title, overridden field by field.
+// A valid card with a unique title, overridden field by field. It was
+// created and last updated about a day before it is built; a card built
+// later has later times.
 export function makeCard(overrides: Partial<LearningCard> = {}): LearningCard {
   sequence += 1;
+  const createdAt = new Date(Date.now() - SEED_AGE_MS + sequence * 1000).toISOString();
   return {
     id: uuidv7(),
     title: `Card ${sequence}`,
     description: `The description of card ${sequence}.`,
+    created_at: createdAt,
+    updated_at: createdAt,
     ...overrides,
   };
 }

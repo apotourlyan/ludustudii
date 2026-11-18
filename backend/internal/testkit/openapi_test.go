@@ -20,7 +20,7 @@ func TestCheckResponse(t *testing.T) {
 	t.Parallel()
 
 	const validID = "019a0000-0000-7000-8000-000000000001"
-	const cardBody = `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test"}`
+	const cardBody = `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","created_at":"2026-11-18T09:30:00Z","updated_at":"2026-11-18T09:30:00Z"}`
 
 	jsonHeaders := func(extra ...string) http.Header {
 		if len(extra)%2 != 0 {
@@ -60,8 +60,26 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","extra":true}`,
+			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","created_at":"2026-11-18T09:30:00Z","updated_at":"2026-11-18T09:30:00Z","extra":true}`,
 			wantErr: `property "extra" is unsupported`,
+		},
+		{
+			name:    "card without its timestamps fails",
+			method:  http.MethodGet,
+			path:    "/api/lcards/" + validID,
+			status:  http.StatusOK,
+			headers: jsonHeaders(),
+			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test"}`,
+			wantErr: `property "created_at" is missing`,
+		},
+		{
+			name:    "card timestamp not a date-time fails",
+			method:  http.MethodGet,
+			path:    "/api/lcards/" + validID,
+			status:  http.StatusOK,
+			headers: jsonHeaders(),
+			body:    `{"id":"` + validID + `","title":"OpenAPI","description":"Contract test","created_at":"2026-11-18","updated_at":"2026-11-18T09:30:00Z"}`,
+			wantErr: `Error at "/created_at": string doesn't match the format "date-time"`,
 		},
 		{
 			name:    "undeclared field in error response fails additionalProperties",
@@ -464,7 +482,7 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards",
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"items":[{"id":"019A0000-0000-7000-8000-000000000001","title":"OpenAPI","description":"Contract test"}],"next_cursor":null}`,
+			body:    `{"items":[{"id":"019A0000-0000-7000-8000-000000000001","title":"OpenAPI","description":"Contract test","created_at":"2026-11-18T09:30:00Z","updated_at":"2026-11-18T09:30:00Z"}],"next_cursor":null}`,
 			wantErr: `string doesn't match the regular expression`,
 		},
 		{
@@ -481,7 +499,7 @@ func TestCheckResponse(t *testing.T) {
 			path:    "/api/lcards",
 			status:  http.StatusOK,
 			headers: jsonHeaders(),
-			body:    `{"items":[{"id":"019a0000-0000-4000-8000-000000000001","title":"OpenAPI","description":"Contract test"}],"next_cursor":null}`,
+			body:    `{"items":[{"id":"019a0000-0000-4000-8000-000000000001","title":"OpenAPI","description":"Contract test","created_at":"2026-11-18T09:30:00Z","updated_at":"2026-11-18T09:30:00Z"}],"next_cursor":null}`,
 			wantErr: `string doesn't match the regular expression`,
 		},
 		{
