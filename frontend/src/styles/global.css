@@ -32,6 +32,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-recent-new: var(--recent-new);
+  --color-recent-updated: var(--recent-updated);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -77,6 +79,10 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* The overview's marks for recently created and updated cards; each at
+     least 3:1 against --card. Blue 600 (5.3:1) and amber 700 (5.1:1). */
+  --recent-new: oklch(0.546 0.245 262.881);
+  --recent-updated: oklch(0.555 0.163 48.998);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -111,6 +117,9 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Blue 400 (6.8:1) and amber 400 (10.4:1) against --card. */
+  --recent-new: oklch(0.707 0.165 254.624);
+  --recent-updated: oklch(0.828 0.189 84.429);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);

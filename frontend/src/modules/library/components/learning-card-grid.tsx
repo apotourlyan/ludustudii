@@ -3,8 +3,10 @@ import { useSyncExternalStore } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { Card, CardTitle } from "@/shared/ui/card";
 
+import { recentChange } from "../model/recent-change";
 import { CardTitleMarkdown } from "./card-markdown";
 import { LearningCardActions } from "./learning-card-actions";
+import { RecentChangeMark } from "./recent-change-mark";
 import { VirtualCardList } from "./virtual-card-list";
 
 // Cards per row by the window's width, widest first: Tailwind's lg, md and
@@ -35,13 +37,17 @@ function currentColumns(): number {
 }
 
 // The cards as a grid of titles, each card the same size, the title cut to
-// three lines, with the card's actions at the bottom right. Virtualized by
-// VirtualCardList, which takes the same initialScrollOffset.
+// three lines, with the card's mark in the top right corner if it was
+// created or updated recently, as of `now`, and its actions at the bottom
+// right. Virtualized by VirtualCardList, which takes the same
+// initialScrollOffset.
 export function LearningCardGrid({
   cards,
+  now,
   initialScrollOffset,
 }: {
   cards: LearningCard[];
+  now: number;
   initialScrollOffset: number;
 }) {
   // Read while rendering, so the first render already has the rows the
@@ -58,8 +64,18 @@ export function LearningCardGrid({
       overscan={4}
       initialScrollOffset={initialScrollOffset}
       renderCard={(card) => (
-        <Card className="h-full gap-3 px-4">
-          <CardTitle className="line-clamp-3 wrap-break-word">
+        <Card className="relative h-full gap-3 px-4">
+          {/* Before the title, so its hidden text is read first, and placed
+              in the corner, centered on the title's first line: the card's
+              16px padding plus half of what the 20px line has over the 16px
+              icon. */}
+          <span className="absolute top-4.5 right-4 flex">
+            <RecentChangeMark change={recentChange(card, now)} />
+          </span>
+          {/* The title stops short of the mark, 16px for the icon and 8px
+              between them, on every card, so titles wrap the same way
+              whether a card has a mark or not. */}
+          <CardTitle className="line-clamp-3 pr-6 wrap-break-word">
             <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
           </CardTitle>
           <div className="mt-auto self-end">
