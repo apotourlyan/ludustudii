@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/erresp"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
@@ -469,6 +470,25 @@ func TestToResp(t *testing.T) {
 				Items:      []item{{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c", Title: "Title", Description: "Description"}},
 				NextCursor: new("01a1730e-199d-7f9f-b59d-3bcd6f84066c"),
 			},
+		},
+		{
+			// The store may return the timestamps in any location; the
+			// items give the same instants in UTC.
+			name: "timestamps in UTC",
+			data: page{Rows: []row{{
+				ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
+				Title:       "Title",
+				Description: "Description",
+				CreatedAt:   time.Date(2026, 11, 18, 10, 0, 0, 0, time.FixedZone("UTC+1", 60*60)),
+				UpdatedAt:   time.Date(2026, 11, 18, 10, 30, 0, 0, time.FixedZone("UTC+1", 60*60)),
+			}}},
+			want: response{Items: []item{{
+				ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
+				Title:       "Title",
+				Description: "Description",
+				CreatedAt:   time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC),
+				UpdatedAt:   time.Date(2026, 11, 18, 9, 30, 0, 0, time.UTC),
+			}}},
 		},
 	}
 

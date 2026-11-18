@@ -161,6 +161,13 @@ is the source of truth; the notes below summarize it.
 - **Requests** with a body must use `Content-Type: application/json` (otherwise
   `415`). Bodies are limited to 1 MiB (`413`). Unknown JSON fields are rejected
   with `400 bind_error`.
+- **Cards** have `id`, `title`, `description`, `created_at` and
+  `updated_at`, in single-card responses and in list items. The timestamps
+  are the database's clock, as RFC 3339 in UTC (`2026-11-18T09:30:00.123456Z`):
+  `updated_at` equals `created_at` until the first update and changes with
+  every one ([ADR 0040](docs/adr/0040-row-timestamps-in-the-api.md)). They
+  are read-only: request bodies take only `title` and `description`, and a
+  body with either timestamp gets `400 bind_error`, like any unknown field.
 - **Input** strings are normalized to Unicode NFC and trimmed before
   validation. Title is 1–200 and description 1–2000 code points; the database
   enforces the same limits with `CHECK` constraints.

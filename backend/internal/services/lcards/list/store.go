@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"time"
 )
 
 //go:embed list_first.sql
@@ -32,6 +33,8 @@ type row struct {
 	ID          string
 	Title       string
 	Description string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type page struct {
@@ -65,7 +68,7 @@ func (s *Store) List(ctx context.Context, p listParams) (page, error) {
 	var data []row
 	for rows.Next() {
 		var card row
-		if err := rows.Scan(&card.ID, &card.Title, &card.Description); err != nil {
+		if err := rows.Scan(&card.ID, &card.Title, &card.Description, &card.CreatedAt, &card.UpdatedAt); err != nil {
 			return page{}, fmt.Errorf("scan: %w", err)
 		}
 		data = append(data, card)

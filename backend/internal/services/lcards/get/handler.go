@@ -5,15 +5,18 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
 )
 
 type response struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type getter interface {
@@ -53,6 +56,14 @@ func validateParamID(id string) error {
 	return validator.UUID7("id", id)
 }
 
+// toResp returns the card with its timestamps in UTC, which JSON encodes as
+// RFC 3339.
 func toResp(data row) response {
-	return response(data)
+	return response{
+		ID:          data.ID,
+		Title:       data.Title,
+		Description: data.Description,
+		CreatedAt:   data.CreatedAt.UTC(),
+		UpdatedAt:   data.UpdatedAt.UTC(),
+	}
 }

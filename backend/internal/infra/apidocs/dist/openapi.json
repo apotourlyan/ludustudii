@@ -76,7 +76,7 @@
             }
           }
         },
-        "description": "JSON card content. Each field is NFC normalized and trimmed, then must be\n1 to its maximum length in code points (see LearningCardInput). Omitted or\nnull fields are treated as empty and fail validation. Unknown JSON\nproperties are ignored.\n",
+        "description": "JSON card content. Each field is NFC normalized and trimmed, then must be\n1 to its maximum length in code points (see LearningCardInput). Omitted or\nnull fields are treated as empty and fail validation. Unknown JSON\nproperties, including the card's read-only created_at and updated_at,\nare rejected with bind_error.\n",
         "required": true
       }
     },
@@ -197,7 +197,7 @@
             }
           }
         },
-        "description": "Malformed JSON or incompatible JSON types return bind_error. Empty\nbodies and invalid field values return validation_error.\n",
+        "description": "Malformed JSON, incompatible JSON types and unknown fields, including\nthe card's read-only created_at and updated_at, return bind_error. Empty\nbodies and invalid field values return validation_error.\n",
         "headers": {
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
@@ -269,7 +269,7 @@
             }
           }
         },
-        "description": "An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed\nJSON or incompatible JSON types return bind_error. Empty bodies and\ninvalid field values return validation_error.\n",
+        "description": "An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed\nJSON, incompatible JSON types and unknown fields, including the card's\nread-only created_at and updated_at, return bind_error. Empty bodies and\ninvalid field values return validation_error.\n",
         "headers": {
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
@@ -471,6 +471,13 @@
       "LearningCard": {
         "additionalProperties": false,
         "properties": {
+          "created_at": {
+            "description": "When the card was created, as an RFC 3339 timestamp in UTC, from the\ndatabase's clock. Read-only: request bodies don't take it.\n",
+            "example": "2026-11-18T09:30:00.123456Z",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
           "description": {
             "$ref": "#/components/schemas/LearningCardInput/properties/description"
           },
@@ -479,12 +486,21 @@
           },
           "title": {
             "$ref": "#/components/schemas/LearningCardInput/properties/title"
+          },
+          "updated_at": {
+            "description": "When the card was last changed, as an RFC 3339 timestamp in UTC, from\nthe database's clock. Equals created_at until the first update, and\nchanges with every update. Read-only: request bodies don't take it.\n",
+            "example": "2026-11-18T09:42:10.654321Z",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
           }
         },
         "required": [
           "id",
           "title",
-          "description"
+          "description",
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
@@ -583,9 +599,11 @@
                 "example": {
                   "items": [
                     {
+                      "created_at": "2026-11-18T09:30:00.123456Z",
                       "description": "A specification for describing HTTP APIs.",
                       "id": "019a0000-0000-7000-8000-000000000001",
-                      "title": "OpenAPI"
+                      "title": "OpenAPI",
+                      "updated_at": "2026-11-18T09:42:10.654321Z"
                     }
                   ],
                   "next_cursor": null
