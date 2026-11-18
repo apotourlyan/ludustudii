@@ -1,6 +1,6 @@
 # 0016. Row metadata set in store SQL
 
-- Status: Accepted, Amended by [0039](0039-last-write-wins-for-user-edited-resources.md) (no `version` column: user-editable tables have no version, and an `UPDATE` sets only the data and `updated_at`)
+- Status: Accepted, Amended by [0039](0039-last-write-wins-for-user-edited-resources.md) (no `version` column: user-editable tables have no version, and an `UPDATE` sets only the data and `updated_at`), Amended by [0040](0040-row-timestamps-in-the-api.md) (card timestamps are part of the API)
 - Date: 2026-11-05
 - Tags: back-end, database
 
