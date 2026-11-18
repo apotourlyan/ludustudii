@@ -1,6 +1,6 @@
 # 0032. Stateful fake backend with MSW
 
-- Status: Accepted
+- Status: Accepted, Amended by [0039](0039-last-write-wins-for-user-edited-resources.md) (the fake has no versions, `If-Match`, 428 or 412)
 - Date: 2026-11-11
 - Tags: front-end, testing, api
 
@@ -13,7 +13,7 @@ work on an endpoint until the server side exists. Static fixtures don't
 help with flows: after the first mutation, the next read returns stale
 data. The parts of the contract that are hardest to get right in the UI are
 behavior, not shapes: versions and 412 on a stale `If-Match`
-([0010](0010-optimistic-concurrency-with-etag-and-if-match.md)), opaque
+([0010](archive/0010-optimistic-concurrency-with-etag-and-if-match.md)), opaque
 pagination cursors ([0022](0022-opaque-pagination-cursor-contract.md)) and
 error codes ([0025](0025-error-responses.md)).
 
