@@ -82,9 +82,7 @@ test("a card's URL opens its page, and its editor's URL the form", async ({ page
 
   // Keeps the list short for the other tests; the database goes when the
   // run ends either way.
-  const deleted = await request.delete(location, {
-    headers: { "If-Match": created.headers()["etag"] ?? "" },
-  });
+  const deleted = await request.delete(location);
   expect(deleted.status()).toBe(204);
 });
 

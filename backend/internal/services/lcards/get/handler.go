@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/apotourlyan/ludustudii/internal/kit/etag"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
 )
@@ -15,7 +14,6 @@ type response struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Version     int64  `json:"version"`
 }
 
 type getter interface {
@@ -48,7 +46,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.Header().Set("ETag", etag.Format(data.Version))
 	return httpkit.JSON(w, http.StatusOK, toResp(data))
 }
 

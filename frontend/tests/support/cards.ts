@@ -42,18 +42,13 @@ export async function deleteCard(page: Page, scope: Locator): Promise<Locator> {
 
 // Replaces a card's title and description the way another client would,
 // with requests from inside the page. In the mock mode the page's fake
-// backend answers them, so this is the only way to reach its state. The
-// card's version goes up, so a copy the page holds is now stale.
+// backend answers them, so this is the only way to reach its state. A copy
+// the page holds no longer matches the card.
 export async function changeCardElsewhere(page: Page, id: string): Promise<void> {
   const status = await page.evaluate(async (cardId) => {
-    const url = `/api/lcards/${cardId}`;
-    const current = await fetch(url);
-    const response = await fetch(url, {
+    const response = await fetch(`/api/lcards/${cardId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "If-Match": current.headers.get("ETag") ?? "",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "Changed elsewhere",
         description: "Changed in another tab.",

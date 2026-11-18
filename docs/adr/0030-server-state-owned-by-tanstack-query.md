@@ -1,6 +1,6 @@
 # 0030. Server state owned by TanStack Query, organized by backend service
 
-- Status: Accepted, Amended by [0031](0031-generated-api-types-and-typed-fetch-client.md) (retries: only network failures and server errors are retried), Amended by [0036](0036-pages-read-route-data-components-take-props.md) (pages read what their load function fills)
+- Status: Accepted, Amended by [0031](0031-generated-api-types-and-typed-fetch-client.md) (retries: only network failures and server errors are retried), Amended by [0036](0036-pages-read-route-data-components-take-props.md) (pages read what their load function fills), Amended by [0039](0039-last-write-wins-for-user-edited-resources.md) (a form draft keeps no `version`)
 - Date: 2026-11-09
 - Tags: front-end, architecture, api
 
@@ -21,7 +21,7 @@ services.
   don't call `fetch` and don't copy server data into component state or a
   store. The exception is a form draft: it starts from server data and is
   local state until submitted, keeping the `version` it started from
-  ([0010](0010-optimistic-concurrency-with-etag-and-if-match.md)).
+  ([0010](archive/0010-optimistic-concurrency-with-etag-and-if-match.md)).
 - **The cache is organized by backend service, not by module.** Each service
   has a folder in `src/api/<service>/` that owns its query keys, query
   options and mutations. Keys start with the service name

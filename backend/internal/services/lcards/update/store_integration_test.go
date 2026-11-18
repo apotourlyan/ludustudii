@@ -61,7 +61,6 @@ func TestStore_Update(t *testing.T) {
 		id2 = "01a1730e-199d-7f9f-b59d-3bcd6f84066b"
 	)
 	other := updateParams{
-		Version:     1,
 		ID:          id1,
 		Title:       "Other Title",
 		Description: "Other Description",
@@ -70,19 +69,18 @@ func TestStore_Update(t *testing.T) {
 	insertCard(t, db, id2, "Old Title", "Old Description")
 
 	want := updateParams{
-		Version:     1,
 		ID:          id2,
 		Title:       "New Title",
 		Description: "New Description",
 	}
-	if _, err := s.Update(t.Context(), want); err != nil {
+	if err := s.Update(t.Context(), want); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got := getCard(t, db, id2); got != (cardRow{ID: want.ID, Title: want.Title, Description: want.Description}) {
+	if got := getCard(t, db, id2); got != cardRow(want) {
 		t.Errorf("updated card: got %+v, want %+v", got, want)
 	}
-	if got := getCard(t, db, id1); got != (cardRow{ID: other.ID, Title: other.Title, Description: other.Description}) {
+	if got := getCard(t, db, id1); got != cardRow(other) {
 		t.Errorf("other card: got %+v, want %+v", got, other)
 	}
 }
@@ -97,16 +95,15 @@ func TestStore_Update_MaxLengths(t *testing.T) {
 	insertCard(t, db, id, "Old Title", "Old Description")
 
 	want := updateParams{
-		Version:     1,
 		ID:          id,
 		Title:       strings.Repeat("\u00E9", domain.TitleMaxLength),
 		Description: strings.Repeat("\u00E9", domain.DescriptionMaxLength),
 	}
-	if _, err := s.Update(t.Context(), want); err != nil {
+	if err := s.Update(t.Context(), want); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got := getCard(t, db, id); got != (cardRow{ID: want.ID, Title: want.Title, Description: want.Description}) {
+	if got := getCard(t, db, id); got != cardRow(want) {
 		t.Errorf("row lengths: got (%d, %d), want (%d, %d)",
 			utf8.RuneCountInString(got.Title), utf8.RuneCountInString(got.Description),
 			utf8.RuneCountInString(want.Title), utf8.RuneCountInString(want.Description))
@@ -119,8 +116,7 @@ func TestStore_Update_NotFound(t *testing.T) {
 	db := testkit.NewDB(t)
 	s := NewStore(db)
 
-	_, err := s.Update(t.Context(), updateParams{
-		Version:     1,
+	err := s.Update(t.Context(), updateParams{
 		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 		Title:       "Title",
 		Description: "Description",
@@ -138,8 +134,7 @@ func TestStore_Update_RejectsNonUUID(t *testing.T) {
 	db := testkit.NewDB(t)
 	s := NewStore(db)
 
-	_, err := s.Update(t.Context(), updateParams{
-		Version:     1,
+	err := s.Update(t.Context(), updateParams{
 		ID:          "not-a-uuid",
 		Title:       "Title",
 		Description: "Description",
@@ -160,7 +155,6 @@ func TestStore_Update_CheckConstraints(t *testing.T) {
 		{
 			name: "empty title",
 			params: updateParams{
-				Version:     1,
 				ID:          id,
 				Title:       "",
 				Description: "Description",
@@ -170,7 +164,6 @@ func TestStore_Update_CheckConstraints(t *testing.T) {
 		{
 			name: "title over max length",
 			params: updateParams{
-				Version:     1,
 				ID:          id,
 				Title:       strings.Repeat("a", domain.TitleMaxLength+1),
 				Description: "Description",
@@ -180,7 +173,6 @@ func TestStore_Update_CheckConstraints(t *testing.T) {
 		{
 			name: "empty description",
 			params: updateParams{
-				Version:     1,
 				ID:          id,
 				Title:       "Title",
 				Description: "",
@@ -190,7 +182,6 @@ func TestStore_Update_CheckConstraints(t *testing.T) {
 		{
 			name: "description over max length",
 			params: updateParams{
-				Version:     1,
 				ID:          id,
 				Title:       "Title",
 				Description: strings.Repeat("a", domain.DescriptionMaxLength+1),
@@ -207,17 +198,16 @@ func TestStore_Update_CheckConstraints(t *testing.T) {
 			s := NewStore(db)
 
 			original := updateParams{
-				Version:     1,
 				ID:          id,
 				Title:       "Original Title",
 				Description: "Original Description",
 			}
 			insertCard(t, db, original.ID, original.Title, original.Description)
 
-			_, err := s.Update(t.Context(), tt.params)
+			err := s.Update(t.Context(), tt.params)
 			testkit.AssertPgConstraint(t, err, tt.wantConstraint)
 
-			if got := getCard(t, db, id); got != (cardRow{ID: original.ID, Title: original.Title, Description: original.Description}) {
+			if got := getCard(t, db, id); got != cardRow(original) {
 				t.Errorf("card after failed update: got %+v, want %+v", got, original)
 			}
 		})
@@ -233,8 +223,7 @@ func TestStore_Update_CanceledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := s.Update(ctx, updateParams{
-		Version:     1,
+	err := s.Update(ctx, updateParams{
 		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 		Title:       "Title",
 		Description: "Description",
@@ -244,7 +233,7 @@ func TestStore_Update_CanceledContext(t *testing.T) {
 	}
 }
 
-func TestStore_Update_VersionAndTimestamps(t *testing.T) {
+func TestStore_Update_Timestamps(t *testing.T) {
 	t.Parallel()
 	db := testkit.NewDB(t)
 	s := NewStore(db)
@@ -256,36 +245,14 @@ func TestStore_Update_VersionAndTimestamps(t *testing.T) {
 		t.Fatalf("insert card: %v", err)
 	}
 	createdBefore, updatedBefore := getTimestamps(t, db, id)
-	p := updateParams{Version: 1, ID: id, Title: "Updated", Description: "Updated description"}
-	version, err := s.Update(t.Context(), p)
-	if err != nil || version != 2 {
-		t.Fatalf("update: version %d, error %v", version, err)
+	p := updateParams{ID: id, Title: "Updated", Description: "Updated description"}
+	if err := s.Update(t.Context(), p); err != nil {
+		t.Fatalf("update: %v", err)
 	}
 	createdAfter, updatedAfter := getTimestamps(t, db, id)
 	if !createdAfter.Equal(createdBefore) || !updatedAfter.After(updatedBefore) {
 		t.Fatalf("timestamps after update: created_at %v (was %v), updated_at %v (was %v)",
 			createdAfter, createdBefore, updatedAfter, updatedBefore)
-	}
-	stale := updateParams{Version: 1, ID: id, Title: "Stale", Description: "Stale description"}
-	if _, err := s.Update(t.Context(), stale); !errors.Is(err, kit.ErrVersionConflict) {
-		t.Fatalf("stale update: %v", err)
-	}
-	if got := getCard(t, db, id); got != (cardRow{ID: p.ID, Title: p.Title, Description: p.Description}) {
-		t.Fatalf("stale update changed row: %+v", got)
-	}
-	createdStale, updatedStale := getTimestamps(t, db, id)
-	if !createdStale.Equal(createdAfter) || !updatedStale.Equal(updatedAfter) {
-		t.Fatalf("stale update changed timestamps: created_at %v, updated_at %v", createdStale, updatedStale)
-	}
-	var storedVersion int64
-	if err := db.QueryRowContext(t.Context(), `SELECT version FROM learning_cards WHERE id = $1`, id).Scan(&storedVersion); err != nil {
-		t.Fatal(err)
-	}
-	if storedVersion != 2 {
-		t.Fatalf("stored version: %d", storedVersion)
-	}
-	if _, err := s.Update(t.Context(), updateParams{Version: 99, ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066d"}); !errors.Is(err, kit.ErrNotFound) {
-		t.Fatalf("unknown card: %v", err)
 	}
 }
 

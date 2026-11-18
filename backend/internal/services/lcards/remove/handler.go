@@ -6,20 +6,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/apotourlyan/ludustudii/internal/kit/etag"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
 )
 
 type deleter interface {
-	Delete(ctx context.Context, p deleteParams) error
+	Delete(ctx context.Context, id string) error
 }
 
 // Handler serves the DELETE /api/lcards/{id} endpoint.
 type Handler struct {
 	store           deleter
 	validateParamID func(id string) error
-	parseVersion    func(string) (int64, error)
 }
 
 // NewHandler returns a Handler that uses s for storage.
@@ -27,13 +25,11 @@ func NewHandler(s deleter) *Handler {
 	return &Handler{
 		store:           s,
 		validateParamID: validateParamID,
-		parseVersion:    etag.ParseVersion,
 	}
 }
 
 // Handle deletes the card whose ID is the {id} path parameter and responds 204,
-// 400 for an invalid ID, 428 for missing or invalid If-Match, 404 for an
-// unknown ID, or 412 for a stale version.
+// 400 for an invalid ID, or 404 for an unknown ID.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
@@ -42,12 +38,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return httpkit.Validation(err)
 	}
 
-	version, err := h.parseVersion(strings.Join(r.Header.Values("If-Match"), ","))
-	if err != nil {
-		return httpkit.PreconditionRequired(err)
-	}
-
-	if err := h.store.Delete(ctx, deleteParams{ID: id, Version: version}); err != nil {
+	if err := h.store.Delete(ctx, id); err != nil {
 		return err
 	}
 

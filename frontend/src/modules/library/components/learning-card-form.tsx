@@ -118,7 +118,7 @@ interface LearningCardFormProps<
 
 // A card as the form saved it: its ID and the title and description sent.
 // The API answers a create with the new card's ID and an update with no
-// body, so the version and timestamps come from the next read.
+// body, so anything else about the card comes from the next read.
 type SavedLearningCard = Pick<LearningCard, "id" | "title" | "description">;
 
 // The form's wording for creating a card and for updating one.
@@ -141,8 +141,6 @@ export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
   props: LearningCardFormProps<TRouter, TOptions>,
 ): ReactNode;
 export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
-  // Retain the version the form opened with across background query refetches.
-  const [editingVersion] = useState(card?.version);
   const [focused, setFocused] = useState<string | null>(null);
   // Whether the last save failed in a way no field shows, so the line next
   // to the buttons has to (ADR 0038: a placeholder until notifications).
@@ -170,11 +168,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
       let id: string;
       try {
         if (card) {
-          await updateLearningCard.mutateAsync({
-            id: card.id,
-            version: editingVersion!,
-            ...input,
-          });
+          await updateLearningCard.mutateAsync({ id: card.id, ...input });
           id = card.id;
         } else {
           ({ id } = await createLearningCard.mutateAsync(input));

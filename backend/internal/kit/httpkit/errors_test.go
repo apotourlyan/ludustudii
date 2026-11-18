@@ -22,7 +22,6 @@ func TestRequestErrorsRetainCause(t *testing.T) {
 		code   string
 	}{
 		{"validation", Validation, http.StatusBadRequest, erresp.CodeValidation},
-		{"precondition", PreconditionRequired, http.StatusPreconditionRequired, erresp.CodePreconditionRequired},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

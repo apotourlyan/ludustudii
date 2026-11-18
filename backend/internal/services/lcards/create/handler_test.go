@@ -103,7 +103,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "success",
 			store: func(m *mockStore) {
 				m.createFn = func(_ context.Context, p createParams) (row, error) {
-					return row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c", Version: 1}, nil
+					return row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c"}, nil
 				}
 			},
 			wantCode:     http.StatusCreated,
@@ -154,9 +154,6 @@ func TestHandler_Handle(t *testing.T) {
 				t.Fatalf("status: got %d, want %d", rec.Code, tt.wantCode)
 			}
 
-			if tt.wantCode == http.StatusCreated && rec.Header().Get("ETag") != `"1"` {
-				t.Errorf("ETag: got %q, want quoted 1", rec.Header().Get("ETag"))
-			}
 			// Check the Location header (set on success only)
 			if got := rec.Header().Get("Location"); got != tt.wantLocation {
 				t.Errorf("location: got %q, want %q", got, tt.wantLocation)
@@ -225,7 +222,7 @@ func TestHandler_Wiring(t *testing.T) {
 	m := &mockStore{
 		createFn: func(_ context.Context, p createParams) (row, error) {
 			gotParams = p
-			return row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c", Version: 1}, nil
+			return row{ID: "01a1730e-199d-7f9f-b59d-3bcd6f84066c"}, nil
 		},
 	}
 	h := NewHandler(m)
@@ -325,7 +322,7 @@ func TestToResp(t *testing.T) {
 	t.Parallel()
 
 	const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
-	got := toResp(row{ID: id, Version: 1})
+	got := toResp(row{ID: id})
 	want := response{ID: id}
 	if got != want {
 		t.Errorf("resp: got %+v, want %+v", got, want)

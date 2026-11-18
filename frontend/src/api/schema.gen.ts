@@ -64,7 +64,7 @@ export interface paths {
         get: operations["getLearningCard"];
         /**
          * Replace a learning card's title and description
-         * @description Both fields must be supplied. This operation does not create a missing card.
+         * @description Both fields must be supplied. This operation does not create a missing card. The last write wins, whatever the client read before.
          */
         put: operations["replaceLearningCard"];
         post?: never;
@@ -160,7 +160,7 @@ export interface components {
         };
         ErrorResponse: {
             /** @enum {string} */
-            code: "bind_error" | "validation_error" | "precondition_required" | "precondition_failed" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
+            code: "bind_error" | "validation_error" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
             /** @description Per-field failures, included only for validation_error responses. */
             errors?: components["schemas"]["FieldError"][];
         };
@@ -181,8 +181,6 @@ export interface components {
             description: components["schemas"]["LearningCardInput"]["description"];
             id: components["schemas"]["CardId"];
             title: components["schemas"]["LearningCardInput"]["title"];
-            /** Format: int64 */
-            version: number;
         };
         /**
          * @description Length constraints apply to the canonical form of each field: NFC
@@ -219,15 +217,6 @@ export interface components {
         };
     };
     responses: {
-        /** @description The corresponding GET succeeded. No response body. */
-        HeadCardSuccess: {
-            headers: {
-                ETag: components["headers"]["ETag"];
-                "X-Request-Id": components["headers"]["RequestId"];
-                [name: string]: unknown;
-            };
-            content?: never;
-        };
         /** @description Invalid query parameters or card ID. No response body. */
         HeadInvalidInput: {
             headers: {
@@ -342,7 +331,7 @@ export interface components {
             };
         };
         /**
-         * @description An invalid path ID returns validation_error with id/invalid_uuid7 before If-Match parsing and body binding. Malformed
+         * @description An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed
          *     JSON or incompatible JSON types return bind_error. Empty bodies and
          *     invalid field values return validation_error.
          */
@@ -380,36 +369,6 @@ export interface components {
                 /**
                  * @example {
                  *       "code": "payload_too_large"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description The card exists but its version does not match If-Match. */
-        PreconditionFailed: {
-            headers: {
-                "X-Request-Id": components["headers"]["RequestId"];
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "code": "precondition_failed"
-                 *     }
-                 */
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description If-Match is missing or is not exactly one strong ETag containing a positive int64. */
-        PreconditionRequired: {
-            headers: {
-                "X-Request-Id": components["headers"]["RequestId"];
-                [name: string]: unknown;
-            };
-            content: {
-                /**
-                 * @example {
-                 *       "code": "precondition_required"
                  *     }
                  */
                 "application/json": components["schemas"]["ErrorResponse"];
@@ -483,11 +442,6 @@ export interface components {
         CardId: string;
         /** @description Opaque pagination token from a previous page's next_cursor. Pass the value unchanged. Omit or send an empty value for the first page. Invalid tokens return validation_error with cursor/invalid_cursor. */
         Cursor: string;
-        /**
-         * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
-         * @example "1"
-         */
-        IfMatch: string;
         /** @description Page size in canonical decimal form, without leading zeros, a plus sign, or whitespace. Omitted or empty values use 20. Malformed or overflowing integers return validation_error with limit/invalid_integer. */
         Limit: number;
         /**
@@ -521,8 +475,6 @@ export interface components {
     headers: {
         /** @description Probe responses must not be cached. */
         CacheControlNoStore: "no-store";
-        /** @description Strong entity tag containing the card's decimal version. */
-        ETag: string;
         /** @description Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid. */
         RequestId: string;
     };
@@ -566,8 +518,7 @@ export interface operations {
                      *         {
                      *           "description": "A specification for describing HTTP APIs.",
                      *           "id": "019a0000-0000-7000-8000-000000000001",
-                     *           "title": "OpenAPI",
-                     *           "version": 1
+                     *           "title": "OpenAPI"
                      *         }
                      *       ],
                      *       "next_cursor": null
@@ -602,7 +553,6 @@ export interface operations {
             /** @description Card created. The body contains its ID and Location contains its relative URL. */
             201: {
                 headers: {
-                    ETag: components["headers"]["ETag"];
                     /** @description Relative URL of the newly created card. */
                     Location: string;
                     "X-Request-Id": components["headers"]["RequestId"];
@@ -671,7 +621,6 @@ export interface operations {
             /** @description The requested card. */
             200: {
                 headers: {
-                    ETag: components["headers"]["ETag"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
@@ -688,7 +637,7 @@ export interface operations {
     replaceLearningCard: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description Optional client-supplied request ID. The first value is reused unchanged only
                  *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
@@ -697,11 +646,6 @@ export interface operations {
                  *     header and included in server logs.
                  */
                 "X-Request-Id"?: components["parameters"]["RequestId"];
-                /**
-                 * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
-                 * @example "1"
-                 */
-                "If-Match": components["parameters"]["IfMatch"];
             };
             path: {
                 /** @description Hyphenated UUIDv7 with the RFC 9562 variant. Hexadecimal letters are case-insensitive. */
@@ -714,7 +658,6 @@ export interface operations {
             /** @description Card updated successfully. No response body. */
             204: {
                 headers: {
-                    ETag: components["headers"]["ETag"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
@@ -722,17 +665,15 @@ export interface operations {
             };
             400: components["responses"]["InvalidReplaceInput"];
             404: components["responses"]["NotFound"];
-            412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
-            428: components["responses"]["PreconditionRequired"];
             500: components["responses"]["UnexpectedError"];
         };
     };
     deleteLearningCard: {
         parameters: {
             query?: never;
-            header: {
+            header?: {
                 /**
                  * @description Optional client-supplied request ID. The first value is reused unchanged only
                  *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
@@ -741,11 +682,6 @@ export interface operations {
                  *     header and included in server logs.
                  */
                 "X-Request-Id"?: components["parameters"]["RequestId"];
-                /**
-                 * @description Exactly one strong quoted positive int64 version. Missing or malformed values return 428; a stale version returns 412. Unknown cards return 404 before version mismatch.
-                 * @example "1"
-                 */
-                "If-Match": components["parameters"]["IfMatch"];
             };
             path: {
                 /** @description Hyphenated UUIDv7 with the RFC 9562 variant. Hexadecimal letters are case-insensitive. */
@@ -765,9 +701,7 @@ export interface operations {
             };
             400: components["responses"]["InvalidCardId"];
             404: components["responses"]["NotFound"];
-            412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
-            428: components["responses"]["PreconditionRequired"];
             500: components["responses"]["UnexpectedError"];
         };
     };
@@ -792,7 +726,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["HeadCardSuccess"];
+            200: components["responses"]["HeadSuccess"];
             400: components["responses"]["HeadInvalidInput"];
             404: components["responses"]["HeadNotFound"];
             413: components["responses"]["HeadPayloadTooLarge"];

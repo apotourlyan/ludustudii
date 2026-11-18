@@ -2,10 +2,7 @@ import { errorMessage, type FailureWording } from "@/shared/error-message";
 
 // What a failure means for a learning card. Failures that aren't about the
 // card, such as the network, get the shared wording.
-const cardFailureWording: FailureWording = (failure, action) => {
-  if (failure.status === 412) {
-    return `This card has changed. Reload it before you ${action}.`;
-  }
+const cardFailureWording: FailureWording = (failure) => {
   if (failure.status === 404) {
     return "This card doesn't exist. It may have been deleted.";
   }

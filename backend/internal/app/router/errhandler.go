@@ -35,13 +35,10 @@ func httpErrorHandler(log *slog.Logger, w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// toStatusError maps storage sentinels to HTTP; anything else must already be a StatusError.
+// toStatusError maps the storage sentinel to HTTP; anything else must already be a StatusError.
 func toStatusError(err error) (*httpkit.StatusError, bool) {
-	switch {
-	case errors.Is(err, kit.ErrNotFound):
+	if errors.Is(err, kit.ErrNotFound) {
 		return httpkit.ErrNotFound, true
-	case errors.Is(err, kit.ErrVersionConflict):
-		return httpkit.ErrPreconditionFailed, true
 	}
 	return errors.AsType[*httpkit.StatusError](err)
 }

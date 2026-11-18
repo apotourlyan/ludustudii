@@ -27,7 +27,6 @@ type row struct {
 	ID          string
 	Title       string
 	Description string
-	Version     int64
 }
 
 // Get returns the card with the given ID, or kit.ErrNotFound.
@@ -35,7 +34,7 @@ func (s *Store) Get(ctx context.Context, id string) (row, error) {
 	var data row
 	err := s.db.
 		QueryRowContext(ctx, getSQL, id).
-		Scan(&data.ID, &data.Title, &data.Description, &data.Version)
+		Scan(&data.ID, &data.Title, &data.Description)
 	if errors.Is(err, sql.ErrNoRows) {
 		return data, kit.ErrNotFound
 	}

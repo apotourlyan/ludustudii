@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/apotourlyan/ludustudii/internal/kit/etag"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/sanitizer"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
@@ -20,7 +19,7 @@ type request struct {
 }
 
 type updater interface {
-	Update(ctx context.Context, p updateParams) (int64, error)
+	Update(ctx context.Context, p updateParams) error
 }
 
 // Handler serves the PUT /api/lcards/{id} endpoint.
@@ -29,7 +28,6 @@ type Handler struct {
 	bind            func(r *http.Request, i any) error
 	validate        func(req request) error
 	validateParamID func(id string) error
-	parseVersion    func(string) (int64, error)
 }
 
 // NewHandler returns a Handler that uses s for storage.
@@ -38,29 +36,21 @@ func NewHandler(s updater) *Handler {
 		store:           s,
 		bind:            bind,
 		validate:        validate,
-		parseVersion:    etag.ParseVersion,
 		validateParamID: validateParamID,
 	}
 }
 
 // Handle sanitizes and validates the JSON title and description, replaces
 // them on the card whose ID is the {id} path parameter and responds 204.
-// Invalid input or an ID that is not a UUIDv7 (case-insensitive) gets 400,
-// an unknown ID gets 404, missing or invalid If-Match gets 428, and a stale
-// version gets 412. Success includes the new version as an ETag. An oversized
-// body (413) or an unsupported Content-Type (415) is returned for the router's
-// error handler to report.
+// Invalid input or an ID that is not a UUIDv7 (case-insensitive) gets 400 and
+// an unknown ID gets 404. An oversized body (413) or an unsupported
+// Content-Type (415) is returned for the router's error handler to report.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
 	id := strings.ToLower(r.PathValue("id"))
 	if err := h.validateParamID(id); err != nil {
 		return httpkit.Validation(err)
-	}
-
-	version, err := h.parseVersion(strings.Join(r.Header.Values("If-Match"), ","))
-	if err != nil {
-		return httpkit.PreconditionRequired(err)
 	}
 
 	var req request
@@ -74,12 +64,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return httpkit.Validation(err)
 	}
 
-	newVersion, err := h.store.Update(ctx, toParams(req, id, version))
-	if err != nil {
+	if err := h.store.Update(ctx, toParams(req, id)); err != nil {
 		return err
 	}
 
-	w.Header().Set("ETag", etag.Format(newVersion))
 	return httpkit.NoContent(w, http.StatusNoContent)
 }
 
@@ -103,9 +91,8 @@ func sanitize(req *request) {
 	req.Description = sanitizer.String(req.Description)
 }
 
-func toParams(req request, id string, version int64) updateParams {
+func toParams(req request, id string) updateParams {
 	return updateParams{
-		Version:     version,
 		ID:          id,
 		Title:       req.Title,
 		Description: req.Description,

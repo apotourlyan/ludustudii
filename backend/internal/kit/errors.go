@@ -3,8 +3,5 @@ package kit
 
 import "errors"
 
-// Shared storage errors distinguish missing resources from stale versions.
-var (
-	ErrNotFound        = errors.New("not found")
-	ErrVersionConflict = errors.New("version conflict")
-)
+// ErrNotFound is the shared storage error for a missing resource.
+var ErrNotFound = errors.New("not found")

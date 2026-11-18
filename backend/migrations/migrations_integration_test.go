@@ -260,17 +260,16 @@ func TestMigrations_LearningCardTimestamps(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	var createdAt, updatedAt time.Time
-	var version int64
 	if err := db.QueryRowContext(ctx, `
 		INSERT INTO learning_cards (title, description, created_at, updated_at)
 		VALUES ('Title', 'Description', now(), now())
-		RETURNING created_at, updated_at, version`,
-	).Scan(&createdAt, &updatedAt, &version); err != nil {
+		RETURNING created_at, updated_at`,
+	).Scan(&createdAt, &updatedAt); err != nil {
 		t.Fatalf("insert with timestamps: %v", err)
 	}
-	if createdAt.IsZero() || !createdAt.Equal(updatedAt) || version != 1 {
-		t.Errorf("insert: created_at %v, updated_at %v, version %d; want set, equal timestamps and version 1",
-			createdAt, updatedAt, version)
+	if createdAt.IsZero() || !createdAt.Equal(updatedAt) {
+		t.Errorf("insert: created_at %v, updated_at %v; want set, equal timestamps",
+			createdAt, updatedAt)
 	}
 
 	// Omitting either column must fail: each is NOT NULL without a default.

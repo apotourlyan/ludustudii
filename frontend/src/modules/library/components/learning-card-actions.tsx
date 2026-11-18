@@ -31,7 +31,7 @@ import { cardErrorMessage } from "./card-error-message";
 const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
 
 // All three, in a row: open, update, delete.
-export function LearningCardActions({ card }: { card: Pick<LearningCard, "id" | "version"> }) {
+export function LearningCardActions({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <div className="flex gap-2">
       <OpenLearningCardLink card={card} />
@@ -68,7 +68,7 @@ export function DeleteLearningCardButton({
   card,
   onDeleted,
 }: {
-  card: Pick<LearningCard, "id" | "version">;
+  card: Pick<LearningCard, "id">;
   onDeleted?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -105,7 +105,7 @@ export function DeleteLearningCardButton({
             disabled={deleteCard.isPending}
             onClick={() =>
               deleteCard.mutate(
-                { id: card.id, version: card.version },
+                { id: card.id },
                 {
                   onSuccess: () => {
                     setOpen(false);

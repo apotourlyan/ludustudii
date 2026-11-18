@@ -9,14 +9,7 @@
 
 import { createOpenApiHttp } from "openapi-msw";
 
-import {
-  etag,
-  ifMatchVersion,
-  isUuid7,
-  requestIdHeader,
-  validationError,
-  type FieldError,
-} from "../../fake/http";
+import { isUuid7, requestIdHeader, validationError, type FieldError } from "../../fake/http";
 import type { paths } from "../../schema.gen";
 import { cardStore, type CardContent, type CardStore } from "./store";
 
@@ -67,13 +60,7 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
       const card = store.create(content);
       return response(201).json(
         { id: card.id },
-        {
-          headers: {
-            ...headers,
-            ETag: etag(card.version),
-            Location: `${CARDS_PATH}/${card.id}`,
-          },
-        },
+        { headers: { ...headers, Location: `${CARDS_PATH}/${card.id}` } },
       );
     }),
 
@@ -89,9 +76,7 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
       if (!card) {
         return response(404).json({ code: "not_found" }, { headers });
       }
-      return response(200).json(card, {
-        headers: { ...headers, ETag: etag(card.version) },
-      });
+      return response(200).json(card, { headers });
     }),
 
     http.put("/api/lcards/{id}", async ({ params, request, response }) => {
@@ -102,31 +87,22 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
         return response(400).json(invalidId, { headers });
       }
 
-      const version = ifMatchVersion(request);
-      if (version === undefined) {
-        return response(428).json({ code: "precondition_required" }, { headers });
-      }
-
       const content = trimmed(await request.json());
       const errors = validateContent(content);
       if (errors.length > 0) {
         return response(400).json(validationError(errors), { headers });
       }
 
-      const result = store.replace(id, version, content);
+      const result = store.replace(id, content);
       switch (result.outcome) {
         case "not_found":
           return response(404).json({ code: "not_found" }, { headers });
-        case "stale":
-          return response(412).json({ code: "precondition_failed" }, { headers });
         case "replaced":
-          return response(204).empty({
-            headers: { ...headers, ETag: etag(result.version) },
-          });
+          return response(204).empty({ headers });
       }
     }),
 
-    http.delete("/api/lcards/{id}", ({ params, request, response }) => {
+    http.delete("/api/lcards/{id}", ({ params, response }) => {
       const headers = requestIdHeader();
 
       const id = params.id.toLowerCase();
@@ -134,17 +110,10 @@ export function lcardsHandlers(baseUrl: string, store: CardStore = cardStore) {
         return response(400).json(invalidId, { headers });
       }
 
-      const version = ifMatchVersion(request);
-      if (version === undefined) {
-        return response(428).json({ code: "precondition_required" }, { headers });
-      }
-
-      const result = store.remove(id, version);
+      const result = store.remove(id);
       switch (result.outcome) {
         case "not_found":
           return response(404).json({ code: "not_found" }, { headers });
-        case "stale":
-          return response(412).json({ code: "precondition_failed" }, { headers });
         case "removed":
           return response(204).empty({ headers });
       }

@@ -1,6 +1,6 @@
 # 0010. Optimistic concurrency with ETag and If-Match
 
-- Status: Accepted
+- Status: Superseded by [0039](../0039-last-write-wins-for-user-edited-resources.md)
 - Date: 2026-11-05
 - Tags: back-end, front-end, api
 
