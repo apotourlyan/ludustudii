@@ -11,18 +11,6 @@ export function isUuid7(id: string): boolean {
   return UUID7.test(id);
 }
 
-// The version an If-Match expects: undefined without the header, which
-// makes the write unconditional, the number in one of the form "<digits>",
-// and 0, which no resource has, for anything else.
-export function ifMatchVersion(request: Request): number | undefined {
-  const value = request.headers.get("If-Match");
-  if (value === null) {
-    return undefined;
-  }
-  const digits = value.match(/^"([0-9]+)"$/)?.[1];
-  return digits === undefined ? 0 : Number(digits);
-}
-
 // The strong ETag for a version.
 export function etag(version: number): string {
   return `"${version}"`;

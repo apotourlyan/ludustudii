@@ -1,8 +1,8 @@
 // The fake lcards service's state and its rules, without HTTP (ADR 0032).
 // It mirrors the backend's stores: IDs are UUIDv7, so ordering by ID is
 // creation order; versions start at 1 and every replace increments them;
-// replace and remove check the expected version, if one is given, and report
-// an unknown card before a stale version. Handlers map the outcomes to HTTP.
+// the last write wins, so replace and remove check nothing but that the card
+// exists (ADR 0039). Handlers map the outcomes to HTTP.
 
 import { uuidv7 } from "../../fake/uuidv7";
 import type { components } from "../../schema.gen";
@@ -17,12 +17,9 @@ export interface CardPage {
   nextCursor: string | null;
 }
 
-export type ReplaceResult =
-  | { outcome: "replaced"; version: number }
-  | { outcome: "not_found" }
-  | { outcome: "stale" };
+export type ReplaceResult = { outcome: "replaced"; version: number } | { outcome: "not_found" };
 
-export type RemoveResult = { outcome: "removed" } | { outcome: "not_found" } | { outcome: "stale" };
+export type RemoveResult = { outcome: "removed" } | { outcome: "not_found" };
 
 export class CardStore {
   readonly #cards = new Map<string, LearningCard>();
@@ -83,26 +80,20 @@ export class CardStore {
     return { ...card };
   }
 
-  replace(id: string, expectedVersion: number | undefined, content: CardContent): ReplaceResult {
+  replace(id: string, content: CardContent): ReplaceResult {
     const card = this.#cards.get(id);
     if (!card) {
       return { outcome: "not_found" };
-    }
-    if (expectedVersion !== undefined && card.version !== expectedVersion) {
-      return { outcome: "stale" };
     }
     const version = card.version + 1;
     this.#cards.set(id, { ...card, ...content, version });
     return { outcome: "replaced", version };
   }
 
-  remove(id: string, expectedVersion: number | undefined): RemoveResult {
+  remove(id: string): RemoveResult {
     const card = this.#cards.get(id);
     if (!card) {
       return { outcome: "not_found" };
-    }
-    if (expectedVersion !== undefined && card.version !== expectedVersion) {
-      return { outcome: "stale" };
     }
     this.#cards.delete(id);
     return { outcome: "removed" };
