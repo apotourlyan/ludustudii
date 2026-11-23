@@ -1,6 +1,6 @@
 # 0036. Pages read route data, components take props, widgets own theirs
 
-- Status: Accepted
+- Status: Accepted, Amended by [0042](0042-component-structure-logic-state-and-view.md) (components with behavior split into state and view)
 - Date: 2026-11-16
 - Tags: front-end, architecture
 

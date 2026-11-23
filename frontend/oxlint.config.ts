@@ -56,8 +56,8 @@ const serviceIndexOnly: RestrictedPattern = {
   message: serviceIndexMessage,
 };
 
-// For src/mock/, service internals are a gitignore group, so a service's
-// fake/ folder can be negated. Oxlint applies a group's negations to every
+// For src/mock/ and tests, service internals are a gitignore group, so a
+// service's fake/ folder can be negated. Oxlint applies a group's negations to every
 // pattern of the rule, so no other pattern next to it may match a path under
 // fake/.
 const serviceIndexOnlyInMock: RestrictedPattern = {
@@ -322,6 +322,26 @@ export default defineConfig({
       },
     },
     {
+      // Tests (ADR 0043), and the helpers they share in src/test/, may
+      // import the fakes and MSW, to seed the fake backend and change what
+      // it answers, through the fakes' own files. The other boundaries of
+      // the code next to them still apply, so each override below that
+      // sets the import rule for code is followed by one for its tests.
+      files: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"],
+      excludeFiles: ["src/api/**", "src/mock/**"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
+          moduleIndexOnly,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
       // The shell mounts the toaster (ADR 0041); the boundaries above
       // still apply.
       files: ["src/app/**"],
@@ -332,6 +352,19 @@ export default defineConfig({
           openapiFetchOutsideApi,
           serviceIndexOnly,
           fakesOnlyInMock,
+          moduleIndexOnly,
+        ),
+      },
+    },
+    {
+      // The shell's tests (ADR 0043).
+      files: ["src/app/**/*.test.ts", "src/app/**/*.test.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
           moduleIndexOnly,
         ),
       },
@@ -376,6 +409,25 @@ export default defineConfig({
       },
     },
     {
+      // Tests at a module's root (ADR 0043).
+      files: ["src/modules/*/*.test.ts", "src/modules/*/*.test.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleAtRoot,
+          ownIndexAtRoot,
+          dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
       // A file one folder down in a module, such as pages/cards-page.tsx.
       files: ["src/modules/*/*/*"],
       rules: {
@@ -385,6 +437,25 @@ export default defineConfig({
           openapiFetchOutsideApi,
           serviceIndexOnly,
           fakesOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleOneDown,
+          ownIndexOneDown,
+          dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
+      // Tests one folder down in a module, such as model/'s (ADR 0043).
+      files: ["src/modules/*/*/*.test.ts", "src/modules/*/*/*.test.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
           noOtherModules,
           noShellOrRoutes,
           climbOutOfModuleOneDown,
@@ -423,6 +494,29 @@ export default defineConfig({
       },
     },
     {
+      // A module's component tests (ADR 0043): a test renders what it
+      // tests with the helpers in src/test/, which provide the query client.
+      files: ["src/modules/*/components/*.test.ts", "src/modules/*/components/*.test.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryInComponents,
+          navigationInComponents,
+          routeDataInComponents,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleOneDown,
+          ownIndexOneDown,
+          dotDotAfterFolder,
+          widgetsInComponents,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
       // A file two or more folders down in a module.
       files: ["src/modules/**"],
       excludeFiles: ["src/modules/*/*", "src/modules/*/*/*"],
@@ -433,6 +527,26 @@ export default defineConfig({
           openapiFetchOutsideApi,
           serviceIndexOnly,
           fakesOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleDeeper,
+          ownIndexDeeper,
+          dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
+      // Tests two or more folders down in a module (ADR 0043).
+      files: ["src/modules/**/*.test.ts", "src/modules/**/*.test.tsx"],
+      excludeFiles: ["src/modules/*/*", "src/modules/*/*/*"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
           noOtherModules,
           noShellOrRoutes,
           climbOutOfModuleDeeper,
@@ -473,6 +587,20 @@ export default defineConfig({
           phosphorMainEntry,
           fakesInApiProduction,
           mswInApiProduction,
+          moduleIndexOnly,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
+      // The API layer's tests (ADR 0043), which may drive a request with
+      // MSW or the fakes.
+      files: ["src/api/**/*.test.ts", "src/api/**/*.test.tsx"],
+      excludeFiles: ["src/api/fake.ts", "src/api/fake/**", "src/api/*/fake/**"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
           moduleIndexOnly,
           toastEntryOutsideShell,
           toastOutsideShell,

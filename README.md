@@ -319,8 +319,9 @@ frontend/
 │   │   └── notify.ts       # notifyError: reports a failure as a toast
 │   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
 │   ├── mock/               # the mock mode's start-up and scenarios
+│   ├── test/               # what the unit and component tests share: the fake backend in the test page, render helpers
 │   └── styles/             # Tailwind theme and the ejected shadcn CSS
-├── tests/                  # browser tests: mock/, e2e/ and shared support/
+├── tests/                  # Playwright's browser tests: mock/, e2e/ and shared support/
 └── tools/                  # the API type generator, with its own pinned TypeScript 5
 ```
 
@@ -576,6 +577,13 @@ decides how the client app reports outcomes and waits.
 - The API layer's boundaries apply everywhere outside `src/api/`: a service
   only through `@/api/<service>`, no `fetch`, `openapi-fetch` or `useQuery`,
   and the fakes only from `src/mock/` and tests.
+- A test (`*.test.ts`, `*.test.tsx`) has the boundaries of the code next
+  to it, except that it may import the fakes and MSW through their own
+  files, as may the helpers in `src/test/`; `src/shared/`'s tests keep all
+  of `src/shared/`'s. Each override that sets the import rule for code is
+  followed by one for its tests, which lists the same restrictions with
+  `serviceIndexOnlyInMock` for `serviceIndexOnly` and without the fakes'
+  and MSW's (ADR 0043).
 
 ### Where a new file goes
 
@@ -653,6 +661,7 @@ Each tool version has one source, which the devcontainer and CI both read:
 | oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 | Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
 | Playwright (`@playwright/test`) and its Chromium | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; the browser build is the one that version expects | `make frontend-deps` and the devcontainer install both; CI caches the browser keyed by the locked version |
+| Vitest (`vitest`, `@vitest/browser-playwright`, `vitest-browser-react`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; browser mode drives the `playwright` that `@playwright/test` brings, so it uses the same Chromium | `make frontend-deps` installs them, as does the devcontainer |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
@@ -664,7 +673,9 @@ the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
 `frontend/` and `make frontend-lint`, and fix or configure what it reports in
 the same change. To upgrade Playwright, change its pin, run `npm install` and
 `make frontend-deps` (which downloads the new browser once), and run both kinds
-of [browser test](#browser-tests).
+of [browser test](#browser-tests) and `make frontend-unit`. To upgrade Vitest,
+change the pins of `vitest` and `@vitest/browser-playwright` together (they
+release in lockstep), run `npm install` and `make frontend-unit`.
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -917,6 +928,75 @@ Every response received through `testkit.Do` is validated against the OpenAPI
 spec (status, headers and body schema), so the implementation and the spec
 can't drift apart unnoticed.
 
+#### Unit and component tests
+
+[Vitest](https://vitest.dev) runs the client app's unit and component tests
+([ADR 0043](docs/adr/0043-unit-and-component-tests-with-vitest.md)).
+`frontend/vitest.config.ts` builds them with the app's Vite config, so
+imports, aliases and plugins behave as in the app. A test sits next to the
+file it tests, and its name decides where it runs:
+
+| File | Vitest project | Runs in | For |
+| --- | --- | --- | --- |
+| `<name>.test.ts` | `unit` | Node, without a DOM | Plain functions: a module's `model/`, the logic in `src/shared/` |
+| `<name>.test.tsx` | `browser` | Chromium's headless shell, through Playwright, the one `make frontend-deps` installs | State hooks, rendered with `renderHook`, and views, rendered with `render`, both from `vitest-browser-react` |
+
+The client app's test layers, lowest first:
+
+| Layer | Covers | Doesn't cover |
+| --- | --- | --- |
+| `model/` tests | Every rule and its edge cases | Rendering |
+| State hook tests | Workflows: what a submit or delete does on success and failure, the values the view gets | Markup |
+| View tests | Each state the view can show, from given props: labels, disabled controls, errors, empty states | Data, navigation |
+| Playwright mock ([Browser tests](#browser-tests)) | Flows across pages: navigation, history, scroll restoration, virtualization, layout | Single rules and states |
+| Playwright e2e | Success paths against the real backend | Edge cases |
+
+A check belongs to the lowest layer that can make it: a field's message for
+one code is a `model/` test, not a page, a form and a submit in Playwright.
+
+```sh
+make frontend-unit                                          # every test, as make check runs them
+make frontend-unit ARGS='src/shared/field-errors.test.ts'   # one file (or a folder)
+make frontend-unit ARGS='--project unit -t canonicalize'    # Node tests whose name matches
+cd frontend && npx vitest                                   # watch mode: reruns what a change affects
+```
+
+`make frontend-unit` fails on a `test.only` left behind. A failed browser
+test leaves a screenshot in `frontend/.vitest/attachments/`.
+
+**Browser tests run against the fake backend**
+([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)), started in
+the test page with MSW's service worker by `src/test/setup.browser.ts`, with
+the same handlers as the mock mode; an API request the fake has no handler
+for fails as a network error. The network is the seam: a test seeds the
+fake through its own modules (`cardStore.seed(makeCards(3))`) and changes
+what it answers with `fakeBackend.use(...)` from `src/test/fake-backend.ts`,
+rather than mocking the API layer. Use `vi.mock` only for what isn't the
+network, and Vitest's fake timers (`vi.useFakeTimers()`) for the clock.
+Test files and `src/test/` may import the fakes and MSW, except in
+`src/shared/`, which knows no service; every other boundary of the code
+next to them applies ([Boundaries](#boundaries)).
+
+**Each test is isolated.** After every test the fake's stores are emptied
+and the handlers a test added are removed. `renderWithProviders(ui, { url })`
+and `renderHookWithProviders(hook)` in `src/test/render.tsx` render with a
+new query client with the app's defaults (retries without the delay), and,
+given a `url`, in a router, for a component that renders links. Everything
+renders in React's `StrictMode`, as the app does. A test finds elements by
+role, label and text, as the Playwright tests do.
+
+The mock mode stays out of these builds: `msw()` from `msw/vite` and
+`virtual:msw` are only in the app's config in the mock mode, which
+`vitest.config.ts` refuses, and the tests' config leaves out the dev
+server's proxy, so a request the fake misses never reaches a running
+backend. It serves MSW's worker script itself, and nothing else of the mock
+mode.
+
+A test that waits for a suspending query, such as a component reading the
+cards, takes about 0.8 s: React shows suspended content after 300 ms, as in
+the app, and the locator retries on a backoff. A view test with given props
+takes milliseconds.
+
 #### Browser tests
 
 [Playwright](https://playwright.dev) drives the client app in Chromium
@@ -989,7 +1069,9 @@ window, so a test reaches an item by its position among all the cards
 title (`cardItem`), and scrolls the window (`scrollWindow`) to bring others
 in.
 
-**A new feature adds its tests** in the same pull request: app tests for its
+**A new feature adds its tests** in the same pull request: [unit and
+component tests](#unit-and-component-tests) for its rules, state hooks and
+views, next to them; app tests for its
 flows, error paths included, in `tests/mock/<feature>.spec.ts`, with the fake
 extended for what they need ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md));
 an end-to-end test for its main success path, with uniquely named data, in
@@ -1088,6 +1170,7 @@ tooling is kept out of `go.mod`.
 | `make frontend-fmt` | Format the client app with oxfmt. |
 | `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
 | `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
+| `make frontend-unit` | Run the client app's unit tests in Node and its component tests in Chromium, with Vitest. |
 | `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
@@ -1097,7 +1180,7 @@ tooling is kept out of `go.mod`.
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
 `generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
-`frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
+`frontend-unit`, `frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
 the first failure. It needs the frontend dependencies and Playwright's
 Chromium (`make frontend-deps`). The end-to-end tests (`make test-e2e`) aren't
 part of it; CI runs them in their own job.

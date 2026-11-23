@@ -12,20 +12,25 @@ const QUERY_MAX_RETRIES = 2;
 const isRetryable = (error: unknown) =>
   error instanceof ApiError && (error.failure.kind === "network" || error.failure.status >= 500);
 
+// A query client with the app's defaults. By default TanStack Query pauses
+// requests while the browser reports being offline, which leaves a loading
+// page up until the connection returns. 'always' sends them anyway, so
+// going offline fails like any other network failure: retried as above,
+// then reported. Tests make one per test (ADR 0043).
+export function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        networkMode: "always",
+        staleTime: QUERY_STALE_TIME_MS,
+        retry: (failureCount, error) => isRetryable(error) && failureCount < QUERY_MAX_RETRIES,
+      },
+      mutations: {
+        networkMode: "always",
+      },
+    },
+  });
+}
+
 // The app's one query client (ADR 0030), passed to the router's context.
-// By default TanStack Query pauses requests while the browser reports being
-// offline, which leaves a loading page up until the connection returns.
-// 'always' sends them anyway, so going offline fails like any other network
-// failure: retried as above, then reported.
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      networkMode: "always",
-      staleTime: QUERY_STALE_TIME_MS,
-      retry: (failureCount, error) => isRetryable(error) && failureCount < QUERY_MAX_RETRIES,
-    },
-    mutations: {
-      networkMode: "always",
-    },
-  },
-});
+export const queryClient = createQueryClient();

@@ -14,6 +14,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --list-different",
     "lint": "oxlint",
+    "test:unit": "vitest run",
     "test:mock": "playwright test -c playwright.mock.config.ts",
     "test:e2e": "playwright test -c playwright.e2e.config.ts",
     "preview": "vite preview"
@@ -47,6 +48,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/browser-playwright": "5.1.1",
     "msw": "^3.0.5",
     "openapi-msw": "^2.1.1",
     "oxfmt": "0.78.0",
@@ -54,7 +56,9 @@
     "oxlint-tsgolint": "7.0.2007",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "5.1.1",
+    "vitest-browser-react": "2.3.0"
   },
   "engines": {
     "node": "26.x"
