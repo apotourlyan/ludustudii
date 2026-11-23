@@ -14,6 +14,7 @@ test("a failing server shows the error page", async ({ page }) => {
     "Something went wrong while trying to load this page.",
     { timeout: 10_000 },
   );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("This page couldn't load");
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 });
 

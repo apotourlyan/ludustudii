@@ -1,5 +1,6 @@
 // A card's URL, of its page or its editor, whose ID is malformed or names
-// no card shows the not-found page, whose link leads back to the list.
+// no card shows the card's not-found page, whose link leads back to the
+// list. Any other URL that names no page shows the app's (ADR 0041).
 
 import { expect, test } from "@playwright/test";
 
@@ -28,4 +29,18 @@ for (const { name, id } of cases) {
       await expect(cardItems(page)).toHaveCount(8);
     });
   }
+}
+
+for (const path of ["/nope", "/library/nope", "/library/cards/not-a-card-id/nope"]) {
+  test(`an unknown URL, ${path}, shows the not-found page`, async ({ page }) => {
+    await page.goto(path);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+    await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toHaveCount(0);
+    await page.getByRole("link", { name: "Go to the library" }).click();
+
+    await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
+    await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
+    await expect(cardItems(page)).toHaveCount(8);
+  });
 }

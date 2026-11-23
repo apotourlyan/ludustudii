@@ -1,5 +1,5 @@
-// Every library page has exactly one level-1 heading, its own, and one main
-// landmark, the root layout's (ADR 0036). A card's Markdown adds none: its
+// Every page has exactly one level-1 heading, its own, and one main
+// landmark, the root layout's (ADR 0036), the failure pages too (ADR 0041). A card's Markdown adds none: its
 // title renders inline and its headings start at level 2, which
 // card-markdown.spec.ts checks with a card that has "#" lines.
 
@@ -63,6 +63,25 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
       await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
     },
   })),
+  {
+    name: "the not-found page at an unknown URL",
+    heading: "Page not found",
+    open: async (page) => {
+      await page.goto("/library/nope");
+      await expect(page.getByRole("link", { name: "Go to the library" })).toBeVisible();
+    },
+  },
+  {
+    name: "the error page",
+    heading: "This page couldn't load",
+    open: async (page) => {
+      // Shown after the retries, about 3 seconds (failures.spec.ts).
+      await page.goto("/library/cards?scenario=failing");
+      await expect(page.getByRole("button", { name: "Try again" })).toBeVisible({
+        timeout: 10_000,
+      });
+    },
+  },
 ];
 
 for (const { name, heading, open } of pages) {

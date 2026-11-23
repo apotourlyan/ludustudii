@@ -2,6 +2,7 @@ import { createRouter } from "@tanstack/react-router";
 
 import { routeTree } from "@/routeTree.gen";
 
+import { NotFoundPage } from "./not-found-page";
 import { queryClient } from "./query-client";
 import { RouteError } from "./route-error";
 import { RoutePending } from "./route-pending";
@@ -23,6 +24,7 @@ export const router = createRouter({
   scrollRestoration: true,
   defaultPendingComponent: RoutePending,
   defaultErrorComponent: RouteError,
+  defaultNotFoundComponent: NotFoundPage,
 });
 
 declare module "@tanstack/react-router" {
