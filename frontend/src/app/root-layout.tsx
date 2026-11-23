@@ -1,6 +1,8 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import * as React from "react";
 
+import { NavigationProgress } from "./navigation-progress";
+
 // Conditionally load devtools only in development
 const TanStackRouterDevtools = import.meta.env.PROD
   ? () => null
@@ -10,11 +12,13 @@ const TanStackRouterDevtools = import.meta.env.PROD
       })),
     );
 
-// The layout around every page: the navigation, then the current route in
-// the page's one <main> landmark, which pages leave to this layout (ADR 0036).
+// The layout around every page: the navigation progress bar (ADR 0041),
+// the navigation, then the current route in the page's one <main>
+// landmark, which pages leave to this layout (ADR 0036).
 export function RootLayout() {
   return (
     <React.Fragment>
+      <NavigationProgress />
       <nav className="flex gap-4 p-6">
         {/* Exact, so the list's link isn't also marked as the current page
             on the pages below it, such as /library/cards/new. Search params
