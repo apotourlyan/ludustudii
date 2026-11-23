@@ -1,6 +1,6 @@
 # 0038. Form validation errors
 
-- Status: Accepted
+- Status: Accepted, Amended by [0041](0041-feedback-toasts-page-states-and-navigation-progress.md) (the placeholder line becomes a toast)
 - Date: 2026-11-17
 - Tags: front-end, forms, api
 
