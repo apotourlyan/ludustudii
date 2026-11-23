@@ -1,4 +1,4 @@
-import { useStore } from "@tanstack/react-form";
+import { useSelector } from "@tanstack/react-form";
 import type { RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
@@ -141,15 +141,17 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
     void form.handleSubmit();
   }
 
-  const values = useStore(form.store, (state) => state.values);
-  const titleCodes = useStore(form.store, (state) => state.fieldMeta.title?.errors);
-  const descriptionCodes = useStore(form.store, (state) => state.fieldMeta.description?.errors);
+  // Each field's value and errors, for its counter and status bar. A
+  // field's meta exists once it is mounted; until then it has no errors.
+  const titleValue = useSelector(form.store, (state) => state.values.title);
+  const titleCodes = useSelector(form.store, (state) => state.fieldMeta.title?.errors);
+  const descriptionValue = useSelector(form.store, (state) => state.values.description);
+  const descriptionCodes = useSelector(form.store, (state) => state.fieldMeta.description?.errors);
 
-  // What a field's bands show, and what the view binds it with. A field's
-  // meta exists once it is mounted; until then it has no errors.
-  function fieldProps(name: CardField, codes: CardFieldCodes = []) {
+  // What a field's bands show, and what the view binds it with.
+  function fieldProps(name: CardField, value: string, codes: CardFieldCodes = []) {
     return {
-      ...cardFieldDisplay(name, values[name], codes),
+      ...cardFieldDisplay(name, value, codes),
       name,
       validators: FIELD_VALIDATORS[name],
       maxLength: CARD_LIMITS[name] * INPUT_SLACK,
@@ -160,15 +162,15 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   }
 
   // Saving: the form is submitting, or its request is in flight.
-  const saving = useStore(form.store, (state) => state.isSubmitting) || mutation.isPending;
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  const canSubmit = useSelector(form.store, (state) => state.canSubmit);
 
   return {
     form,
     formRef,
     onSubmit,
-    title: fieldProps("title", titleCodes),
-    description: fieldProps("description", descriptionCodes),
+    title: fieldProps("title", titleValue, titleCodes),
+    description: fieldProps("description", descriptionValue, descriptionCodes),
     cancel,
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,

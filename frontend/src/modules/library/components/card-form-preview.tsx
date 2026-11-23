@@ -1,4 +1,4 @@
-import { useStore } from "@tanstack/react-form";
+import { useSelector } from "@tanstack/react-form";
 
 import { LearningCardPreview } from "./learning-card-preview";
 import { withCardForm } from "./use-card-form";
@@ -10,7 +10,7 @@ export const CardFormPreview = withCardForm({
   defaultValues: { title: "", description: "" },
   props: { className: undefined as string | undefined },
   render: function CardFormPreview({ form, className }) {
-    const values = useStore(form.store, (state) => state.values);
+    const values = useSelector(form.store, (state) => state.values);
     return <LearningCardPreview card={values} className={className} />;
   },
 });
