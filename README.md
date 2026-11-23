@@ -993,7 +993,7 @@ and the handlers a test added are removed. `renderWithProviders(ui, { url })`
 and `renderHookWithProviders(hook)` in `src/test/render.tsx` render with a
 new query client with the app's defaults (retries without the delay), and,
 given a `url`, in a router, for a component that renders links. Everything
-renders in React's `StrictMode`, as the app does. A test finds elements by
+renders in React's `StrictMode` and with the app's styles, as the app does. A test finds elements by
 role, label and text, as the Playwright tests do.
 
 The mock mode stays out of these builds: `msw()` from `msw/vite` and

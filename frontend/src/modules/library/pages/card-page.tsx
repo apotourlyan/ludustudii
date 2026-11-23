@@ -3,10 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { lcardQueries } from "@/api/lcards";
 
-import {
-  DeleteLearningCardButton,
-  UpdateLearningCardLink,
-} from "../components/learning-card-actions";
+import { DeleteLearningCardButton } from "../components/delete-learning-card-button";
+import { UpdateLearningCardLink } from "../components/learning-card-actions";
 import { LearningCardDisplay } from "../components/learning-card-view";
 
 // One learning card, its title the page's heading. Reads what loadCardPage,
