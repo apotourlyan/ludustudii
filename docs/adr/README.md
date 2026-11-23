@@ -74,10 +74,12 @@ Records in force. Superseded records are kept as history in
 | [0032](0032-stateful-fake-backend-with-msw.md) | Stateful fake backend with MSW | Accepted, Amended by [0039](0039-last-write-wins-for-user-edited-resources.md) | front-end, testing, api |
 | [0033](0033-oxlint-and-oxfmt-for-the-client-app.md) | Oxlint and oxfmt for the client app | Accepted, Amended by [0037](0037-client-lint-config-written-in-typescript.md) | front-end, tooling |
 | [0034](0034-browser-tests-with-playwright.md) | Browser tests with Playwright | Accepted | front-end, testing, tooling |
-| [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md) | front-end, architecture |
-| [0036](0036-pages-read-route-data-components-take-props.md) | Pages read route data, components take props, widgets own theirs | Accepted | front-end, architecture |
+| [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md), [0042](0042-component-structure-logic-state-and-view.md) | front-end, architecture |
+| [0036](0036-pages-read-route-data-components-take-props.md) | Pages read route data, components take props, widgets own theirs | Accepted, Amended by [0042](0042-component-structure-logic-state-and-view.md) | front-end, architecture |
 | [0037](0037-client-lint-config-written-in-typescript.md) | Client lint config written in TypeScript | Accepted | front-end, tooling |
 | [0038](0038-form-validation-errors.md) | Form validation errors | Accepted, Amended by [0041](0041-feedback-toasts-page-states-and-navigation-progress.md) | front-end, forms, api |
 | [0039](0039-last-write-wins-for-user-edited-resources.md) | Last write wins for user-edited resources | Accepted | back-end, front-end, api, database |
 | [0040](0040-row-timestamps-in-the-api.md) | Row timestamps in the API | Accepted | back-end, front-end, api |
 | [0041](0041-feedback-toasts-page-states-and-navigation-progress.md) | Feedback: toasts, page states and navigation progress | Accepted | front-end, ux, accessibility |
+| [0042](0042-component-structure-logic-state-and-view.md) | Component structure: logic, state and view | Accepted | front-end, architecture, testing |
+| [0043](0043-unit-and-component-tests-with-vitest.md) | Unit and component tests with Vitest | Accepted | front-end, testing |
