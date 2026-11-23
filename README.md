@@ -566,6 +566,14 @@ decides how the client app reports outcomes and waits.
   `src/modules/*/components/*` lists the module boundaries of its depth
   and adds these; `components/` is flat, since the override covers only
   files directly in it.
+- A module's `model/` is plain TypeScript (ADR 0042): no `react` or
+  `react-dom`, no `@tanstack/*`, no `@/shared/ui/`, none of the module's
+  `components/` or `pages/`, and from the API layer only `import type`
+  (the rule's `allowTypeImports`). Its tests may also import the API
+  layer's values and the fakes.
+- A component's view (`components/<name>.view.tsx`, ADR 0042) imports
+  nothing from `@/api/`, types included, and nothing from
+  `@tanstack/react-query`; its props type comes from its state hook.
 - A page file exports only its component (`react/only-export-components`),
   which keeps its load function in its own `.load.ts` file. That a load
   file imports no UI is checked in review.
@@ -1216,7 +1224,7 @@ later formatting-only commit adds its hash to the file.
 
 Oxlint lints the client app with type-aware rules, configured in
 `frontend/oxlint.config.ts` (ADR 0033, ADR 0037): the correctness and suspicious
-categories as errors, the promise and React hooks rules, and the module
+categories as errors, the promise and React hooks rules, `no-nested-ternary` (ADR 0042), and the module
 boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,

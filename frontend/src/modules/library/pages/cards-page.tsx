@@ -25,6 +25,7 @@ export function CardsPage() {
   // start there instead of rendering the top first.
   const initialScrollOffset =
     useElementScrollRestoration({ getElement: () => window })?.scrollY ?? 0;
+  const CardsView = view === "list" ? LearningCardList : LearningCardGrid;
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -51,10 +52,8 @@ export function CardsPage() {
 
       {cards.length === 0 ? (
         <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
-      ) : view === "list" ? (
-        <LearningCardList cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
       ) : (
-        <LearningCardGrid cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
+        <CardsView cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
       )}
     </div>
   );
