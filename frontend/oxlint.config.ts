@@ -261,9 +261,10 @@ const sharedUiInModel: RestrictedPattern = {
   message: modelMessage,
 };
 
-// ../components/... and ../pages/... from model/.
-const componentsOrPagesInModel: RestrictedPattern = {
-  regex: "^(\\.{1,2}/)+(components|pages)(/|$)",
+// ../components/..., ../pages/... and ../widgets/... from model/: a
+// module's components, wherever they live.
+const componentsInModel: RestrictedPattern = {
+  regex: "^(\\.{1,2}/)+(components|pages|widgets)(/|$)",
   message: modelMessage,
 };
 
@@ -528,8 +529,8 @@ export default defineConfig({
     },
     {
       // A module's model/ (ADR 0042): plain functions, which import no
-      // React, no TanStack, no UI and none of the module's components or
-      // pages, and from the API layer only types; the boundaries one folder
+      // React, no TanStack, no UI and none of the module's components,
+      // pages or widgets, and from the API layer only types; the boundaries one folder
       // down still apply. Comes after the overrides above, so it applies to
       // these files instead.
       files: ["src/modules/*/model/*"],
@@ -549,7 +550,7 @@ export default defineConfig({
           reactInModel,
           tanstackInModel,
           sharedUiInModel,
-          componentsOrPagesInModel,
+          componentsInModel,
           apiValuesInModel,
         ),
       },
@@ -573,7 +574,7 @@ export default defineConfig({
           reactInModel,
           tanstackInModel,
           sharedUiInModel,
-          componentsOrPagesInModel,
+          componentsInModel,
         ),
       },
     },

@@ -578,9 +578,9 @@ decides how the client app reports outcomes and waits.
   files directly in it.
 - A module's `model/` is plain TypeScript (ADR 0042): no `react` or
   `react-dom`, no `@tanstack/*`, no `@/shared/ui/`, none of the module's
-  `components/` or `pages/`, and from the API layer only `import type`
-  (the rule's `allowTypeImports`). Its tests may also import the API
-  layer's values and the fakes.
+  `components/`, `pages/` or `widgets/`, and from the API layer only
+  `import type` (the rule's `allowTypeImports`). Its tests may also import
+  the API layer's values and the fakes.
 - A component's view (`components/<name>.view.tsx`, ADR 0042) imports
   nothing from `@/api/`, types included, and nothing from
   `@tanstack/react-query`; its props type comes from its state hook.
