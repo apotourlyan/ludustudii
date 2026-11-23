@@ -8,8 +8,14 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
 
-import { cardIdFromPath, deleteCard, NOT_FOUND_TEXT } from "../support/cards";
+import { cardIdFromPath, cardIdOf, deleteCard, NOT_FOUND_TEXT } from "../support/cards";
 import { findCard } from "../support/overview";
+import {
+  createCardThroughUi,
+  editCardThroughUi,
+  expectMark,
+  RECENT_CHANGE_WINDOW_MS,
+} from "../support/recent-changes";
 
 // A title no other test or run uses.
 function uniqueTitle(label: string): string {
@@ -83,6 +89,51 @@ test("a card's URL opens its page, and its editor's URL the form", async ({ page
   // Keeps the list short for the other tests; the database goes when the
   // run ends either way.
   const deleted = await request.delete(location);
+  expect(deleted.status()).toBe(204);
+});
+
+// A card response's timestamps, in milliseconds since the epoch.
+function cardTimes(body: unknown): { createdAt: number; updatedAt: number } {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("created_at" in body) ||
+    !("updated_at" in body) ||
+    typeof body.created_at !== "string" ||
+    typeof body.updated_at !== "string"
+  ) {
+    throw new Error(`not a card with timestamps: ${JSON.stringify(body)}`);
+  }
+  return { createdAt: Date.parse(body.created_at), updatedAt: Date.parse(body.updated_at) };
+}
+
+// The overview marks cards by the server's timestamps, compared with the
+// browser's clock (ADR 0040). A card created and then edited within five
+// minutes stays new; to see the updated mark without waiting, the page's
+// clock is then set between the two: more than five minutes after the card
+// was created, and less than five after it was updated.
+test("the overview marks a card created and edited through the UI", async ({ page, request }) => {
+  const title = uniqueTitle("Marked");
+
+  await page.goto("/library/cards");
+  await createCardThroughUi(page, title);
+  const created = await findCard(page, title);
+  await expectMark(created, "New", title);
+  const id = await cardIdOf(created);
+
+  await editCardThroughUi(page, created, title);
+  await expectMark(await findCard(page, title), "New", title);
+
+  const response = await request.get(`/api/lcards/${id}`);
+  expect(response.status()).toBe(200);
+  const { createdAt, updatedAt } = cardTimes(await response.json());
+  expect(updatedAt, "updated_at after the edit").toBeGreaterThan(createdAt);
+
+  await page.clock.setFixedTime(createdAt + RECENT_CHANGE_WINDOW_MS + (updatedAt - createdAt) / 2);
+  await page.reload();
+  await expectMark(await findCard(page, title), "Updated", title);
+
+  const deleted = await request.delete(`/api/lcards/${id}`);
   expect(deleted.status()).toBe(204);
 });
 

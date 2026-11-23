@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
@@ -18,9 +19,11 @@ type request struct {
 }
 
 type item struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type response struct {
@@ -104,7 +107,7 @@ func toParams(req request) listParams {
 func toResp(data page) response {
 	items := make([]item, 0, len(data.Rows))
 	for _, d := range data.Rows {
-		items = append(items, item(d))
+		items = append(items, toItem(d))
 	}
 
 	var next *string
@@ -113,4 +116,16 @@ func toResp(data page) response {
 	}
 
 	return response{Items: items, NextCursor: next}
+}
+
+// toItem returns the card with its timestamps in UTC, which JSON encodes as
+// RFC 3339.
+func toItem(data row) item {
+	return item{
+		ID:          data.ID,
+		Title:       data.Title,
+		Description: data.Description,
+		CreatedAt:   data.CreatedAt.UTC(),
+		UpdatedAt:   data.UpdatedAt.UTC(),
+	}
 }

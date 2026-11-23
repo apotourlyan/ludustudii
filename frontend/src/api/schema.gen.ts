@@ -178,9 +178,24 @@ export interface components {
             field: string;
         };
         LearningCard: {
+            /**
+             * Format: date-time
+             * @description When the card was created, as an RFC 3339 timestamp in UTC, from the
+             *     database's clock. Read-only: request bodies don't take it.
+             * @example 2026-11-18T09:30:00.123456Z
+             */
+            readonly created_at: string;
             description: components["schemas"]["LearningCardInput"]["description"];
             id: components["schemas"]["CardId"];
             title: components["schemas"]["LearningCardInput"]["title"];
+            /**
+             * Format: date-time
+             * @description When the card was last changed, as an RFC 3339 timestamp in UTC, from
+             *     the database's clock. Equals created_at until the first update, and
+             *     changes with every update. Read-only: request bodies don't take it.
+             * @example 2026-11-18T09:42:10.654321Z
+             */
+            readonly updated_at: string;
         };
         /**
          * @description Length constraints apply to the canonical form of each field: NFC
@@ -297,7 +312,8 @@ export interface components {
             };
         };
         /**
-         * @description Malformed JSON or incompatible JSON types return bind_error. Empty
+         * @description Malformed JSON, incompatible JSON types and unknown fields, including
+         *     the card's read-only created_at and updated_at, return bind_error. Empty
          *     bodies and invalid field values return validation_error.
          */
         InvalidCreateInput: {
@@ -332,7 +348,8 @@ export interface components {
         };
         /**
          * @description An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed
-         *     JSON or incompatible JSON types return bind_error. Empty bodies and
+         *     JSON, incompatible JSON types and unknown fields, including the card's
+         *     read-only created_at and updated_at, return bind_error. Empty bodies and
          *     invalid field values return validation_error.
          */
         InvalidReplaceInput: {
@@ -458,7 +475,8 @@ export interface components {
          * @description JSON card content. Each field is NFC normalized and trimmed, then must be
          *     1 to its maximum length in code points (see LearningCardInput). Omitted or
          *     null fields are treated as empty and fail validation. Unknown JSON
-         *     properties are ignored.
+         *     properties, including the card's read-only created_at and updated_at,
+         *     are rejected with bind_error.
          */
         LearningCardInput: {
             content: {
@@ -516,9 +534,11 @@ export interface operations {
                      * @example {
                      *       "items": [
                      *         {
+                     *           "created_at": "2026-11-18T09:30:00.123456Z",
                      *           "description": "A specification for describing HTTP APIs.",
                      *           "id": "019a0000-0000-7000-8000-000000000001",
-                     *           "title": "OpenAPI"
+                     *           "title": "OpenAPI",
+                     *           "updated_at": "2026-11-18T09:42:10.654321Z"
                      *         }
                      *       ],
                      *       "next_cursor": null

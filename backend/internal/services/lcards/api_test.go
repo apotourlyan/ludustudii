@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/app/api"
 	"github.com/apotourlyan/ludustudii/internal/app/router"
@@ -38,11 +39,20 @@ type cardRow struct {
 	Description string
 }
 
+// The timestamps insertCard gives every card, written with an offset.
+// Responses give the same instants in UTC, as RFC 3339:
+// "2026-11-18T09:15:30.123456Z" and "2026-11-18T09:20:00Z". They differ, so
+// a response that swaps them fails.
+const (
+	seededCreatedAt = "2026-11-18T10:15:30.123456+01:00"
+	seededUpdatedAt = "2026-11-18T10:20:00+01:00"
+)
+
 func insertCard(t *testing.T, db *sql.DB, id, title, description string) {
 	t.Helper()
 	_, err := db.ExecContext(t.Context(),
-		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, now(), now())`,
-		id, title, description,
+		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+		id, title, description, seededCreatedAt, seededUpdatedAt,
 	)
 	if err != nil {
 		t.Fatalf("insert card: %v", err)
@@ -187,8 +197,8 @@ func TestList(t *testing.T) {
 		testkit.AssertStatus(t, resp, http.StatusOK)
 		testkit.AssertJSON(t, resp.Body, `{
 			"items": [
-				{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066b","title":"Newer Title","description":"Newer Description"},
-				{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Older Title","description":"Older Description"}
+				{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066b","title":"Newer Title","description":"Newer Description","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"},
+				{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Older Title","description":"Older Description","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"}
 			],
 			"next_cursor": null
 		}`)
@@ -208,11 +218,11 @@ func TestList(t *testing.T) {
 		insertCard(t, db, idC, "Title C", "Description C")
 
 		wantPages := []string{
-			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066c","title":"Title C","description":"Description C"}],
+			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066c","title":"Title C","description":"Description C","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"}],
 				"next_cursor":"01a1730e-199d-7f9f-b59d-3bcd6f84066c"}`,
-			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066b","title":"Title B","description":"Description B"}],
+			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066b","title":"Title B","description":"Description B","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"}],
 				"next_cursor":"01a1730e-199d-7f9f-b59d-3bcd6f84066b"}`,
-			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Title A","description":"Description A"}],
+			`{"items":[{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Title A","description":"Description A","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"}],
 				"next_cursor":null}`,
 		}
 
@@ -264,7 +274,7 @@ func TestList(t *testing.T) {
 		})
 		testkit.AssertStatus(t, resp, http.StatusOK)
 		testkit.AssertJSON(t, resp.Body, `{
-			"items": [{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Title A","description":"Description A"}],
+			"items": [{"id":"01a1730e-199d-7f9f-b59d-3bcd6f84066a","title":"Title A","description":"Description A","created_at":"2026-11-18T09:15:30.123456Z","updated_at":"2026-11-18T09:20:00Z"}],
 			"next_cursor": null
 		}`)
 	})
@@ -381,7 +391,9 @@ func TestGet(t *testing.T) {
 		testkit.AssertJSON(t, resp.Body, `{
 			"id": "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 			"title": "Title",
-			"description": "Description"
+			"description": "Description",
+			"created_at": "2026-11-18T09:15:30.123456Z",
+			"updated_at": "2026-11-18T09:20:00Z"
 		}`)
 	})
 
@@ -403,7 +415,9 @@ func TestGet(t *testing.T) {
 		testkit.AssertJSON(t, resp.Body, `{
 			"id": "01a1730e-199d-7f9f-b59d-3bcd6f84066c",
 			"title": "Title",
-			"description": "Description"
+			"description": "Description",
+			"created_at": "2026-11-18T09:15:30.123456Z",
+			"updated_at": "2026-11-18T09:20:00Z"
 		}`)
 	})
 
@@ -800,10 +814,7 @@ func TestLifecycle(t *testing.T) {
 		Path:   location,
 	})
 	testkit.AssertStatus(t, resp, http.StatusOK)
-	testkit.AssertJSON(t, resp.Body, fmt.Sprintf(
-		`{"id":%q,"title":"Initial Title","description":"Initial Description"}`,
-		created.ID,
-	))
+	assertContent(t, resp.Body, cardContent{created.ID, "Initial Title", "Initial Description"})
 
 	// 3. PUT
 	resp = testkit.Do(t, srv, testkit.DoOpts{
@@ -823,10 +834,7 @@ func TestLifecycle(t *testing.T) {
 		Path:   path,
 	})
 	testkit.AssertStatus(t, resp, http.StatusOK)
-	testkit.AssertJSON(t, resp.Body, fmt.Sprintf(
-		`{"id":%q,"title":"Updated Title","description":"Updated Description"}`,
-		created.ID,
-	))
+	assertContent(t, resp.Body, cardContent{created.ID, "Updated Title", "Updated Description"})
 
 	// 5. DELETE
 	resp = testkit.Do(t, srv, testkit.DoOpts{
@@ -847,37 +855,185 @@ func TestLifecycle(t *testing.T) {
 	testkit.AssertJSON(t, resp.Body, `{"code":"not_found"}`)
 }
 
+// Strict binding rejects any field a request body doesn't take, the card's
+// read-only timestamps included, and the card stays as it was.
 func TestUnknownRequestFields(t *testing.T) {
 	t.Parallel()
-	for _, method := range []string{http.MethodPost, http.MethodPut} {
-		t.Run(method, func(t *testing.T) {
-			t.Parallel()
-			srv, db := newServer(t)
-			const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
-			original := cardRow{Title: "Original", Description: "Original description"}
-			insertCard(t, db, id, original.Title, original.Description)
-			path := "/api/lcards"
-			if method == http.MethodPut {
-				path += "/" + id
-			}
-			resp := testkit.Do(t, srv, testkit.DoOpts{
-				Method:      method,
-				Path:        path,
-				ContentType: "application/json",
-				Body:        `{"title":"Changed","description":"Changed description","extra":true}`,
-			})
-			testkit.AssertStatus(t, resp, http.StatusBadRequest)
-			testkit.AssertJSON(t, resp.Body, `{"code":"bind_error"}`)
-			if row := getCard(t, db, id); row != original {
-				t.Errorf("stored row: got %+q, want %+q", row, original)
-			}
-			var count int
-			if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM learning_cards`).Scan(&count); err != nil {
-				t.Fatal(err)
-			}
-			if count != 1 {
-				t.Errorf("card count: got %d, want 1", count)
-			}
-		})
+	bodies := []struct {
+		name string
+		body string
+	}{
+		{"unknown field", `{"title":"Changed","description":"Changed description","extra":true}`},
+		{"created_at", `{"title":"Changed","description":"Changed description","created_at":"2026-11-18T09:00:00Z"}`},
+		{"updated_at", `{"title":"Changed","description":"Changed description","updated_at":"2026-11-18T09:00:00Z"}`},
 	}
+	for _, method := range []string{http.MethodPost, http.MethodPut} {
+		for _, tt := range bodies {
+			t.Run(method+" "+tt.name, func(t *testing.T) {
+				t.Parallel()
+				srv, db := newServer(t)
+				const id = "01a1730e-199d-7f9f-b59d-3bcd6f84066c"
+				original := cardRow{Title: "Original", Description: "Original description"}
+				insertCard(t, db, id, original.Title, original.Description)
+				path := "/api/lcards"
+				if method == http.MethodPut {
+					path += "/" + id
+				}
+				resp := testkit.Do(t, srv, testkit.DoOpts{
+					Method:      method,
+					Path:        path,
+					ContentType: "application/json",
+					Body:        tt.body,
+				})
+				testkit.AssertStatus(t, resp, http.StatusBadRequest)
+				testkit.AssertJSON(t, resp.Body, `{"code":"bind_error"}`)
+				if row := getCard(t, db, id); row != original {
+					t.Errorf("stored row: got %+q, want %+q", row, original)
+				}
+				var count int
+				if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM learning_cards`).Scan(&count); err != nil {
+					t.Fatal(err)
+				}
+				if count != 1 {
+					t.Errorf("card count: got %d, want 1", count)
+				}
+			})
+		}
+	}
+}
+
+func TestTimestamps(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a created card's updated_at equals its created_at", func(t *testing.T) {
+		t.Parallel()
+		srv, _ := newServer(t)
+
+		id := createCard(t, srv, `{"title":"Title","description":"Description"}`)
+
+		got := readTimes(t, getCardBody(t, srv, id))
+		if !got.UpdatedAt.Equal(got.CreatedAt) {
+			t.Errorf("updated_at: got %v, want created_at %v", got.UpdatedAt, got.CreatedAt)
+		}
+	})
+
+	t.Run("an update moves updated_at and keeps created_at", func(t *testing.T) {
+		t.Parallel()
+		srv, _ := newServer(t)
+
+		id := createCard(t, srv, `{"title":"Title","description":"Description"}`)
+		before := readTimes(t, getCardBody(t, srv, id))
+
+		resp := testkit.Do(t, srv, testkit.DoOpts{
+			Method:      http.MethodPut,
+			Path:        "/api/lcards/" + id,
+			ContentType: "application/json",
+			Body:        `{"title":"New Title","description":"New Description"}`,
+		})
+		testkit.AssertStatus(t, resp, http.StatusNoContent)
+
+		after := readTimes(t, getCardBody(t, srv, id))
+		if !after.CreatedAt.Equal(before.CreatedAt) {
+			t.Errorf("created_at: got %v, want unchanged %v", after.CreatedAt, before.CreatedAt)
+		}
+		if !after.UpdatedAt.After(before.UpdatedAt) {
+			t.Errorf("updated_at: got %v, want later than %v", after.UpdatedAt, before.UpdatedAt)
+		}
+
+		// The list gives the same timestamps as the card's own response.
+		resp = testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/lcards"})
+		testkit.AssertStatus(t, resp, http.StatusOK)
+		var page struct {
+			Items []json.RawMessage `json:"items"`
+		}
+		if err := json.Unmarshal(resp.Body, &page); err != nil {
+			t.Fatalf("unmarshal list: %v\n%s", err, resp.Body)
+		}
+		if len(page.Items) != 1 {
+			t.Fatalf("items: got %d, want 1", len(page.Items))
+		}
+		if listed := readTimes(t, page.Items[0]); listed != after {
+			t.Errorf("listed timestamps: got %+v, want %+v", listed, after)
+		}
+	})
+}
+
+// cardContent is what a card response holds besides its timestamps.
+type cardContent struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+func assertContent(t *testing.T, body []byte, want cardContent) {
+	t.Helper()
+	var got cardContent
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("unmarshal card: %v\n%s", err, body)
+	}
+	if got != want {
+		t.Errorf("card: got %+v, want %+v", got, want)
+	}
+}
+
+// cardTimes are a card response's timestamps.
+type cardTimes struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// readTimes returns the timestamps of the card in body, failing the test
+// unless each is an RFC 3339 timestamp in UTC.
+func readTimes(t *testing.T, body []byte) cardTimes {
+	t.Helper()
+	var raw struct {
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("unmarshal card: %v\n%s", err, body)
+	}
+	return cardTimes{
+		CreatedAt: parseUTC(t, "created_at", raw.CreatedAt),
+		UpdatedAt: parseUTC(t, "updated_at", raw.UpdatedAt),
+	}
+}
+
+func parseUTC(t *testing.T, field, value string) time.Time {
+	t.Helper()
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		t.Fatalf("%s: %v", field, err)
+	}
+	if !strings.HasSuffix(value, "Z") {
+		t.Errorf("%s: got %q, want UTC", field, value)
+	}
+	return parsed
+}
+
+// createCard creates a card from body through the API and returns its ID.
+func createCard(t *testing.T, srv *httptest.Server, body string) string {
+	t.Helper()
+	resp := testkit.Do(t, srv, testkit.DoOpts{
+		Method:      http.MethodPost,
+		Path:        "/api/lcards",
+		ContentType: "application/json",
+		Body:        body,
+	})
+	testkit.AssertStatus(t, resp, http.StatusCreated)
+	var created struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(resp.Body, &created); err != nil {
+		t.Fatalf("unmarshal POST response: %v\n%s", err, resp.Body)
+	}
+	return created.ID
+}
+
+// getCardBody returns the body of the card's GET response.
+func getCardBody(t *testing.T, srv *httptest.Server, id string) []byte {
+	t.Helper()
+	resp := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/lcards/" + id})
+	testkit.AssertStatus(t, resp, http.StatusOK)
+	return resp.Body
 }

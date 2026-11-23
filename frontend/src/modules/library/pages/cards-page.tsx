@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useElementScrollRestoration, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { lcardQueries } from "@/api/lcards";
+import { useNow } from "@/shared/lib/use-now";
 
 import { CardsViewSwitch } from "../components/cards-view-switch";
 import { LearningCardGrid } from "../components/learning-card-grid";
@@ -15,6 +16,10 @@ export function CardsPage() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());
   const { view } = useSearch({ from: "/library/cards/" });
   const navigate = useNavigate({ from: "/library/cards/" });
+  // The time the views mark recently created and updated cards against,
+  // read once for all of them and moved on every minute, so a mark goes
+  // when its window ends without anything else re-rendering the page.
+  const now = useNow();
   // Where the router is about to scroll the window: the position Back
   // returns to, or the top. The views render only what is near it, so they
   // start there instead of rendering the top first.
@@ -47,9 +52,9 @@ export function CardsPage() {
       {cards.length === 0 ? (
         <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
       ) : view === "list" ? (
-        <LearningCardList cards={cards} initialScrollOffset={initialScrollOffset} />
+        <LearningCardList cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
       ) : (
-        <LearningCardGrid cards={cards} initialScrollOffset={initialScrollOffset} />
+        <LearningCardGrid cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
       )}
     </div>
   );

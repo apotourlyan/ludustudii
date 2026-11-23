@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit"
 	"github.com/apotourlyan/ludustudii/internal/testkit"
@@ -17,11 +18,12 @@ func TestMain(m *testing.M) {
 	os.Exit(testkit.Run(m))
 }
 
-func insertCard(t *testing.T, db *sql.DB, id, title, description string) {
+// insertCard inserts card as it is, timestamps included.
+func insertCard(t *testing.T, db *sql.DB, card row) {
 	t.Helper()
 	_, err := db.ExecContext(t.Context(),
-		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, now(), now())`,
-		id, title, description,
+		`INSERT INTO learning_cards (id, title, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+		card.ID, card.Title, card.Description, card.CreatedAt, card.UpdatedAt,
 	)
 	if err != nil {
 		t.Fatalf("insert card: %v", err)
@@ -34,23 +36,34 @@ func TestStore_Get(t *testing.T) {
 	db := testkit.NewDB(t)
 	s := NewStore(db)
 
-	const (
-		id1 = "01a1730e-199d-7f9f-b59d-3bcd6f84066a"
-		id2 = "01a1730e-199d-7f9f-b59d-3bcd6f84066b"
-	)
-	insertCard(t, db, id1, "Title 1", "Description 1")
-	insertCard(t, db, id2, "Title 2", "Description 2")
+	// The timestamps all differ, so a row that gets the other card's or
+	// swaps its own fails the comparison.
+	other := row{
+		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066a",
+		Title:       "Title 1",
+		Description: "Description 1",
+		CreatedAt:   time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC),
+		UpdatedAt:   time.Date(2026, 11, 18, 9, 5, 0, 0, time.UTC),
+	}
+	want := row{
+		ID:          "01a1730e-199d-7f9f-b59d-3bcd6f84066b",
+		Title:       "Title 2",
+		Description: "Description 2",
+		CreatedAt:   time.Date(2026, 11, 18, 10, 0, 0, 123456000, time.UTC),
+		UpdatedAt:   time.Date(2026, 11, 18, 10, 30, 0, 654321000, time.UTC),
+	}
+	insertCard(t, db, other)
+	insertCard(t, db, want)
 
-	got, err := s.Get(t.Context(), id2)
+	got, err := s.Get(t.Context(), want.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := row{
-		ID:          id2,
-		Title:       "Title 2",
-		Description: "Description 2",
-	}
+	// The driver may return the timestamps in another location; the instant
+	// is what counts.
+	got.CreatedAt = got.CreatedAt.UTC()
+	got.UpdatedAt = got.UpdatedAt.UTC()
 	if got != want {
 		t.Errorf("row: got %+v, want %+v", got, want)
 	}

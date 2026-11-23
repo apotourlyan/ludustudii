@@ -4,7 +4,8 @@ LearningCardInput:
     JSON card content. Each field is NFC normalized and trimmed, then must be
     1 to its maximum length in code points (see LearningCardInput). Omitted or
     null fields are treated as empty and fail validation. Unknown JSON
-    properties are ignored.
+    properties, including the card's read-only created_at and updated_at,
+    are rejected with bind_error.
   content:
     application/json:
       schema:
