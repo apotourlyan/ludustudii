@@ -8,6 +8,8 @@ frontend/dist-ssr/
 # Playwright's results and reports (ADR 0034)
 frontend/test-results/
 frontend/playwright-report/
+# Vitest's screenshots of failed browser tests, next to the tests.
+frontend/src/**/__screenshots__/
 frontend/*.local
 
 # Logs

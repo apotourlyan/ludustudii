@@ -653,6 +653,7 @@ Each tool version has one source, which the devcontainer and CI both read:
 | oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 | Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
 | Playwright (`@playwright/test`) and its Chromium | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; the browser build is the one that version expects | `make frontend-deps` and the devcontainer install both; CI caches the browser keyed by the locked version |
+| Vitest (`vitest`, `@vitest/browser-playwright`, `vitest-browser-react`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; browser mode drives the `playwright` that `@playwright/test` brings, so it uses the same Chromium | `make frontend-deps` installs them, as does the devcontainer |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
@@ -664,7 +665,9 @@ the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
 `frontend/` and `make frontend-lint`, and fix or configure what it reports in
 the same change. To upgrade Playwright, change its pin, run `npm install` and
 `make frontend-deps` (which downloads the new browser once), and run both kinds
-of [browser test](#browser-tests).
+of [browser test](#browser-tests) and `make frontend-unit`. To upgrade Vitest,
+change the pins of `vitest` and `@vitest/browser-playwright` together (they
+release in lockstep), run `npm install` and `make frontend-unit`.
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -1088,6 +1091,7 @@ tooling is kept out of `go.mod`.
 | `make frontend-fmt` | Format the client app with oxfmt. |
 | `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
 | `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
+| `make frontend-unit` | Run the client app's unit tests in Node and its component tests in Chromium, with Vitest. |
 | `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
@@ -1097,7 +1101,7 @@ tooling is kept out of `go.mod`.
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
 `generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
-`frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
+`frontend-unit`, `frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
 the first failure. It needs the frontend dependencies and Playwright's
 Chromium (`make frontend-deps`). The end-to-end tests (`make test-e2e`) aren't
 part of it; CI runs them in their own job.

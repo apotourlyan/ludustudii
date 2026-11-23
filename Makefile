@@ -65,7 +65,7 @@ spec-bundle: $(SPEC_BUNDLE)
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
-.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check frontend-lint frontend-test
+.PHONY: frontend-deps api-types api-types-check frontend-typecheck frontend-fmt frontend-fmt-check frontend-lint frontend-unit frontend-test
 
 ## frontend-deps: Installs the locked dependencies of the client app and its generators, and the browser tests' Chromium
 # Playwright installs the headless shell in the version the locked
@@ -120,6 +120,17 @@ frontend-lint:
 	@[ -x $(FRONTEND_DIR)/node_modules/.bin/oxlint ] && [ -x $(FRONTEND_DIR)/node_modules/.bin/tsgolint ] || \
 		{ echo "frontend-lint: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
 	cd $(FRONTEND_DIR) && npm run --silent lint
+
+## frontend-unit: Runs the client app's unit tests in Node and its component tests in Chromium, with Vitest
+## ---- ARGS passes options to Vitest, for example ARGS='src/shared' or ARGS='--project unit'
+# vitest.config.ts has a project per kind of test: *.test.ts in Node and
+# *.test.tsx in Chromium's headless shell, the one frontend-deps installs
+# (ADR 0043). --allowOnly=false fails the run on a test.only left behind,
+# as --forbid-only does for Playwright.
+frontend-unit:
+	@[ -x $(FRONTEND_DIR)/node_modules/.bin/vitest ] || \
+		{ echo "frontend-unit: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	cd $(FRONTEND_DIR) && npm run --silent test:unit -- --allowOnly=false --passWithNoTests $(ARGS)
 
 ## frontend-test: Runs the app tests: the client app in Chromium against the fake backend (no Go server or database)
 ## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5' or ARGS='-g conflict'
@@ -338,6 +349,7 @@ check:
 	$(MAKE) api-types-check
 	$(MAKE) frontend-typecheck
 	$(MAKE) frontend-lint
+	$(MAKE) frontend-unit
 	$(MAKE) frontend-test
 	$(MAKE) test-unit
 	$(MAKE) test-integration

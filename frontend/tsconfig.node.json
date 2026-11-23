@@ -1,7 +1,8 @@
 {
-  // vite.config.ts and oxlint.config.ts, which run in Node only. Checked by
-  // `make frontend-typecheck`. Node runs oxlint.config.ts by stripping its
-  // types, so it may use only syntax that strips (ADR 0037).
+  // vite.config.ts, vitest.config.ts and oxlint.config.ts, which run in
+  // Node only. Checked by `make frontend-typecheck`. Node runs
+  // oxlint.config.ts by stripping its types, so it may use only syntax that
+  // strips (ADR 0037).
   "compilerOptions": {
     "target": "ES2025",
     "lib": ["ES2025"],
@@ -15,7 +16,10 @@
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    // vitest.config.ts imports vite.config.ts by its file name, as Vite's
+    // native config loader wants.
+    "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts", "oxlint.config.ts"]
+  "include": ["vite.config.ts", "vitest.config.ts", "oxlint.config.ts"]
 }
