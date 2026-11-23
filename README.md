@@ -303,7 +303,7 @@ pages read route data and whose components take props
 frontend/
 ├── src/
 │   ├── main.tsx            # bootstrap: starts the mock mode's fake backend, if any, then renders the app
-│   ├── app/                # the shell: query client, router, root layout and navigation, pending and error pages
+│   ├── app/                # the shell: query client, router, root layout and navigation, toaster, navigation progress, pending, error and not-found pages
 │   ├── routes/             # TanStack Router's file routes: path, params, a loader calling the page's load function, and the page
 │   ├── routeTree.gen.ts    # generated from routes/ by the router's Vite plugin
 │   ├── modules/            # one folder per user activity
@@ -315,7 +315,8 @@ frontend/
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
 │   │   ├── lib/            # helpers
-│   │   └── error-message.ts # wording for the failures every module shares
+│   │   ├── error-message.ts # wording for the failures every module shares
+│   │   └── notify.ts       # notifyError: reports a failure as a toast
 │   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
 │   ├── mock/               # the mock mode's start-up and scenarios
 │   └── styles/             # Tailwind theme and the ejected shadcn CSS
@@ -496,11 +497,45 @@ shows what is wrong with its fields. The card form is the reference
   loses focus (`keepServerErrorsOnBlur`, the form's `validationLogic`).
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
-- **Everything that isn't about a field will be a notification**: an error
-  the form can't place (an unknown field or code, which is also logged to
-  the console with its request ID), a `bind_error`, other HTTP failures and
-  network failures. Until notifications exist, a form keeps its line next to
-  the buttons for them.
+- **Everything that isn't about a field is a toast**
+  ([Feedback](#feedback)): an error the form can't place (an unknown field
+  or code, which is also logged to the console with its request ID), a
+  `bind_error`, other HTTP failures and network failures. The form shows
+  nothing of them itself.
+
+### Feedback
+
+[ADR 0041](docs/adr/0041-feedback-toasts-page-states-and-navigation-progress.md)
+decides how the client app reports outcomes and waits.
+
+- **A failure that isn't about a field is a toast**: a save no field can
+  show, a delete, a network failure. The call site words it with its
+  module's wording and calls `notifyError(message)` from
+  `src/shared/notify.ts`; the API layer reports nothing. An error toast
+  stays until dismissed (its Dismiss button, or F6, Tab and Escape) or
+  until its call site tries the action again (`notifyError` returns a
+  function that closes it). It is announced at once and doesn't stack:
+  each message has one toast, and a repeat replaces it, in front, and is
+  announced again. The
+  toasts are Base UI's, through shadcn's `toast`, mounted once in
+  `src/app/app.tsx`; nothing else uses them ([Boundaries](#boundaries)).
+  They sit at the bottom left, clear of every page's controls at 1280×720
+  (`tests/mock/toast-position.spec.ts`), and across the bottom below `sm`.
+- **A confirmation dialog closes when its request settles**; a failure
+  becomes a toast, which outlives the dialog and its row.
+- **No success toasts while the result is visible**: a save opens the
+  card's page, and a delete removes the card from view.
+- **A decision is an alert in the page, never a toast**: it stays until the
+  user resolves it. None exists yet; the first one chooses its component.
+- **A navigation shows progress**: `NavigationProgress`
+  (`src/app/navigation-progress.tsx`), a thin bar at the top of the
+  viewport while the router loads, after `NAVIGATION_PROGRESS_DELAY_MS`
+  (150 ms), still under reduced motion, and hidden from assistive
+  technology, since the pending page announces a long wait. No skeletons.
+- **Failure pages have one `<h1>`**: `RouteError` ("This page couldn't
+  load", the reason, "Try again") and `NotFoundPage` ("Page not found", a
+  link to the library) are the router's defaults; a missing card has
+  `CardNotFoundPage`. A failed background refetch stays silent (ADR 0030).
 
 ### Boundaries
 
@@ -535,6 +570,9 @@ shows what is wrong with its fields. The card form is the reference
   file imports no UI is checked in review.
 - `src/shared/` imports nothing from `src/app/`, `src/routes/` or
   `src/modules/`, and from the API layer only `@/api/http`.
+- Only `src/shared/` and `src/app/` import the toast component
+  (`@/shared/ui/toast`, or Base UI's `Toast`); everything else reports a
+  failure with `notifyError` (ADR 0041).
 - The API layer's boundaries apply everywhere outside `src/api/`: a service
   only through `@/api/<service>`, no `fetch`, `openapi-fetch` or `useQuery`,
   and the fakes only from `src/mock/` and tests.

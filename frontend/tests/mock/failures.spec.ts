@@ -3,6 +3,7 @@
 import { expect, test } from "@playwright/test";
 
 import { cardAt, cardItems } from "../support/overview";
+import { toast } from "../support/toasts";
 
 test("a failing server shows the error page", async ({ page }) => {
   await page.goto("/library/cards?scenario=failing");
@@ -13,6 +14,7 @@ test("a failing server shows the error page", async ({ page }) => {
     "Something went wrong while trying to load this page.",
     { timeout: 10_000 },
   );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("This page couldn't load");
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 });
 
@@ -38,7 +40,7 @@ test("going offline shows the network message on the next request", async ({ pag
   await page.getByLabel("Title").fill("Mitochondrion");
   await page.getByRole("button", { name: "Update Card" }).click();
 
-  await expect(page.getByRole("alert")).toHaveText(
-    "Can't reach the server. Check your connection and try again.",
-  );
+  await expect(
+    toast(page, "Can't reach the server. Check your connection and try again."),
+  ).toBeVisible();
 });

@@ -6,6 +6,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { cardAt } from "../support/overview";
+import { toasts } from "../support/toasts";
 
 async function openEditor(page: Page): Promise<void> {
   await page.goto("/library/cards");
@@ -132,10 +133,10 @@ test.describe("at 1280 px", () => {
     await expect(preview.getByText(/line 40$/)).toBeVisible();
     await expectAligned(page, "text taller");
 
-    // A submit that fails: the save error shows in the button row.
+    // A submit that fails: the error is a toast, outside the panels.
     await context.setOffline(true);
     await page.getByRole("button", { name: "Update Card" }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(toasts(page)).toHaveCount(1);
     await expectAligned(page, "after a failed save");
 
     // Both fields invalid: errors in both status bars.

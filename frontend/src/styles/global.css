@@ -130,6 +130,21 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* The navigation progress bar's segment, sliding across the viewport from
+   off its left edge to off its right edge (src/app/navigation-progress.tsx). */
+@theme {
+  --animate-navigation-progress: navigation-progress 1.2s ease-in-out infinite;
+
+  @keyframes navigation-progress {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";
 
 // The router's default error component, shown when a route's loader or a
-// suspense query in its component fails.
+// suspense query in its component fails: a heading, the reason and a way
+// to try again (ADR 0041).
 export function RouteError({ error }: ErrorComponentProps) {
   const router = useRouter();
   const queryErrorResetBoundary = useQueryErrorResetBoundary();
@@ -22,6 +23,7 @@ export function RouteError({ error }: ErrorComponentProps) {
 
   return (
     <div className="mx-auto max-w-xl p-6">
+      <h1 className="mb-6 text-xl font-semibold">This page couldn't load</h1>
       <Card>
         <CardContent className="space-y-3">
           <FieldError>{message}</FieldError>

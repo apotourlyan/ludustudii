@@ -2,9 +2,10 @@ import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOu
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
+import { notifyError } from "@/shared/notify";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,6 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { Button, buttonVariants } from "@/shared/ui/button";
-import { FieldError } from "@/shared/ui/field";
 
 import { cardErrorMessage } from "./card-error-message";
 
@@ -61,9 +61,10 @@ export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"
   );
 }
 
-// Deletes the card after the user confirms. The dialog stays open with the
-// error when the delete fails; when it succeeds, the dialog closes and
-// onDeleted tells the page, which may leave (ADR 0036).
+// Deletes the card after the user confirms. The dialog closes when the
+// request settles. A failure is a toast, which outlives the dialog and the
+// card's row (ADR 0041); a success calls onDeleted, which tells the page,
+// which may leave (ADR 0036).
 export function DeleteLearningCardButton({
   card,
   onDeleted,
@@ -73,6 +74,25 @@ export function DeleteLearningCardButton({
 }) {
   const [open, setOpen] = useState(false);
   const deleteCard = useDeleteLearningCard();
+  // Closes the toast of the last failed delete, if any (ADR 0041).
+  const dismissDeleteError = useRef<(() => void) | undefined>(undefined);
+
+  // Awaited rather than given callbacks, which wouldn't run if the button
+  // unmounted first, such as when a refetch drops the card's row.
+  async function confirmDelete() {
+    // Trying again replaces what the last attempt reported.
+    dismissDeleteError.current?.();
+    dismissDeleteError.current = undefined;
+    try {
+      await deleteCard.mutateAsync({ id: card.id });
+    } catch (error) {
+      setOpen(false);
+      dismissDeleteError.current = notifyError(cardErrorMessage(error, "delete the card"));
+      return;
+    }
+    setOpen(false);
+    onDeleted?.();
+  }
 
   return (
     <AlertDialog
@@ -80,7 +100,6 @@ export function DeleteLearningCardButton({
       onOpenChange={(nextOpen) => {
         // Keep the dialog open until the request settles
         if (deleteCard.isPending) return;
-        if (!nextOpen) deleteCard.reset();
         setOpen(nextOpen);
       }}
     >
@@ -95,25 +114,12 @@ export function DeleteLearningCardButton({
             This action cannot be undone. The card will be permanently removed.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {deleteCard.isError && (
-          <FieldError>{cardErrorMessage(deleteCard.error, "delete the card")}</FieldError>
-        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleteCard.isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             disabled={deleteCard.isPending}
-            onClick={() =>
-              deleteCard.mutate(
-                { id: card.id },
-                {
-                  onSuccess: () => {
-                    setOpen(false);
-                    onDeleted?.();
-                  },
-                },
-              )
-            }
+            onClick={() => void confirmDelete()}
           >
             {deleteCard.isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>

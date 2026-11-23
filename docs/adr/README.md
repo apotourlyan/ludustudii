@@ -77,6 +77,7 @@ Records in force. Superseded records are kept as history in
 | [0035](0035-client-app-modules-by-user-activity.md) | Client app modules by user activity | Accepted, Amended by [0036](0036-pages-read-route-data-components-take-props.md) | front-end, architecture |
 | [0036](0036-pages-read-route-data-components-take-props.md) | Pages read route data, components take props, widgets own theirs | Accepted | front-end, architecture |
 | [0037](0037-client-lint-config-written-in-typescript.md) | Client lint config written in TypeScript | Accepted | front-end, tooling |
-| [0038](0038-form-validation-errors.md) | Form validation errors | Accepted | front-end, forms, api |
+| [0038](0038-form-validation-errors.md) | Form validation errors | Accepted, Amended by [0041](0041-feedback-toasts-page-states-and-navigation-progress.md) | front-end, forms, api |
 | [0039](0039-last-write-wins-for-user-edited-resources.md) | Last write wins for user-edited resources | Accepted | back-end, front-end, api, database |
 | [0040](0040-row-timestamps-in-the-api.md) | Row timestamps in the API | Accepted | back-end, front-end, api |
+| [0041](0041-feedback-toasts-page-states-and-navigation-progress.md) | Feedback: toasts, page states and navigation progress | Accepted | front-end, ux, accessibility |
