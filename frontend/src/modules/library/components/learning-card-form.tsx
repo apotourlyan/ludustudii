@@ -6,6 +6,7 @@ import { useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { ApiError, type ApiFieldError } from "@/api/http";
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { keepServerErrorsOnBlur, placeFieldErrors } from "@/shared/field-errors";
+import { notifyError } from "@/shared/notify";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
@@ -142,9 +143,6 @@ export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
 ): ReactNode;
 export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
   const [focused, setFocused] = useState<string | null>(null);
-  // Whether the last save failed in a way no field shows, so the line next
-  // to the buttons has to (ADR 0038: a placeholder until notifications).
-  const [saveFailed, setSaveFailed] = useState(false);
   const formElement = useRef<HTMLFormElement>(null);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
@@ -160,7 +158,6 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     // The form's own checks stopped the submit.
     onSubmitInvalid: () => focusFirstInvalidField(),
     onSubmit: async ({ value }) => {
-      setSaveFailed(false);
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
@@ -175,7 +172,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         }
       } catch (error) {
         // The form keeps the user's input. What the API says about a field
-        // goes on that field; the rest shows below the fields. An error that
+        // goes on that field; the rest is a toast (ADR 0041). An error that
         // isn't an ApiError is a bug behind "Something went wrong", so it
         // goes to the console.
         const { fields, leftover, mismatch, unplaced } = placeFieldErrors(
@@ -192,7 +189,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           }));
         }
         if (leftover) {
-          setSaveFailed(true);
+          notifyError(cardErrorMessage(error, text.action));
           if (!(error instanceof ApiError)) {
             console.error(error);
           } else if (mismatch) {
@@ -222,9 +219,6 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
   const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
   const submitDisabled = useSelector(form.store, (state) => !state.canSubmit) || saving;
   const submitLabel = saving ? text.submitting : text.submit;
-  // The line next to the buttons, for a failed save no field shows.
-  const saveError =
-    saveFailed && mutation.isError ? cardErrorMessage(mutation.error, text.action) : undefined;
 
   return (
     <form
@@ -269,14 +263,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
         )}
       </form.Field>
 
-      {/* The save error sits left of the buttons, next to the action that
-          failed, and adds no row, so nothing above it moves. */}
       <div className={cn("flex items-center justify-end gap-2 md:mt-4", BUTTON_ROW)}>
-        {saveError !== undefined && (
-          <FieldError className="min-w-0 flex-1 animate-in duration-200 fade-in-0 motion-reduce:animate-none">
-            {saveError}
-          </FieldError>
-        )}
         <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>

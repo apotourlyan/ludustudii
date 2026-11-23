@@ -10,6 +10,7 @@ import {
   setRejection,
   type FieldError,
 } from "../support/save-rejections";
+import { toast, toasts } from "../support/toasts";
 
 const TITLE_REQUIRED = "Title is required";
 const DESCRIPTION_TOO_LONG = "Description must be at most 2000 characters";
@@ -50,8 +51,9 @@ for (const mode of ["create", "update"] as const) {
       await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "true");
       await expect(page.getByLabel("Description")).toHaveAttribute("aria-invalid", "true");
       // The same look as a client error: the status bars' alerts, and no
-      // line next to the buttons.
+      // toast.
       await expect(page.getByRole("alert")).toHaveCount(2);
+      await expect(toasts(page)).toHaveCount(0);
       await expect(page.getByText(SAVE_FAILED)).toHaveCount(0);
       await expect(submit).toBeDisabled();
     });
@@ -86,9 +88,7 @@ for (const mode of ["create", "update"] as const) {
       await expect(submit).toBeEnabled();
     });
 
-    test("what the form can't place shows below the fields and in the console", async ({
-      page,
-    }) => {
+    test("what the form can't place shows as a toast and in the console", async ({ page }) => {
       const submit = await openForm(page, mode);
       const errors: string[] = [];
       page.on("console", (message) => {
@@ -102,7 +102,8 @@ for (const mode of ["create", "update"] as const) {
 
       await submit.click();
 
-      await expect(page.getByText(SAVE_FAILED)).toBeVisible();
+      await expect(toast(page, SAVE_FAILED)).toBeVisible();
+      await expect(toasts(page)).toHaveCount(1);
       // The error the form could place still lands on its field.
       await expect(page.getByText(DESCRIPTION_TOO_LONG, { exact: true })).toBeVisible();
       await expect(page.getByLabel("Description")).toHaveAttribute("aria-invalid", "true");
@@ -118,7 +119,7 @@ for (const mode of ["create", "update"] as const) {
   });
 }
 
-test("a validation error without field errors shows below the fields and in the console", async ({
+test("a validation error without field errors shows as a toast and in the console", async ({
   page,
 }) => {
   const submit = await openForm(page, "create");
@@ -130,7 +131,7 @@ test("a validation error without field errors shows below the fields and in the 
 
   await submit.click();
 
-  await expect(page.getByText(SAVE_FAILED)).toBeVisible();
+  await expect(toast(page, SAVE_FAILED)).toBeVisible();
   await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "false");
   await expect(page.getByLabel("Description")).toHaveAttribute("aria-invalid", "false");
   expect(errors).toHaveLength(1);

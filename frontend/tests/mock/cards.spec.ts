@@ -14,6 +14,7 @@ import {
   openCardFromList,
 } from "../support/cards";
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
+import { toast, toasts } from "../support/toasts";
 
 // The list's own "Add Card" link, not the navigation's.
 async function addCardFromList(page: Page): Promise<void> {
@@ -125,18 +126,21 @@ test("a card deleted in the list leaves it", async ({ page }) => {
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(cardItems(page)).toHaveCount(7);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
+  await expect(toasts(page)).toHaveCount(0);
 });
 
-// A card deleted elsewhere answers a write with 404. The error shows, and
-// the list fetches again, so it stops showing the card.
+// A card deleted elsewhere answers a write with 404. The error shows as a
+// toast, and the list fetches again, so it stops showing the card.
 
 test("deleting a card deleted elsewhere in the list removes it from the list", async ({ page }) => {
   await page.goto("/library/cards");
   await expectCardAt(page, 1, "Mitochondria", 8);
   await deleteCardElsewhere(page, await cardIdOf(cardAt(page, 1)));
 
-  await deleteCard(page, cardAt(page, 1));
+  const dialog = await deleteCard(page, cardAt(page, 1));
 
+  await expect(dialog).toBeHidden();
+  await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
@@ -147,8 +151,8 @@ test("deleting a card deleted elsewhere on its page shows the error", async ({ p
 
   const dialog = await deleteCard(page, page.getByRole("main"));
 
-  await expect(dialog.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
-  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
   await showOverview(page);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
 });
@@ -162,7 +166,7 @@ test("saving a card deleted elsewhere keeps the input and shows the error", asyn
   await page.getByLabel("Title").fill("Mitochondrion");
   await page.getByRole("button", { name: "Update Card" }).click();
 
-  await expect(page.getByText(NOT_FOUND_TEXT, { exact: true })).toBeVisible();
+  await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
   await showOverview(page);
   await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);

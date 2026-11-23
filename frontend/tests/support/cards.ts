@@ -32,7 +32,7 @@ export async function openCardFromList(page: Page, item: Locator): Promise<strin
 
 // Deletes the card shown in `scope`, an overview's item or the card's page, through
 // its confirmation dialog, and returns the dialog, which closes once the
-// card is deleted and stays open with the error otherwise.
+// request settles; a failure is a toast (support/toasts.ts).
 export async function deleteCard(page: Page, scope: Locator): Promise<Locator> {
   await scope.getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("alertdialog", { name: "Delete this learning card?" });

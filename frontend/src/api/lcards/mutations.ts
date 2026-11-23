@@ -51,7 +51,7 @@ function invalidateCard(queryClient: QueryClient, id: string): void {
 }
 
 // A 404 from a write means the card was deleted elsewhere. The mutation
-// still fails, so its error is shown (a notification later, ADR 0038), and
+// still fails, so its error is shown (a toast, ADR 0041), and
 // the card's queries refetch, so the list stops showing it.
 function invalidateIfNotFound(queryClient: QueryClient, error: Error, id: string): void {
   if (error instanceof ApiError && error.failure.kind === "http" && error.failure.status === 404) {
