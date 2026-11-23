@@ -10,10 +10,6 @@ import { cardAt, expectCardAt } from "../support/overview";
 import { failedRequests, failRequests } from "../support/server-errors";
 import { errorAnnouncements, toast, toasts } from "../support/toasts";
 
-// Tall enough that the toasts, at the bottom right, leave the form's
-// buttons free: these tests click them again while a toast is open.
-test.use({ viewport: { width: 1280, height: 900 } });
-
 const SAVE_FAILED = "Something went wrong while trying to save your edits.";
 const CREATE_FAILED = "Something went wrong while trying to create the card.";
 const DELETE_FAILED = "Something went wrong while trying to delete the card.";

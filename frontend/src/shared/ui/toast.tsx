@@ -22,12 +22,16 @@ function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
   return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />;
 }
 
+// At the bottom left from sm up, where no page keeps a control: the
+// overview's view switch and Add Card link and a form's buttons are at the
+// right, a card's actions at its top (tests/mock/toast-position.spec.ts).
+// Below sm, across the bottom.
 function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
   return (
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
       className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full",
+        "pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-auto sm:left-4 sm:mx-0 sm:w-full",
         className,
       )}
       {...props}
@@ -173,7 +177,8 @@ function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager();
 
   return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem}>
+    // Swiped off toward the nearer edges.
+    <Toast key={toastItem.id} toast={toastItem} swipeDirection={["down", "left"]}>
       <ToastContent>
         <ToastIcon type={toastItem.type} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">

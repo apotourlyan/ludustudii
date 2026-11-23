@@ -33,7 +33,8 @@ export function RootLayout() {
         <Outlet />
       </main>
       <React.Suspense>
-        <TanStackRouterDevtools />
+        {/* Bottom right: the toasts are at the bottom left. */}
+        <TanStackRouterDevtools position="bottom-right" />
       </React.Suspense>
     </React.Fragment>
   );

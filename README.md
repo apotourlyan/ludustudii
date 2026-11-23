@@ -518,6 +518,8 @@ decides how the client app reports outcomes and waits.
   message is its identity, and a repeat brings it to the front. The
   toasts are Base UI's, through shadcn's `toast`, mounted once in
   `src/app/app.tsx`; nothing else uses them ([Boundaries](#boundaries)).
+  They sit at the bottom left, clear of every page's controls at 1280×720
+  (`tests/mock/toast-position.spec.ts`), and across the bottom below `sm`.
 - **A confirmation dialog closes when its request settles**; a failure
   becomes a toast, which outlives the dialog and its row.
 - **No success toasts while the result is visible**: a save opens the
