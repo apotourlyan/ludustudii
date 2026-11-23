@@ -3,7 +3,7 @@ import type { RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-rout
 import { useRef, useState, type FormEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { keepServerErrorsOnBlur } from "@/shared/field-errors";
+import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
 import { notifyError } from "@/shared/notify";
 
 import {

@@ -500,10 +500,12 @@ of the module's form hook, `use-card-form.ts`
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
   name map. `cardSaveFailure` in `model/card-form.ts` turns that into what
-  the card form does: the codes per field, the toast, and what to log. The form puts the codes in the field's `onServer` error, so
-  `canSubmit`, the invalid look and the error rendering are TanStack Form's
-  own. A field's server error clears when its value changes, not when it
-  loses focus (`keepServerErrorsOnBlur`, the form's `validationLogic`).
+  the card form does: the codes per field, the toast, and what to log. The
+  form puts the codes in the field's `onServer` error, so `canSubmit`, the
+  invalid look and the error rendering are TanStack Form's own. A field's
+  server error clears when its value changes, not when it loses focus
+  (`keepServerErrorsOnBlur` in `src/shared/keep-server-errors-on-blur.ts`,
+  the form's `validationLogic`).
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
 - **Everything that isn't about a field is a toast**

@@ -1,7 +1,8 @@
 // The card form beyond its fields' checks (card-fields.ts): its wording in
 // each mode, what each field's bands show, and what a failed save means
-// (ADR 0038, 0041). The form's state hook applies these; nothing here
-// knows React or the form library.
+// (ADR 0038, 0041). The form's state hook applies these. Nothing here, nor
+// anything it imports, loads React or the form library: placeFieldErrors
+// lives apart from keepServerErrorsOnBlur for that.
 
 import type { ApiFieldError } from "@/api/http";
 import { placeFieldErrors } from "@/shared/field-errors";

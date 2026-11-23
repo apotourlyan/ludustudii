@@ -1,6 +1,3 @@
-import type { ValidationLogicFn } from "@tanstack/react-form";
-import { defaultValidationLogic } from "@tanstack/react-form";
-
 import { ApiError, type ApiFieldError } from "@/api/http";
 
 type FieldCode = ApiFieldError["code"];
@@ -59,21 +56,3 @@ export function placeFieldErrors<Field extends string>(
   const mismatch = error.failure.fieldErrors.length === 0 || unplaced.length > 0;
   return { fields: placed, leftover: mismatch, mismatch, unplaced, unexpected: false };
 }
-
-// TanStack Form drops a field's server error (its `onServer` error) when
-// the field changes, which ADR 0038 wants, and also when it loses focus,
-// which it doesn't: the server judged the value, and a blur doesn't change
-// it. Pass this as the form's `validationLogic` to keep the error through a
-// blur.
-export const keepServerErrorsOnBlur: ValidationLogicFn = (props) =>
-  defaultValidationLogic({
-    ...props,
-    runValidation: (run) =>
-      props.runValidation({
-        ...run,
-        validators:
-          props.event.type === "blur"
-            ? run.validators.filter((validator) => validator?.cause !== "server")
-            : run.validators,
-      }),
-  });
