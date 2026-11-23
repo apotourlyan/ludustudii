@@ -43,6 +43,7 @@ describe("a validation error", () => {
       leftover: false,
       mismatch: false,
       unplaced: [],
+      unexpected: false,
     });
   });
 
@@ -83,6 +84,7 @@ describe("a validation error", () => {
         leftover: true,
         mismatch: true,
         unplaced: [fieldError],
+        unexpected: false,
       });
     },
   );
@@ -93,6 +95,7 @@ describe("a validation error", () => {
       leftover: true,
       mismatch: true,
       unplaced: [],
+      unexpected: false,
     });
   });
 
@@ -143,10 +146,31 @@ describe("a failure that isn't a validation error", () => {
         requestId: undefined,
       }),
     },
-    { why: "an Error", error: new Error("boom") },
-    { why: "a string", error: "boom" },
   ])("($why) is all left over, without a mismatch", ({ error }) => {
-    expect(place(error)).toEqual({ fields: {}, leftover: true, mismatch: false, unplaced: [] });
+    expect(place(error)).toEqual({
+      fields: {},
+      leftover: true,
+      mismatch: false,
+      unplaced: [],
+      unexpected: false,
+    });
+  });
+});
+
+describe("an error that isn't an ApiError", () => {
+  test.each([
+    { why: "an Error", error: new Error("boom") },
+    { why: "a TypeError", error: new TypeError("x is undefined") },
+    { why: "a string", error: "boom" },
+    { why: "undefined", error: undefined },
+  ])("($why) is all left over and unexpected", ({ error }) => {
+    expect(place(error)).toEqual({
+      fields: {},
+      leftover: true,
+      mismatch: false,
+      unplaced: [],
+      unexpected: true,
+    });
   });
 });
 

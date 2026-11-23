@@ -478,8 +478,10 @@ decides what each kind of file in a module may do:
 ### Forms
 
 [ADR 0038](docs/adr/0038-form-validation-errors.md) decides how a form
-shows what is wrong with its fields. The card form is the reference
-(`modules/library/components/learning-card-form.tsx`).
+shows what is wrong with its fields. The card form is the reference: its
+save workflow in `modules/library/components/learning-card-form.state.ts`,
+its markup in `learning-card-form.view.tsx`, and its fields as components
+of the module's form hook, `use-card-form.ts`.
 
 - **Validators return the API's field codes**, not text
   (`model/card-fields.ts`: `required`, `max_length`). The limits live in
@@ -492,7 +494,8 @@ shows what is wrong with its fields. The card form is the reference
   `src/shared/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
-  name map. The form puts the codes in the field's `onServer` error, so
+  name map. `cardSaveFailure` in `model/card-form.ts` turns that into what
+  the card form does: the codes per field, the toast, and what to log. The form puts the codes in the field's `onServer` error, so
   `canSubmit`, the invalid look and the error rendering are TanStack Form's
   own. A field's server error clears when its value changes, not when it
   loses focus (`keepServerErrorsOnBlur`, the form's `validationLogic`).
