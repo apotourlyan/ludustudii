@@ -296,6 +296,10 @@ sliced into modules by user activity
 ([ADR 0035](docs/adr/0035-client-app-modules-by-user-activity.md)), whose
 pages read route data and whose components take props
 ([ADR 0036](docs/adr/0036-pages-read-route-data-components-take-props.md)).
+A component with behavior is a state hook and a view, with its rules in
+the module's `model/`
+([ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md),
+[Component structure](#component-structure)).
 
 ### Structure
 
@@ -310,7 +314,7 @@ frontend/
 │   │   └── library/        # managing content: learning cards
 │   │       ├── index.ts    # the module's public surface: its pages, their load functions and search params validators
 │   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
-│   │       ├── components/ # the pages' parts, which take data as props; private to the module
+│   │       ├── components/ # the pages' parts, which take data as props; one with behavior as <name>.state.ts, <name>.view.tsx and <name>.tsx; private to the module
 │   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
@@ -481,7 +485,8 @@ decides what each kind of file in a module may do:
 shows what is wrong with its fields. The card form is the reference: its
 save workflow in `modules/library/components/learning-card-form.state.ts`,
 its markup in `learning-card-form.view.tsx`, and its fields as components
-of the module's form hook, `use-card-form.ts`.
+of the module's form hook, `use-card-form.ts`
+([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
   (`model/card-fields.ts`: `required`, `max_length`). The limits live in
@@ -596,6 +601,136 @@ decides how the client app reports outcomes and waits.
   `serviceIndexOnlyInMock` for `serviceIndexOnly` and without the fakes'
   and MSW's (ADR 0043).
 
+### Component structure
+
+[ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md)
+decides how a component is built inside, so that its logic can be tested
+on its own and its markup with given state, without a backend
+([Unit and component tests](#unit-and-component-tests)).
+
+- **Rules and decisions are plain functions in the module's `model/`**:
+  validation, canonicalizing, wording, classification (`recentChange`),
+  what a failed save means (`cardSaveFailure`), layout arithmetic
+  (`cardSlots`), and the types they share. `model/` imports no React, no
+  TanStack, no UI and no components, and from the API layer only types;
+  lint enforces it ([Boundaries](#boundaries)).
+- **A component with behavior is three files**, side by side in
+  `components/`, named by suffix like a page's `.load.ts`:
+
+  | File | Holds | Tested by |
+  | --- | --- | --- |
+  | `<name>.state.ts` | `use<Name>(props)`: the component's state, its data and mutation hooks, its workflows (a submit, a delete) and the values its markup needs, returned as the view's props; its return type is the view's props type | Rendering the hook against the fake backend |
+  | `<name>.view.tsx` | `<Name>View`: renders its props. No data or mutation hooks, no decisions, nothing from `@/api/`; hooks that only serve rendering (refs, the virtualizer, layout measurement) are allowed | Rendering it with given props |
+  | `<name>.tsx` | `<Name>`, the component other code uses: `<NameView {...useName(props)} />` | Through the other two |
+
+  A component without behavior stays one file. Today the card form, the
+  delete button, the view switch and the virtualized card list are split;
+  the frame, the preview, the card display, the list and the grid (whose
+  columns follow the window's width, which is layout), the actions' links,
+  the Markdown and the recent-change mark are not.
+- **The markup reads named values.** JSX may test a named value
+  (`{saveError && …}`), choose between two elements or strings on one named
+  value, map a list to one component per item, and call one function in a
+  one-line handler. Comparisons, arithmetic, string building and handlers of
+  more than one statement go into the state hook, a named value above the
+  `return`, or `model/`. Composing classes with `cn(BASE, flag && CLASS)`
+  counts as testing a named value. Lint forbids nested ternaries
+  (`no-nested-ternary`); review enforces the rest.
+- **A render-prop callback renders one component.** Anything more is a
+  component of its own, such as the list's `ListRow` and the grid's
+  `GridCard`. Form fields are components bound to the form with TanStack
+  Form's composition API: `use-card-form.ts` makes the module's form hook,
+  `useCardForm`, with `createFormHook`, its fields render
+  `CardTextField` through `form.AppField`, and `withCardForm` makes
+  components that take the form, such as `CardFormPreview`.
+- **Shared code moves up only when it's shared.** A hook used by one
+  component lives in its `.state.ts`; one used by several of a module's
+  components is its own file in `components/` (`use-<name>.ts`); one useful
+  to every module goes to `src/shared/lib/`. No `hooks/` or `utils/`
+  folders.
+
+The card form, before and after. Before, one component of about 300 lines
+held the save workflow in its `onSubmit` and nested its fields' render
+props:
+
+```tsx
+// learning-card-form.tsx
+export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
+  const form = useForm({
+    onSubmit: async ({ value }) => {
+      // 50 lines: canonicalize, create or update, place the API's field
+      // errors, toast and log what no field shows, focus the first error
+    },
+  });
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(); }}>
+      <form.Field name="title" validators={{ onChange: validateTitle, onSubmit: validateTitle }}>
+        {(title) => (
+          <form.Field name="description" validators={/* … */}>
+            {(description) => (
+              <LearningCardFrame title={fieldSection(title, /* … */)} description={/* … */} />
+            )}
+          </form.Field>
+        )}
+      </form.Field>
+      <Button type="submit" disabled={submitDisabled}>{saving ? text.submitting : text.submit}</Button>
+    </form>
+  );
+}
+```
+
+After, the decisions are functions in `model/card-form.ts`
+(`cardSaveFailure`, `cardFieldDisplay`, `CARD_FORM_TEXT`), the workflow is
+the state hook, and the view renders what it returns:
+
+```tsx
+// learning-card-form.state.ts
+export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
+  const form = useCardForm({ /* … */ onSubmit: ({ value }) => save(value) });
+  // save(): canonicalize, create or update, then onSaved, or reportFailure()
+  // with what cardSaveFailure(error, mode) decides
+  return {
+    form, formRef, onSubmit, cancel,
+    title: fieldProps("title", titleCodes), // label, counter, errors, invalid, active, handlers
+    description: fieldProps("description", descriptionCodes),
+    submitLabel: saving ? text.submitting : text.submit,
+    submitDisabled: !canSubmit || saving,
+  };
+}
+
+// learning-card-form.view.tsx
+export function LearningCardFormView({ form, title, submitLabel, /* … */ }: LearningCardFormState) {
+  return (
+    <form ref={formRef} className={GRID} onSubmit={onSubmit}>
+      <LearningCardFrame
+        title={fieldSection(
+          title,
+          <form.AppField name="title" validators={title.validators}>
+            {(field) => <field.CardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
+          </form.AppField>,
+        )}
+        /* … */
+      />
+      <Button type="submit" disabled={submitDisabled}>{submitLabel}</Button>
+      <CardFormPreview form={form} className={PREVIEW} />
+    </form>
+  );
+}
+
+// learning-card-form.tsx
+export function LearningCardForm(props: LearningCardFormProps): ReactNode {
+  return <LearningCardFormView {...useLearningCardForm(props)} />;
+}
+```
+
+`model/card-form.test.ts` checks every failure kind and counter by calling
+functions; `learning-card-form.state.test.tsx` saves against the fake
+backend (create, update, placeable and unplaceable 400s, a network failure,
+the label while saving); `learning-card-form.view.test.tsx` renders labels,
+disabled states and errors from given props. The pages still import
+`LearningCardForm`.
+
 ### Where a new file goes
 
 | A new… | Goes in | Imported as |
@@ -603,7 +738,9 @@ decides how the client app reports outcomes and waits.
 | Page | `src/modules/<module>/pages/<page>.tsx`, exporting only its component, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
 | Load function | `src/modules/<module>/pages/<page>.load.ts`, beside its page: fills what the page reads, imports only the API layer and the router, exported from the module's `index.ts` | `@/modules/<module>`, by its route's loader |
 | Search params validator | `src/modules/<module>/pages/<page>.search.ts`, beside its page: checks the page's display state and fills in defaults, imports no UI, exported from the module's `index.ts` | `@/modules/<module>`, by its route's `validateSearch` |
-| Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks | A relative path, inside the module |
+| Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks; with behavior, `<name>.state.ts`, `<name>.view.tsx` and `<name>.tsx` ([Component structure](#component-structure)) | A relative path to `<name>`, inside the module |
+| Rule or decision | `src/modules/<module>/model/`: a plain function, with its `*.test.ts` beside it | A relative path, inside the module |
+| Hook | One component's: in its `.state.ts`. Several of a module's components': `src/modules/<module>/components/use-<name>.ts`. Every module's: `src/shared/lib/` | A relative path, or `@/shared/lib/<name>` |
 | Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
