@@ -514,8 +514,9 @@ decides how the client app reports outcomes and waits.
   `src/shared/notify.ts`; the API layer reports nothing. An error toast
   stays until dismissed (its Dismiss button, or F6, Tab and Escape) or
   until its call site tries the action again (`notifyError` returns a
-  function that closes it). It is announced at once and doesn't stack: its
-  message is its identity, and a repeat brings it to the front. The
+  function that closes it). It is announced at once and doesn't stack:
+  each message has one toast, and a repeat replaces it, in front, and is
+  announced again. The
   toasts are Base UI's, through shadcn's `toast`, mounted once in
   `src/app/app.tsx`; nothing else uses them ([Boundaries](#boundaries)).
   They sit at the bottom left, clear of every page's controls at 1280×720

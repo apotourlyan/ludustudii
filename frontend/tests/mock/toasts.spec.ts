@@ -177,6 +177,52 @@ test("a failure again brings its toast to the front, even from behind the others
   await expect(toasts(page)).toHaveCount(4);
 });
 
+// Assistive technology reads an alert when it appears, not when an alert
+// it already read stays, so a failure again needs an alert of its own.
+const repeats = [
+  {
+    name: "a save that fails again, from the same form",
+    method: "PUT",
+    message: SAVE_FAILED,
+    open: async (page: Page) => {
+      await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
+      await page.getByLabel("Title").fill("Mitochondrion");
+    },
+    fail: async (page: Page) => {
+      await page.getByRole("button", { name: "Update Card" }).click();
+    },
+  },
+  {
+    name: "a delete that fails like another card's",
+    method: "DELETE",
+    message: DELETE_FAILED,
+    open: async () => {},
+    fail: async (page: Page, attempt: number) => {
+      await deleteCard(page, cardAt(page, attempt));
+    },
+  },
+];
+
+for (const { name, method, message, open, fail } of repeats) {
+  test(`${name} is announced by a new alert`, async ({ page }) => {
+    await failRequests(page, [method]);
+    await page.goto("/library/cards");
+    await open(page);
+    await fail(page, 1);
+    await expect(errorAnnouncements(page, message)).toHaveCount(1);
+    const first = await errorAnnouncements(page, message).elementHandle();
+
+    await fail(page, 2);
+    await expect.poll(() => failedRequests(page)).toBe(2);
+
+    // The first alert goes, and a new one announces the failure again,
+    // still for one toast.
+    await expect.poll(() => first.evaluate((element) => element.isConnected)).toBe(false);
+    await expect(errorAnnouncements(page, message)).toHaveCount(1);
+    await expect(toasts(page)).toHaveCount(1);
+  });
+}
+
 test("an error toast is announced at once", async ({ page }) => {
   await showDeleteFailure(page);
 
