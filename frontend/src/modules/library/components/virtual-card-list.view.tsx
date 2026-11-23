@@ -44,6 +44,7 @@ export function VirtualCardListView({
     initialOffset: initialScrollOffset,
     rangeExtractor,
   });
+  const totalHeight = virtualizer.getTotalSize();
   const slots = cardSlots(virtualizer.getVirtualItems(), cards, {
     columns,
     gap,
@@ -63,7 +64,7 @@ export function VirtualCardListView({
       role="list"
       aria-label="Learning cards"
       className="relative"
-      style={{ height: virtualizer.getTotalSize() }}
+      style={{ height: totalHeight }}
       onFocus={onFocus}
       onBlur={onBlur}
     >

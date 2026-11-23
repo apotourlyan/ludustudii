@@ -29,21 +29,28 @@ export function LearningCardList({
       // About a screen's worth of rows.
       overscan={12}
       initialScrollOffset={initialScrollOffset}
-      renderCard={(card) => (
-        <Card className="h-full flex-row items-center gap-4 px-4 py-0">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            {/* Every row keeps the mark's space, so the titles line up
-                whether a row has a mark or not. */}
-            <span className="flex size-4 shrink-0">
-              <RecentChangeMark change={recentChange(card, now)} />
-            </span>
-            <CardTitle className="min-w-0 flex-1 truncate">
-              <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
-            </CardTitle>
-          </div>
-          <LearningCardActions card={card} />
-        </Card>
-      )}
+      renderCard={(card) => <ListRow card={card} now={now} />}
     />
+  );
+}
+
+// One card's row: its mark, its title and its actions.
+function ListRow({ card, now }: { card: LearningCard; now: number }) {
+  const change = recentChange(card, now);
+
+  return (
+    <Card className="h-full flex-row items-center gap-4 px-4 py-0">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* Every row keeps the mark's space, so the titles line up
+            whether a row has a mark or not. */}
+        <span className="flex size-4 shrink-0">
+          <RecentChangeMark change={change} />
+        </span>
+        <CardTitle className="min-w-0 flex-1 truncate">
+          <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
+        </CardTitle>
+      </div>
+      <LearningCardActions card={card} />
+    </Card>
   );
 }

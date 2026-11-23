@@ -17,6 +17,8 @@ export function LearningCardPreview({
   className?: string;
 }) {
   const stripId = useId();
+  const untitled = isBlank(card.title);
+  const undescribed = isBlank(card.description);
 
   return (
     <section aria-labelledby={stripId} className={className}>
@@ -33,7 +35,7 @@ export function LearningCardPreview({
             // text beside it: the field's border and top padding, less the
             // difference its smaller font makes. Checked by measuring both.
             <div className="pt-1.5">
-              {isBlank(card.title) ? (
+              {untitled ? (
                 <Placeholder>Untitled</Placeholder>
               ) : (
                 <CardTitle className="min-w-0 wrap-break-word">
@@ -46,7 +48,7 @@ export function LearningCardPreview({
         }}
         description={{
           label: "Description",
-          content: isBlank(card.description) ? (
+          content: undescribed ? (
             <Placeholder>Nothing to preview yet</Placeholder>
           ) : (
             <CardDescriptionMarkdown>{card.description}</CardDescriptionMarkdown>

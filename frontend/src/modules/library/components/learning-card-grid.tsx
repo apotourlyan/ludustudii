@@ -63,26 +63,33 @@ export function LearningCardGrid({
       // About a screen's worth of rows.
       overscan={4}
       initialScrollOffset={initialScrollOffset}
-      renderCard={(card) => (
-        <Card className="relative h-full gap-3 px-4">
-          {/* Before the title, so its hidden text is read first, and placed
-              in the corner, centered on the title's first line: the card's
-              16px padding plus half of what the 20px line has over the 16px
-              icon. */}
-          <span className="absolute top-4.5 right-4 flex">
-            <RecentChangeMark change={recentChange(card, now)} />
-          </span>
-          {/* The title stops short of the mark, 16px for the icon and 8px
-              between them, on every card, so titles wrap the same way
-              whether a card has a mark or not. */}
-          <CardTitle className="line-clamp-3 pr-6 wrap-break-word">
-            <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
-          </CardTitle>
-          <div className="mt-auto self-end">
-            <LearningCardActions card={card} />
-          </div>
-        </Card>
-      )}
+      renderCard={(card) => <GridCard card={card} now={now} />}
     />
+  );
+}
+
+// One card in the grid: its mark, its title and its actions.
+function GridCard({ card, now }: { card: LearningCard; now: number }) {
+  const change = recentChange(card, now);
+
+  return (
+    <Card className="relative h-full gap-3 px-4">
+      {/* Before the title, so its hidden text is read first, and placed
+          in the corner, centered on the title's first line: the card's
+          16px padding plus half of what the 20px line has over the 16px
+          icon. */}
+      <span className="absolute top-4.5 right-4 flex">
+        <RecentChangeMark change={change} />
+      </span>
+      {/* The title stops short of the mark, 16px for the icon and 8px
+          between them, on every card, so titles wrap the same way
+          whether a card has a mark or not. */}
+      <CardTitle className="line-clamp-3 pr-6 wrap-break-word">
+        <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
+      </CardTitle>
+      <div className="mt-auto self-end">
+        <LearningCardActions card={card} />
+      </div>
+    </Card>
   );
 }
