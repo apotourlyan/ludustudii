@@ -130,7 +130,7 @@ frontend-lint:
 frontend-unit:
 	@[ -x $(FRONTEND_DIR)/node_modules/.bin/vitest ] || \
 		{ echo "frontend-unit: $(FRONTEND_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
-	cd $(FRONTEND_DIR) && npm run --silent test:unit -- --allowOnly=false --passWithNoTests $(ARGS)
+	cd $(FRONTEND_DIR) && npm run --silent test:unit -- --allowOnly=false $(ARGS)
 
 ## frontend-test: Runs the app tests: the client app in Chromium against the fake backend (no Go server or database)
 ## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5' or ARGS='-g conflict'
