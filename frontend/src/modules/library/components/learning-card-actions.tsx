@@ -2,7 +2,7 @@ import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOu
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
 import { notifyError } from "@/shared/notify";
@@ -74,15 +74,20 @@ export function DeleteLearningCardButton({
 }) {
   const [open, setOpen] = useState(false);
   const deleteCard = useDeleteLearningCard();
+  // Closes the toast of the last failed delete, if any (ADR 0041).
+  const dismissDeleteError = useRef<(() => void) | undefined>(undefined);
 
   // Awaited rather than given callbacks, which wouldn't run if the button
   // unmounted first, such as when a refetch drops the card's row.
   async function confirmDelete() {
+    // Trying again replaces what the last attempt reported.
+    dismissDeleteError.current?.();
+    dismissDeleteError.current = undefined;
     try {
       await deleteCard.mutateAsync({ id: card.id });
     } catch (error) {
       setOpen(false);
-      notifyError(cardErrorMessage(error, "delete the card"));
+      dismissDeleteError.current = notifyError(cardErrorMessage(error, "delete the card"));
       return;
     }
     setOpen(false);

@@ -144,6 +144,8 @@ export function LearningCardForm<TRouter extends RegisteredRouter, TOptions>(
 export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps): ReactNode {
   const [focused, setFocused] = useState<string | null>(null);
   const formElement = useRef<HTMLFormElement>(null);
+  // Closes the toast of the last failed save, if any (ADR 0041).
+  const dismissSaveError = useRef<(() => void) | undefined>(undefined);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const mutation = card ? updateLearningCard : createLearningCard;
@@ -158,6 +160,9 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
     // The form's own checks stopped the submit.
     onSubmitInvalid: () => focusFirstInvalidField(),
     onSubmit: async ({ value }) => {
+      // Trying again replaces what the last attempt reported.
+      dismissSaveError.current?.();
+      dismissSaveError.current = undefined;
       const input = {
         title: canonicalize(value.title),
         description: canonicalize(value.description),
@@ -189,7 +194,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
           }));
         }
         if (leftover) {
-          notifyError(cardErrorMessage(error, text.action));
+          dismissSaveError.current = notifyError(cardErrorMessage(error, text.action));
           if (!(error instanceof ApiError)) {
             console.error(error);
           } else if (mismatch) {

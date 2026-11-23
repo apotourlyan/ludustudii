@@ -10,8 +10,14 @@ import { cardAt, expectCardAt } from "../support/overview";
 import { failedRequests, failRequests } from "../support/server-errors";
 import { errorAnnouncements, toast, toasts } from "../support/toasts";
 
+// Tall enough that the toasts, at the bottom right, leave the form's
+// buttons free: these tests click them again while a toast is open.
+test.use({ viewport: { width: 1280, height: 900 } });
+
 const SAVE_FAILED = "Something went wrong while trying to save your edits.";
+const CREATE_FAILED = "Something went wrong while trying to create the card.";
 const DELETE_FAILED = "Something went wrong while trying to delete the card.";
+const OFFLINE = "Can't reach the server. Check your connection and try again.";
 
 // Opens the newest card, "Mitochondria", on its page.
 async function openNewestCard(page: Page): Promise<void> {
@@ -61,6 +67,35 @@ test("a save that fails shows one toast, keeps the input and adds nothing to the
   await expect(errorAnnouncements(page, SAVE_FAILED)).toHaveCount(1);
 });
 
+test("saving again closes the failed save's toast, and a success leaves none", async ({ page }) => {
+  await failRequests(page, ["PUT"], { times: 1 });
+  await page.goto("/library/cards");
+  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
+  await page.getByLabel("Title").fill("Mitochondrion");
+  await page.getByRole("button", { name: "Update Card" }).click();
+  await expect(toast(page, SAVE_FAILED)).toBeVisible();
+
+  await page.getByRole("button", { name: "Update Card" }).click();
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");
+  await expect(toasts(page)).toHaveCount(0);
+});
+
+test("deleting again closes the failed delete's toast, and a success leaves none", async ({
+  page,
+}) => {
+  await failRequests(page, ["DELETE"], { times: 1 });
+  await page.goto("/library/cards");
+  await deleteCard(page, cardAt(page, 1));
+  await expect(toast(page, DELETE_FAILED)).toBeVisible();
+
+  const dialog = await deleteCard(page, cardAt(page, 1));
+
+  await expect(dialog).toBeHidden();
+  await expectCardAt(page, 1, "日本語: は vs. が", 7);
+  await expect(toasts(page)).toHaveCount(0);
+});
+
 test("a delete that fails in the list closes the dialog, shows a toast and keeps the card", async ({
   page,
 }) => {
@@ -102,6 +137,48 @@ test("a delete that succeeds shows no toast, in the list or on the card's page",
   await expectCardAt(page, 1, "Python list comprehension", 6);
 
   await expect(toasts(page)).toHaveCount(0);
+});
+
+// The toaster shows the newest 3 toasts and hides the rest. A failure whose
+// toast is among the hidden ones shows it again, in front.
+test("a failure again brings its toast to the front, even from behind the others", async ({
+  page,
+  context,
+}) => {
+  await failRequests(page, ["POST", "PUT", "DELETE"]);
+  await page.goto("/library/cards");
+  await deleteCard(page, cardAt(page, 1));
+  await expect(toast(page, DELETE_FAILED)).toBeVisible();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Add Card" }).click();
+  await page.getByLabel("Title").fill("Krebs cycle");
+  await page.getByLabel("Description").fill("Happens in the mitochondrial matrix.");
+  await page.getByRole("button", { name: "Create Card" }).click();
+  await expect(toast(page, CREATE_FAILED)).toBeVisible();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
+  await page.getByLabel("Title").fill("Mitochondrion");
+  await page.getByRole("button", { name: "Update Card" }).click();
+  await expect(toast(page, SAVE_FAILED)).toBeVisible();
+
+  // Another card's editor: saving again in the same one would close the
+  // save's toast (see above).
+  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await cardAt(page, 2).getByRole("link", { name: "Update" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("日本語: は vs. が");
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Update Card" }).click();
+  await expect(toast(page, OFFLINE)).toBeVisible();
+  await context.setOffline(false);
+  await expect(toasts(page)).toHaveCount(4);
+  await expect(toasts(page).first()).toHaveText(OFFLINE);
+
+  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await deleteCard(page, cardAt(page, 1));
+
+  await expect(toasts(page).first()).toHaveText(DELETE_FAILED);
+  await expect(toasts(page)).toHaveCount(4);
 });
 
 test("an error toast is announced at once", async ({ page }) => {

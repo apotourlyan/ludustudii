@@ -512,8 +512,10 @@ decides how the client app reports outcomes and waits.
   show, a delete, a network failure. The call site words it with its
   module's wording and calls `notifyError(message)` from
   `src/shared/notify.ts`; the API layer reports nothing. An error toast
-  stays until dismissed (its Dismiss button, or F6, Tab and Escape), is
-  announced at once, and doesn't stack: its message is its identity. The
+  stays until dismissed (its Dismiss button, or F6, Tab and Escape) or
+  until its call site tries the action again (`notifyError` returns a
+  function that closes it). It is announced at once and doesn't stack: its
+  message is its identity, and a repeat brings it to the front. The
   toasts are Base UI's, through shadcn's `toast`, mounted once in
   `src/app/app.tsx`; nothing else uses them ([Boundaries](#boundaries)).
 - **A confirmation dialog closes when its request settles**; a failure
