@@ -310,8 +310,8 @@ frontend/
 │   │   └── library/        # managing content: learning cards
 │   │       ├── index.ts    # the module's public surface: its pages, their load functions and search params validators
 │   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
-│   │       ├── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
-│   │       └── model/      # plain TypeScript logic, such as the overview's views
+│   │       ├── components/ # the pages' parts, which take data as props; private to the module
+│   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
 │   │   ├── lib/            # helpers
@@ -352,7 +352,7 @@ frontend/
   module shares: the network, server errors and anything unexpected. A module
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
-  (`modules/library/components/card-error-message.ts`).
+  (`modules/library/model/card-error-message.ts`).
 
 #### The library
 
@@ -486,7 +486,7 @@ shows what is wrong with its fields. The card form is the reference
   that file, next to the checks.
 - **One wording function per module** turns a field and a code into the
   message, or undefined for a pair it has no wording for
-  (`components/card-field-message.ts`). The form renders its field's codes
+  (`model/card-field-message.ts`). The form renders its field's codes
   through it, so a client error and the API's read the same.
 - **The API's field errors go on their fields.** `placeFieldErrors` in
   `src/shared/field-errors.ts` splits a failed save's field errors into the
@@ -605,7 +605,7 @@ decides how the client app reports outcomes and waits.
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
 | Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
-| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `components/` | `@/shared/error-message`, or a relative path |
+| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `model/` | `@/shared/error-message`, or a relative path |
 | Module | `src/modules/<module>/` with `index.ts`, `pages/` and `components/` | `@/modules/<module>` |
 
 ## Development

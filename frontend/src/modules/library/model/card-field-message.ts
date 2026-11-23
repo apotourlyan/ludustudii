@@ -1,6 +1,6 @@
 import type { ApiFieldError } from "@/api/http";
 
-import { CARD_LIMITS, type CardField } from "../model/card-fields";
+import { CARD_LIMITS, type CardField } from "./card-fields";
 
 // A card field's label, on the field and in its messages.
 export const CARD_FIELD_LABELS = {

@@ -19,7 +19,7 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { Button, buttonVariants } from "@/shared/ui/button";
 
-import { cardErrorMessage } from "./card-error-message";
+import { cardErrorMessage } from "../model/card-error-message";
 
 // What can be done with a saved card, for the places that show one to
 // compose in their actions slot. The links let the router preload the

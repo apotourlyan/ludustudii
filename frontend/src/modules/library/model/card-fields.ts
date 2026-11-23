@@ -1,6 +1,6 @@
 // The card form's fields: their limits, how their text is canonicalized and
 // checked. Checks return the API's field codes, never text; the wording is
-// chosen from a field and a code in components/card-field-message.ts
+// chosen from a field and a code in card-field-message.ts
 // (ADR 0038).
 
 import type { ApiFieldError } from "@/api/http";

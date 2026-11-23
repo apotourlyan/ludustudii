@@ -11,6 +11,8 @@ import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
 
+import { cardErrorMessage } from "../model/card-error-message";
+import { CARD_FIELD_LABELS, cardFieldMessage } from "../model/card-field-message";
 import {
   canonicalize,
   canonicalLength,
@@ -20,8 +22,6 @@ import {
   validateTitle,
   type CardField,
 } from "../model/card-fields";
-import { cardErrorMessage } from "./card-error-message";
-import { CARD_FIELD_LABELS, cardFieldMessage } from "./card-field-message";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 import { LearningCardPreview } from "./learning-card-preview";
 
