@@ -168,6 +168,25 @@ const sharedKnowsNoModule: RestrictedPattern = {
     "src/shared/ knows no module: it imports nothing from src/app/, src/routes/ or src/modules/ (ADR 0035).",
 };
 
+// ---- Feedback (ADR 0041)
+
+// Base UI's Toast, through its subpath or its main entry, and the shadcn
+// component built on it. src/shared/notify.ts adds the toasts and src/app/
+// mounts the toaster; everything else reports through notifyError.
+const toastMessage =
+  "Report a failure with notifyError from @/shared/notify; only src/shared/ and src/app/ use the toast component (ADR 0041).";
+
+const toastEntryOutsideShell: RestrictedPath = {
+  name: "@base-ui/react",
+  importNames: ["Toast"],
+  message: toastMessage,
+};
+
+const toastOutsideShell: RestrictedPattern = {
+  regex: "^@base-ui/react/toast(/|$)|^(@|\\.{1,2}(/\\.{1,2})*)/shared/ui/toast(\\.tsx?)?$",
+  message: toastMessage,
+};
+
 // ---- A module's components (ADR 0036)
 
 // The whole package, which includes the hooks ADR 0030 rules out everywhere.
@@ -261,7 +280,12 @@ export default defineConfig({
     "typescript/consistent-return": "off",
     // [...value].length counts code points on purpose, as the server does.
     "typescript/no-misused-spread": "off",
-    "no-restricted-imports": restrictImports(phosphorMainEntry, moduleIndexOnly),
+    "no-restricted-imports": restrictImports(
+      phosphorMainEntry,
+      moduleIndexOnly,
+      toastEntryOutsideShell,
+      toastOutsideShell,
+    ),
     // Side-effect imports of style sheets are how CSS is loaded.
     "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
   },
@@ -276,14 +300,32 @@ export default defineConfig({
     },
     {
       // Module boundaries outside the API layer (ADR 0033), and outside a
-      // module, its index only (ADR 0035). A fake inside a service folder
-      // gets both messages. src/mock/, src/shared/ and src/modules/ set their
-      // own import rule below; the fetch rule still applies to src/shared/
-      // and src/modules/.
+      // module, its index only (ADR 0035), and no toasts but through
+      // notifyError (ADR 0041). A fake inside a service folder gets both
+      // messages. src/app/, src/mock/, src/shared/ and src/modules/ set their
+      // own import rule below; the fetch rule still applies to src/app/,
+      // src/shared/ and src/modules/.
       files: ["src/**"],
       excludeFiles: ["src/api/**", "src/mock/**"],
       rules: {
         "no-restricted-globals": fetchOutsideApi,
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryHooksOutsideApi,
+          openapiFetchOutsideApi,
+          serviceIndexOnly,
+          fakesOnlyInMock,
+          moduleIndexOnly,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+        ),
+      },
+    },
+    {
+      // The shell mounts the toaster (ADR 0041); the boundaries above
+      // still apply.
+      files: ["src/app/**"],
+      rules: {
         "no-restricted-imports": restrictImports(
           phosphorMainEntry,
           queryHooksOutsideApi,
@@ -328,6 +370,8 @@ export default defineConfig({
           climbOutOfModuleAtRoot,
           ownIndexAtRoot,
           dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
@@ -346,6 +390,8 @@ export default defineConfig({
           climbOutOfModuleOneDown,
           ownIndexOneDown,
           dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
@@ -371,6 +417,8 @@ export default defineConfig({
           ownIndexOneDown,
           dotDotAfterFolder,
           widgetsInComponents,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
@@ -390,6 +438,8 @@ export default defineConfig({
           climbOutOfModuleDeeper,
           ownIndexDeeper,
           dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
@@ -405,6 +455,8 @@ export default defineConfig({
           openapiFetchOutsideApi,
           serviceIndexOnlyInMock,
           moduleIndexOnly,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
@@ -422,6 +474,8 @@ export default defineConfig({
           fakesInApiProduction,
           mswInApiProduction,
           moduleIndexOnly,
+          toastEntryOutsideShell,
+          toastOutsideShell,
         ),
       },
     },
