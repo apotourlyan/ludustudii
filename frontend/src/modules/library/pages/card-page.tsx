@@ -5,7 +5,7 @@ import { lcardQueries } from "@/api/lcards";
 
 import { DeleteLearningCardButton } from "../components/delete-learning-card-button";
 import { UpdateLearningCardLink } from "../components/learning-card-actions";
-import { LearningCardDisplay } from "../components/learning-card-view";
+import { LearningCardDisplay } from "../components/learning-card-display";
 
 // One learning card, its title the page's heading. Reads what loadCardPage,
 // in card-page.load.ts, fills; a missing card never reaches it.
