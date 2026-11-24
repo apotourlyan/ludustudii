@@ -35,14 +35,14 @@ export function CardsPage() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Learning Cards</h1>
+        <h1 className="text-xl font-semibold">Learning cards</h1>
         <div className="flex items-center gap-4">
           <CardsViewSwitch view={view} onChange={handleViewChange} />
           <Link
             to="/library/cards/new"
             className="text-sm text-primary underline underline-offset-4"
           >
-            Add Card
+            Add card
           </Link>
         </div>
       </div>

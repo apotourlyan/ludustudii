@@ -11,7 +11,7 @@ import { toasts } from "../support/toasts";
 async function openEditor(page: Page): Promise<void> {
   await page.goto("/library/cards");
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
-  await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Update card" })).toBeEnabled();
 }
 
 // The two panels. The preview is the region named by its strip; the editor
@@ -105,7 +105,7 @@ test.describe("at 1280 px", () => {
     const { editor, preview } = panels(page);
     const editorBox = (await editor.boundingBox())!;
     const previewBox = (await preview.boundingBox())!;
-    const submit = (await page.getByRole("button", { name: "Update Card" }).boundingBox())!;
+    const submit = (await page.getByRole("button", { name: "Update card" }).boundingBox())!;
     expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(editorBox.x);
     expect(submit.y).toBeGreaterThanOrEqual(editorBox.y + editorBox.height);
     expectSame(submit.x + submit.width, editorBox.x + editorBox.width, "submit's right edge");
@@ -135,7 +135,7 @@ test.describe("at 1280 px", () => {
 
     // A submit that fails: the error is a toast, outside the panels.
     await context.setOffline(true);
-    await page.getByRole("button", { name: "Update Card" }).click();
+    await page.getByRole("button", { name: "Update card" }).click();
     await expect(toasts(page)).toHaveCount(1);
     await expectAligned(page, "after a failed save");
 
@@ -154,7 +154,7 @@ test.describe("at 390 px", () => {
   test("the editor, the buttons and the preview stack in that order", async ({ page }) => {
     await openEditor(page);
     const { editor, preview } = panels(page);
-    const buttons = await box(page.getByRole("button", { name: "Update Card" }));
+    const buttons = await box(page.getByRole("button", { name: "Update card" }));
     expect((await box(editor)).bottom).toBeLessThanOrEqual(buttons.top);
     expect(buttons.bottom).toBeLessThanOrEqual((await box(preview)).top);
   });

@@ -17,7 +17,7 @@ export function NewCardPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <h1 className="mb-6 text-xl font-semibold">Add Card</h1>
+      <h1 className="mb-6 text-xl font-semibold">Add card</h1>
       <LearningCardForm cancel={{ to: "/library/cards" }} onSaved={handleSaved} />
     </div>
   );

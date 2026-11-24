@@ -25,9 +25,9 @@ export function RootLayout() {
             aside: the link names the default view, and the overview is
             the current page in either view. */}
         <Link to="/library/cards" activeOptions={{ exact: true, includeSearch: false }}>
-          Learning Cards
+          Learning cards
         </Link>
-        <Link to="/library/cards/new">Add Card</Link>
+        <Link to="/library/cards/new">Add card</Link>
       </nav>
       <main>
         <Outlet />

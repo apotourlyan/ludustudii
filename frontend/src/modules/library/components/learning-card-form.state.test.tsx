@@ -176,8 +176,8 @@ function holdSaves() {
 
 describe("the submit button", () => {
   test.each([
-    { mode: "create", card: undefined, label: "Create Card", saving: "Creating..." },
-    { mode: "update", card: makeCard(), label: "Update Card", saving: "Updating..." },
+    { mode: "create", card: undefined, label: "Create card", saving: "Creating..." },
+    { mode: "update", card: makeCard(), label: "Update card", saving: "Updating..." },
   ])("in $mode mode reads $label, and $saving while saving", async ({ card, label, saving }) => {
     if (card) {
       cardStore.seed([card]);

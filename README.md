@@ -369,7 +369,7 @@ frontend/
 | `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,
-switched by the two icon buttons next to its "Add Card" link ("List view"
+switched by the two icon buttons next to its "Add card" link ("List view"
 and "Grid view"). The view is in the URL: `view=grid` is the grid, and
 anything else, or nothing, the list. The router writes the default into
 the URL, so links to the overview, and the redirects from `/` and

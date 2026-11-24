@@ -20,7 +20,7 @@ const DEFAULT_TITLES = [
 test("the default scenario lists its 8 cards, newest first", async ({ page }) => {
   await page.goto("/library/cards");
 
-  await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Learning cards", level: 1 })).toBeVisible();
   const items = cardItems(page);
   await expect(items).toHaveCount(DEFAULT_TITLES.length);
   for (const [index, title] of DEFAULT_TITLES.entries()) {

@@ -39,7 +39,7 @@ function View(props: Partial<Omit<LearningCardFormState, "form" | "formRef">>) {
       title={field("title")}
       description={field("description")}
       cancel={{ to: "/library/cards" }}
-      submitLabel="Create Card"
+      submitLabel="Create card"
       submitDisabled={false}
       {...props}
     />
@@ -62,7 +62,7 @@ test("labels each field, with its counter", async () => {
 test("shows the submit label, enabled, and Cancel going where it was told", async () => {
   await render();
 
-  await expect.element(page.getByRole("button", { name: "Create Card" })).toBeEnabled();
+  await expect.element(page.getByRole("button", { name: "Create card" })).toBeEnabled();
   await expect
     .element(page.getByRole("link", { name: "Cancel" }))
     .toHaveAttribute("href", "/library/cards");

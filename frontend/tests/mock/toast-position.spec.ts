@@ -35,13 +35,13 @@ async function expectClearOf(
   }
 }
 
-test("on the overview, the toast leaves the view switch and Add Card free", async ({ page }) => {
+test("on the overview, the toast leaves the view switch and Add card free", async ({ page }) => {
   await failRequests(page, ["DELETE"], { times: 1 });
   await page.goto("/library/cards");
   await deleteCard(page, cardAt(page, 1));
 
   await expectClearOf(page, DELETE_FAILED, {
-    "Add Card": page.getByRole("main").getByRole("link", { name: "Add Card" }),
+    "Add card": page.getByRole("main").getByRole("link", { name: "Add card" }),
     "List view": page.getByRole("button", { name: "List view" }),
     "Grid view": page.getByRole("button", { name: "Grid view" }),
     "the first card's Delete": cardAt(page, 1).getByRole("button", { name: "Delete" }),
@@ -74,11 +74,11 @@ test("on the card form, the toast leaves the buttons free", async ({ page }) => 
   await page.goto("/library/cards");
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await page.getByLabel("Title").fill("Mitochondrion");
-  const submit = page.getByRole("button", { name: "Update Card" });
+  const submit = page.getByRole("button", { name: "Update card" });
   await submit.click();
 
   await expectClearOf(page, SAVE_FAILED, {
-    "Update Card": submit,
+    "Update card": submit,
     Cancel: page.getByRole("link", { name: "Cancel" }),
   });
 

@@ -23,7 +23,7 @@ function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
 }
 
 // At the bottom left from sm up, where no page keeps a control: the
-// overview's view switch and Add Card link and a form's buttons are at the
+// overview's view switch and Add card link and a form's buttons are at the
 // right, a card's actions at its top (tests/mock/toast-position.spec.ts).
 // Below sm, across the bottom.
 function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {

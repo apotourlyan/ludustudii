@@ -158,9 +158,9 @@ for (const view of VIEWS) {
       await page.goto(`/library/cards/new`);
       await page.getByLabel("Title").fill(LONG_TITLE);
       await page.getByLabel("Description").fill("Long.");
-      await page.getByRole("button", { name: "Create Card" }).click();
+      await page.getByRole("button", { name: "Create card" }).click();
       await expect(page.getByRole("heading", { level: 1 })).toContainText("The long title");
-      await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+      await page.getByRole("link", { name: "Learning cards", exact: true }).click();
       await page.getByRole("button", { name: viewButtonName(view) }).click();
 
       const rendered = LONG_TITLE.replace(/\*\*/g, "");
@@ -221,9 +221,9 @@ test.describe("the grid view at 1280 px", () => {
     await page.goto(`/library/cards/new`);
     await page.getByLabel("Title").fill(LONG_TITLE);
     await page.getByLabel("Description").fill("Long.");
-    await page.getByRole("button", { name: "Create Card" }).click();
+    await page.getByRole("button", { name: "Create card" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toContainText("The long title");
-    await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+    await page.getByRole("link", { name: "Learning cards", exact: true }).click();
     await page.getByRole("button", { name: "Grid view" }).click();
 
     const boxes = await cardBoxes(page);

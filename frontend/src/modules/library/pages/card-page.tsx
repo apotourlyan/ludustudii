@@ -33,7 +33,7 @@ export function CardPage({ cardId }: { cardId: string }) {
               to="/library/cards/new"
               className="text-sm text-primary underline underline-offset-4"
             >
-              Add Card
+              Add card
             </Link>
           </div>
           <LearningCardDisplay

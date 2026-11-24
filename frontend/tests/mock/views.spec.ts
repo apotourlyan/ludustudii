@@ -1,5 +1,5 @@
 // The cards overview's two views, a list and a grid, chosen with the
-// switch next to "Add Card" and kept in the URL's view param.
+// switch next to "Add card" and kept in the URL's view param.
 
 import { expect, test, type Page } from "@playwright/test";
 
@@ -33,7 +33,7 @@ test("the overview shows the list by default, and says so in the URL", async ({ 
 test("the switch changes the view and the URL, without adding history", async ({ page }) => {
   await page.goto("/library/cards/new");
   // Links to the overview name the view they open, the default list.
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   const { list, grid } = viewButtons(page);
 
@@ -88,7 +88,7 @@ test("the redirects from / and /library keep the view", async ({ page }) => {
 
 test("the navigation marks the overview as the current page in either view", async ({ page }) => {
   await page.goto("/library/cards");
-  const navLink = page.getByRole("navigation").getByRole("link", { name: "Learning Cards" });
+  const navLink = page.getByRole("navigation").getByRole("link", { name: "Learning cards" });
   await expect(navLink).toHaveAttribute("aria-current", "page");
 
   await viewButtons(page).grid.click();
@@ -127,7 +127,7 @@ test("switching views doesn't reload the list, and entering the overview does", 
   // the overview from it enters the page, which runs the loader.
   await openCardFromList(page, cardAt(page, 1));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   await expect
     .poll(() => listRequestCount(page), { message: "list requests" })
     .toBeGreaterThan(before);
