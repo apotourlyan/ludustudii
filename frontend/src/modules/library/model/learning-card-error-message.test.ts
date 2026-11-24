@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { ApiError } from "@/api/http";
 
-import { cardErrorMessage } from "./card-error-message";
+import { cardErrorMessage } from "./learning-card-error-message";
 
 const httpError = (status: number) =>
   new ApiError({ kind: "http", status, code: undefined, fieldErrors: [], requestId: undefined });

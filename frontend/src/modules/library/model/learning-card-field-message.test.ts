@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import type { ApiFieldError } from "@/api/http";
 
-import { CARD_FIELD_LABELS, cardFieldMessage } from "./card-field-message";
+import { CARD_FIELD_LABELS, cardFieldMessage } from "./learning-card-field-message";
 
 test("labels the fields", () => {
   expect(CARD_FIELD_LABELS).toEqual({ title: "Title", description: "Description" });

@@ -6,7 +6,7 @@ import { useNow } from "@/shared/lib/use-now";
 
 import { CardsOverview } from "../components/cards-overview";
 import { CardsViewSwitch } from "../components/cards-view-switch";
-import type { CardsView } from "../model/cards-view";
+import type { CardsView } from "../model/learning-cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
 // ?view=grid). Reads what loadCardsPage, in cards-page.load.ts, fills, and

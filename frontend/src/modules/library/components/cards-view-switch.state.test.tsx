@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { renderHook } from "vitest-browser-react";
 
-import type { CardsView } from "../model/cards-view";
+import type { CardsView } from "../model/learning-cards-view";
 import { useCardsViewSwitch } from "./cards-view-switch.state";
 
 async function renderSwitch(view: CardsView) {

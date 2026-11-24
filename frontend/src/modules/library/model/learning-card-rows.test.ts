@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { cardSlots, rowCount, rowOfCard, withRow } from "./card-rows";
+import { cardSlots, rowCount, rowOfCard, withRow } from "./learning-card-rows";
 
 const cards = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
 

@@ -4,7 +4,7 @@ import { page } from "vitest/browser";
 import { makeCards } from "@/api/lcards/fake/factories";
 import { renderWithProviders } from "@/test/render";
 
-import type { CardsView } from "../model/cards-view";
+import type { CardsView } from "../model/learning-cards-view";
 import { CardsOverview } from "./cards-overview";
 
 const cards = makeCards(3, (index) => ({ title: `Card ${index + 1}` }));

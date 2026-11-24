@@ -1,6 +1,6 @@
 import type { SearchSchemaInput } from "@tanstack/react-router";
 
-import { parseCardsView, type CardsView } from "../model/cards-view";
+import { parseCardsView, type CardsView } from "../model/learning-cards-view";
 
 // The overview's search params: its display state, which lives in the URL
 // so a reload, Back or a link keeps it. Its route's validateSearch is this

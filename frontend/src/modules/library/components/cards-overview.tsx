@@ -1,6 +1,6 @@
 import type { LearningCard } from "@/api/lcards";
 
-import type { CardsView } from "../model/cards-view";
+import type { CardsView } from "../model/learning-cards-view";
 import { LearningCardGrid } from "./learning-card-grid";
 import { LearningCardList } from "./learning-card-list";
 

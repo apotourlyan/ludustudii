@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { ApiError, type ApiFieldError } from "@/api/http";
 
-import { CARD_FORM_TEXT, cardFieldDisplay, cardSaveFailure } from "./card-form";
+import { CARD_FORM_TEXT, cardFieldDisplay, cardSaveFailure } from "./learning-card-form";
 
 const NETWORK = "Can't reach the server. Check your connection and try again.";
 

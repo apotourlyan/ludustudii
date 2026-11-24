@@ -1,4 +1,4 @@
-import { toggledCardsView, type CardsView } from "../model/cards-view";
+import { toggledCardsView, type CardsView } from "../model/learning-cards-view";
 
 export interface CardsViewSwitchProps {
   view: CardsView;

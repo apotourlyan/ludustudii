@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 
 import { useDocumentTop } from "@/shared/lib/use-document-top";
 
-import { cardSlots, rowCount, withRow } from "../model/card-rows";
+import { cardSlots, rowCount, withRow } from "../model/learning-card-rows";
 import type { VirtualCardListState } from "./virtual-card-list.state";
 
 // The list both views of the overview are: the cards as a list named

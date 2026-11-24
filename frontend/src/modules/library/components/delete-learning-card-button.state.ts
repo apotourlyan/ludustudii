@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
 import { notifyError } from "@/shared/notify";
 
-import { cardErrorMessage } from "../model/card-error-message";
+import { cardErrorMessage } from "../model/learning-card-error-message";
 
 export interface DeleteLearningCardButtonProps {
   card: Pick<LearningCard, "id">;

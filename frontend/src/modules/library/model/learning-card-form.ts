@@ -1,15 +1,15 @@
-// The card form beyond its fields' checks (card-fields.ts): its wording in
-// each mode, what each field's bands show, and what a failed save means
-// (ADR 0038, 0041). The form's state hook applies these. Nothing here, nor
-// anything it imports, loads React or the form library: placeFieldErrors
-// lives apart from keepServerErrorsOnBlur for that.
+// The card form beyond its fields' checks (learning-card-fields.ts): its
+// wording in each mode, what each field's bands show, and what a failed save
+// means (ADR 0038, 0041). The form's state hook applies these. Nothing here,
+// nor anything it imports, loads React or the form library:
+// placeFieldErrors lives apart from keepServerErrorsOnBlur for that.
 
 import type { ApiFieldError } from "@/api/http";
 import { placeFieldErrors } from "@/shared/field-errors";
 
-import { cardErrorMessage } from "./card-error-message";
-import { CARD_FIELD_LABELS, cardFieldMessage } from "./card-field-message";
-import { CARD_FIELDS, CARD_LIMITS, canonicalLength, type CardField } from "./card-fields";
+import { cardErrorMessage } from "./learning-card-error-message";
+import { CARD_FIELD_LABELS, cardFieldMessage } from "./learning-card-field-message";
+import { CARD_FIELDS, CARD_LIMITS, canonicalLength, type CardField } from "./learning-card-fields";
 
 type FieldCode = ApiFieldError["code"];
 

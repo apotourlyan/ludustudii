@@ -3,7 +3,7 @@ import { useId } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { CardTitle } from "@/shared/ui/card";
 
-import { isBlank } from "../model/card-fields";
+import { isBlank } from "../model/learning-card-fields";
 import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
 import { LearningCardFrame } from "./learning-card-frame";
 

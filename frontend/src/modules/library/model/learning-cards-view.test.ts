@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { parseCardsView, toggledCardsView } from "./cards-view";
+import { parseCardsView, toggledCardsView } from "./learning-cards-view";
 
 test.each(["list", "grid"] as const)("names the %s view", (view) => {
   expect(parseCardsView(view)).toBe(view);

@@ -7,7 +7,7 @@ import {
   isBlank,
   validateDescription,
   validateTitle,
-} from "./card-fields";
+} from "./learning-card-fields";
 
 // "é" as "e" and a combining acute accent: two code points, one after NFC.
 const DECOMPOSED_E = "é";

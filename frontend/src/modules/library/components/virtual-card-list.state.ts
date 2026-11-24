@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import type { LearningCard } from "@/api/lcards";
 
-import { rowOfCard } from "../model/card-rows";
+import { rowOfCard } from "../model/learning-card-rows";
 
 export interface VirtualCardListProps {
   cards: LearningCard[];

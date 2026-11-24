@@ -13,8 +13,8 @@ import {
   validateDescription,
   validateTitle,
   type CardField,
-} from "../model/card-fields";
-import { CARD_FORM_TEXT, cardFieldDisplay, cardSaveFailure } from "../model/card-form";
+} from "../model/learning-card-fields";
+import { CARD_FORM_TEXT, cardFieldDisplay, cardSaveFailure } from "../model/learning-card-form";
 import { useCardForm } from "./use-card-form";
 
 export interface LearningCardFormProps<
@@ -102,7 +102,8 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   }
 
   // What the API says about a field goes on that field; the rest is a
-  // toast, and a bug or a contract mismatch is logged (model/card-form.ts).
+  // toast, and a bug or a contract mismatch is logged
+  // (model/learning-card-form.ts).
   function reportFailure(error: unknown) {
     const failure = cardSaveFailure(error, mode);
     for (const name of CARD_FIELDS) {

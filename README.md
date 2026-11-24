@@ -356,7 +356,7 @@ frontend/
   module shares: the network, server errors and anything unexpected. A module
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
-  (`modules/library/model/card-error-message.ts`).
+  (`modules/library/model/learning-card-error-message.ts`).
 
 #### The library
 
@@ -489,23 +489,24 @@ of the module's form hook, `use-card-form.ts`
 ([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
-  (`model/card-fields.ts`: `required`, `max_length`). The limits live in
-  that file, next to the checks.
+  (`model/learning-card-fields.ts`: `required`, `max_length`). The limits
+  live in that file, next to the checks.
 - **One wording function per module** turns a field and a code into the
   message, or undefined for a pair it has no wording for
-  (`model/card-field-message.ts`). The form renders its field's codes
+  (`model/learning-card-field-message.ts`). The form renders its field's codes
   through it, so a client error and the API's read the same.
 - **The API's field errors go on their fields.** `placeFieldErrors` in
   `src/shared/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
-  name map. `cardSaveFailure` in `model/card-form.ts` turns that into what
-  the card form does: the codes per field, the toast, and what to log. The
-  form puts the codes in the field's `onServer` error, so `canSubmit`, the
-  invalid look and the error rendering are TanStack Form's own. A field's
-  server error clears when its value changes, not when it loses focus
-  (`keepServerErrorsOnBlur` in `src/shared/keep-server-errors-on-blur.ts`,
-  the form's `validationLogic`).
+  name map. `cardSaveFailure` in `model/learning-card-form.ts` turns that
+  into what the card form does: the codes per field, the toast, and what to
+  log. The form puts the codes in the field's `onServer` error, so
+  `canSubmit`, the invalid look and the error rendering are TanStack Form's
+  own. A field's server error clears when its value changes, not when it
+  loses focus (`keepServerErrorsOnBlur` in
+  `src/shared/keep-server-errors-on-blur.ts`, the form's
+  `validationLogic`).
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
 - **Everything that isn't about a field is a toast**
@@ -730,7 +731,7 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 }
 ```
 
-After, the decisions are functions in `model/card-form.ts`
+After, the decisions are functions in `model/learning-card-form.ts`
 (`cardSaveFailure`, `cardFieldDisplay`, `CARD_FORM_TEXT`), the workflow is
 the state hook, and the view renders what it returns:
 
@@ -774,8 +775,8 @@ export function LearningCardForm(props: LearningCardFormProps): ReactNode {
 }
 ```
 
-`model/card-form.test.ts` checks every failure kind and counter by calling
-functions; `learning-card-form.state.test.tsx` saves against the fake
+`model/learning-card-form.test.ts` checks every failure kind and counter by
+calling functions; `learning-card-form.state.test.tsx` saves against the fake
 backend (create, update, placeable and unplaceable 400s, a network failure,
 the label while saving); `learning-card-form.view.test.tsx` renders labels,
 disabled states and errors from given props. The pages still import
