@@ -18,6 +18,12 @@ export function CardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
   const navigate = useNavigate();
 
+  // The card is gone, so its page replaces itself in the history with the
+  // list, and Back doesn't show "Card not found".
+  function leaveDeletedCard() {
+    void navigate({ to: "/library/cards", replace: true });
+  }
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -36,12 +42,7 @@ export function CardPage({ cardId }: { cardId: string }) {
             actions={
               <div className="flex gap-2">
                 <UpdateLearningCardLink card={card} />
-                <DeleteLearningCardButton
-                  card={card}
-                  // The card is gone, so its page replaces itself in the
-                  // history with the list, and Back doesn't show "Card not found".
-                  onDeleted={() => void navigate({ to: "/library/cards", replace: true })}
-                />
+                <DeleteLearningCardButton card={card} onDeleted={leaveDeletedCard} />
               </div>
             }
           />

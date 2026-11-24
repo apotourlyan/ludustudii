@@ -4,9 +4,9 @@ import { Link, useElementScrollRestoration, useNavigate, useSearch } from "@tans
 import { lcardQueries } from "@/api/lcards";
 import { useNow } from "@/shared/lib/use-now";
 
+import { CardsOverview } from "../components/cards-overview";
 import { CardsViewSwitch } from "../components/cards-view-switch";
-import { LearningCardGrid } from "../components/learning-card-grid";
-import { LearningCardList } from "../components/learning-card-list";
+import type { CardsView } from "../model/cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
 // ?view=grid). Reads what loadCardsPage, in cards-page.load.ts, fills, and
@@ -25,23 +25,19 @@ export function CardsPage() {
   // start there instead of rendering the top first.
   const initialScrollOffset =
     useElementScrollRestoration({ getElement: () => window })?.scrollY ?? 0;
-  const CardsView = view === "list" ? LearningCardList : LearningCardGrid;
-  const empty = cards.length === 0;
+
+  // The view is display state: switching it replaces the history entry, so
+  // Back leaves the page instead of stepping through the switches.
+  function switchView(next: CardsView) {
+    void navigate({ search: (prev) => ({ ...prev, view: next }), replace: true });
+  }
 
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning Cards</h1>
         <div className="flex items-center gap-4">
-          <CardsViewSwitch
-            view={view}
-            // The view is display state: switching it replaces the history
-            // entry, so Back leaves the page instead of stepping through
-            // the switches.
-            onChange={(next) =>
-              void navigate({ search: (prev) => ({ ...prev, view: next }), replace: true })
-            }
-          />
+          <CardsViewSwitch view={view} onChange={switchView} />
           <Link
             to="/library/cards/new"
             className="text-sm text-primary underline underline-offset-4"
@@ -51,11 +47,12 @@ export function CardsPage() {
         </div>
       </div>
 
-      {empty ? (
-        <p className="text-muted-foreground">No learning cards yet. Add a card to get started.</p>
-      ) : (
-        <CardsView cards={cards} now={now} initialScrollOffset={initialScrollOffset} />
-      )}
+      <CardsOverview
+        cards={cards}
+        view={view}
+        now={now}
+        initialScrollOffset={initialScrollOffset}
+      />
     </div>
   );
 }

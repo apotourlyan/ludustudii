@@ -627,9 +627,9 @@ on its own and its markup with given state, without a backend
 
   A component without behavior stays one file. Today the card form, the
   delete button, the view switch and the virtualized card list are split;
-  the frame, the preview, the card display, the list and the grid (whose
-  columns follow the window's width, which is layout), the actions' links,
-  the Markdown and the recent-change mark are not.
+  the frame, the preview, the card display, the overview, the list and the
+  grid (whose columns follow the window's width, which is layout), the
+  actions' links, the Markdown and the recent-change mark are not.
 - **The markup reads named values.** JSX may test a named value
   (`{saveError && …}`), choose between two elements or strings on one named
   value, map a list to one component per item, and call one function in a
@@ -638,6 +638,12 @@ on its own and its markup with given state, without a backend
   `return`, or `model/`. Composing classes with `cn(BASE, flag && CLASS)`
   counts as testing a named value. Lint forbids nested ternaries
   (`no-nested-ternary`); review enforces the rest.
+- **A page reads as its parts.** A choice between whole blocks of content
+  is a component that makes it, such as `CardsOverview`, which shows the
+  empty state, the list or the grid. A handler that carries a decision,
+  such as replacing the history entry, is a named function in the page
+  with the reason on it, such as the overview's `switchView` and the card
+  page's `leaveDeletedCard`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
