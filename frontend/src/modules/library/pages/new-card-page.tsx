@@ -10,7 +10,9 @@ export function NewCardPage() {
   const navigate = useNavigate();
 
   // The form is used up once the card exists, so the card's page replaces
-  // it in the history, and Back returns to where the user came from.
+  // it in the history, and Back returns to where the user came from. The
+  // promise is returned, not voided: the form awaits onSaved and stays in
+  // its saving state until the card's page has loaded.
   function handleSaved(card: Pick<LearningCard, "id">) {
     return navigate({ to: "/library/cards/$cardId", params: { cardId: card.id }, replace: true });
   }
