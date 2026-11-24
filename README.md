@@ -296,6 +296,10 @@ sliced into modules by user activity
 ([ADR 0035](docs/adr/0035-client-app-modules-by-user-activity.md)), whose
 pages read route data and whose components take props
 ([ADR 0036](docs/adr/0036-pages-read-route-data-components-take-props.md)).
+A component with behavior is a state hook and a view, with its rules in
+the module's `model/`
+([ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md),
+[Component structure](#component-structure)).
 
 ### Structure
 
@@ -310,8 +314,8 @@ frontend/
 │   │   └── library/        # managing content: learning cards
 │   │       ├── index.ts    # the module's public surface: its pages, their load functions and search params validators
 │   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
-│   │       ├── components/ # the pages' parts, which take data as props, and the module's wording; private to the module
-│   │       └── model/      # plain TypeScript logic, such as the overview's views
+│   │       ├── components/ # the pages' parts, which take data as props; one with behavior as <name>.state.ts, <name>.view.tsx and <name>.tsx; private to the module
+│   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
 │   ├── shared/             # used by every module, knows none of them
 │   │   ├── ui/             # shadcn components (see UI components)
 │   │   ├── lib/            # helpers
@@ -352,7 +356,7 @@ frontend/
   module shares: the network, server errors and anything unexpected. A module
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
-  (`modules/library/components/card-error-message.ts`).
+  (`modules/library/model/card-error-message.ts`).
 
 #### The library
 
@@ -478,24 +482,30 @@ decides what each kind of file in a module may do:
 ### Forms
 
 [ADR 0038](docs/adr/0038-form-validation-errors.md) decides how a form
-shows what is wrong with its fields. The card form is the reference
-(`modules/library/components/learning-card-form.tsx`).
+shows what is wrong with its fields. The card form is the reference: its
+save workflow in `modules/library/components/learning-card-form.state.ts`,
+its markup in `learning-card-form.view.tsx`, and its fields as components
+of the module's form hook, `use-card-form.ts`
+([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
   (`model/card-fields.ts`: `required`, `max_length`). The limits live in
   that file, next to the checks.
 - **One wording function per module** turns a field and a code into the
   message, or undefined for a pair it has no wording for
-  (`components/card-field-message.ts`). The form renders its field's codes
+  (`model/card-field-message.ts`). The form renders its field's codes
   through it, so a client error and the API's read the same.
 - **The API's field errors go on their fields.** `placeFieldErrors` in
   `src/shared/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
-  name map. The form puts the codes in the field's `onServer` error, so
-  `canSubmit`, the invalid look and the error rendering are TanStack Form's
-  own. A field's server error clears when its value changes, not when it
-  loses focus (`keepServerErrorsOnBlur`, the form's `validationLogic`).
+  name map. `cardSaveFailure` in `model/card-form.ts` turns that into what
+  the card form does: the codes per field, the toast, and what to log. The
+  form puts the codes in the field's `onServer` error, so `canSubmit`, the
+  invalid look and the error rendering are TanStack Form's own. A field's
+  server error clears when its value changes, not when it loses focus
+  (`keepServerErrorsOnBlur` in `src/shared/keep-server-errors-on-blur.ts`,
+  the form's `validationLogic`).
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
 - **Everything that isn't about a field is a toast**
@@ -566,6 +576,14 @@ decides how the client app reports outcomes and waits.
   `src/modules/*/components/*` lists the module boundaries of its depth
   and adds these; `components/` is flat, since the override covers only
   files directly in it.
+- A module's `model/` is plain TypeScript (ADR 0042): no `react` or
+  `react-dom`, no `@tanstack/*`, no `@/shared/ui/`, none of the module's
+  `components/`, `pages/` or `widgets/`, and from the API layer only
+  `import type` (the rule's `allowTypeImports`). Its tests may also import
+  the API layer's values and the fakes.
+- A component's view (`components/<name>.view.tsx`, ADR 0042) imports
+  nothing from `@/api/`, types included, and nothing from
+  `@tanstack/react-query`; its props type comes from its state hook.
 - A page file exports only its component (`react/only-export-components`),
   which keeps its load function in its own `.load.ts` file. That a load
   file imports no UI is checked in review.
@@ -585,6 +603,159 @@ decides how the client app reports outcomes and waits.
   `serviceIndexOnlyInMock` for `serviceIndexOnly` and without the fakes'
   and MSW's (ADR 0043).
 
+### Component structure
+
+[ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md),
+amended by [ADR 0044](docs/adr/0044-named-values-in-components.md),
+decides how a component is built inside, so that its logic can be tested
+on its own and its markup with given state, without a backend
+([Unit and component tests](#unit-and-component-tests)).
+
+- **Rules and decisions are plain functions in the module's `model/`**:
+  validation, canonicalizing, wording, classification (`recentChange`),
+  what a failed save means (`cardSaveFailure`), layout arithmetic
+  (`cardSlots`), and the types they share. `model/` imports no React, no
+  TanStack, no UI and no components, and from the API layer only types;
+  lint enforces it ([Boundaries](#boundaries)).
+- **A component with behavior is three files**, side by side in
+  `components/`, named by suffix like a page's `.load.ts`:
+
+  | File | Holds | Tested by |
+  | --- | --- | --- |
+  | `<name>.state.ts` | `use<Name>(props)`: the component's state, its data and mutation hooks, its workflows (a submit, a delete) and the values its markup needs, returned as the view's props; its return type is the view's props type | Rendering the hook against the fake backend |
+  | `<name>.view.tsx` | `<Name>View`: renders its props. No data or mutation hooks, no decisions, nothing from `@/api/`; hooks that only serve rendering (refs, the virtualizer, layout measurement) are allowed | Rendering it with given props |
+  | `<name>.tsx` | `<Name>`, the component other code uses: `<NameView {...useName(props)} />` | Through the other two |
+
+  A component without behavior stays one file. Today the card form, the
+  delete button, the view switch and the virtualized card list are split;
+  the frame, the preview, the card display, the overview, the list and the
+  grid (whose columns follow the window's width, which is layout), the
+  actions' links, the Markdown and the recent-change mark are not.
+- **The markup reads named values.** JSX may test a named value
+  (`{saveError && …}`), choose between two elements or strings on one named
+  value, map a list to one component per item, and call one function in a
+  one-line handler. Comparisons, arithmetic, string building and handlers of
+  more than one statement don't go in the JSX: they become a named value
+  above the `return`, or move to `model/` or the state hook, by the test
+  below. Composing classes with `cn(BASE, flag && CLASS)` counts as testing
+  a named value. Lint forbids nested ternaries (`no-nested-ternary`);
+  review enforces the rest.
+- **Rule or markup** (ADR 0044): would a test of the value check a rule of
+  the application, or only what the markup looks like?
+  - **Markup** may stay in the component, view or not, as a named value
+    above the `return`: whether a slot was given, which class or element to
+    use, which of two labels to show, a number formatted for display or a
+    style. The frame's `hasStrip` (was a strip given) and `progressWidth`
+    (the progress clamped to a CSS width) are markup: only what the frame
+    renders shows them.
+  - **A rule** goes to `model/`, or to the state hook when it needs React:
+    limits, validation, classification (what counts as recent), wording,
+    what a failure means. So does a value that uses data, mutations,
+    navigation or the clock, and one that more than one component needs.
+    `cardSaveFailure` is a rule: what a failed save means (which field
+    shows which code, what is toasted, what is logged) holds whatever the
+    form looks like, and its tests call it.
+- **A page reads as its parts.** A choice between whole blocks of content
+  is a component that makes it, such as `CardsOverview`, which shows the
+  empty state, the list or the grid. A handler that carries a decision,
+  such as replacing the history entry, is a named function in the page
+  with the reason on it, such as the overview's `switchView` and the card
+  page's `leaveDeletedCard`.
+- **A render-prop callback renders one component.** Anything more is a
+  component of its own, such as the list's `ListRow` and the grid's
+  `GridCard`. Form fields are components bound to the form with TanStack
+  Form's composition API: `use-card-form.ts` makes the module's form hook,
+  `useCardForm`, with `createFormHook`, its fields render
+  `CardTextField` through `form.AppField`, and `withCardForm` makes
+  components that take the form, such as `CardFormPreview`.
+- **Shared code moves up only when it's shared.** A hook used by one
+  component lives in its `.state.ts`; one used by several of a module's
+  components is its own file in `components/` (`use-<name>.ts`); one useful
+  to every module goes to `src/shared/lib/`. No `hooks/` or `utils/`
+  folders.
+
+The card form, before and after. Before, one component of about 300 lines
+held the save workflow in its `onSubmit` and nested its fields' render
+props:
+
+```tsx
+// learning-card-form.tsx
+export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
+  const form = useForm({
+    onSubmit: async ({ value }) => {
+      // 50 lines: canonicalize, create or update, place the API's field
+      // errors, toast and log what no field shows, focus the first error
+    },
+  });
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(); }}>
+      <form.Field name="title" validators={{ onChange: validateTitle, onSubmit: validateTitle }}>
+        {(title) => (
+          <form.Field name="description" validators={/* … */}>
+            {(description) => (
+              <LearningCardFrame title={fieldSection(title, /* … */)} description={/* … */} />
+            )}
+          </form.Field>
+        )}
+      </form.Field>
+      <Button type="submit" disabled={submitDisabled}>{saving ? text.submitting : text.submit}</Button>
+    </form>
+  );
+}
+```
+
+After, the decisions are functions in `model/card-form.ts`
+(`cardSaveFailure`, `cardFieldDisplay`, `CARD_FORM_TEXT`), the workflow is
+the state hook, and the view renders what it returns:
+
+```tsx
+// learning-card-form.state.ts
+export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
+  const form = useCardForm({ /* … */ onSubmit: ({ value }) => save(value) });
+  // save(): canonicalize, create or update, then onSaved, or reportFailure()
+  // with what cardSaveFailure(error, mode) decides
+  return {
+    form, formRef, onSubmit, cancel,
+    title: fieldProps("title", titleCodes), // label, counter, errors, invalid, active, handlers
+    description: fieldProps("description", descriptionCodes),
+    submitLabel: saving ? text.submitting : text.submit,
+    submitDisabled: !canSubmit || saving,
+  };
+}
+
+// learning-card-form.view.tsx
+export function LearningCardFormView({ form, title, submitLabel, /* … */ }: LearningCardFormState) {
+  return (
+    <form ref={formRef} className={GRID} onSubmit={onSubmit}>
+      <LearningCardFrame
+        title={fieldSection(
+          title,
+          <form.AppField name="title" validators={title.validators}>
+            {(field) => <field.CardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
+          </form.AppField>,
+        )}
+        /* … */
+      />
+      <Button type="submit" disabled={submitDisabled}>{submitLabel}</Button>
+      <CardFormPreview form={form} className={PREVIEW} />
+    </form>
+  );
+}
+
+// learning-card-form.tsx
+export function LearningCardForm(props: LearningCardFormProps): ReactNode {
+  return <LearningCardFormView {...useLearningCardForm(props)} />;
+}
+```
+
+`model/card-form.test.ts` checks every failure kind and counter by calling
+functions; `learning-card-form.state.test.tsx` saves against the fake
+backend (create, update, placeable and unplaceable 400s, a network failure,
+the label while saving); `learning-card-form.view.test.tsx` renders labels,
+disabled states and errors from given props. The pages still import
+`LearningCardForm`.
+
 ### Where a new file goes
 
 | A new… | Goes in | Imported as |
@@ -592,12 +763,14 @@ decides how the client app reports outcomes and waits.
 | Page | `src/modules/<module>/pages/<page>.tsx`, exporting only its component, exported from the module's `index.ts` | `@/modules/<module>`, by its route |
 | Load function | `src/modules/<module>/pages/<page>.load.ts`, beside its page: fills what the page reads, imports only the API layer and the router, exported from the module's `index.ts` | `@/modules/<module>`, by its route's loader |
 | Search params validator | `src/modules/<module>/pages/<page>.search.ts`, beside its page: checks the page's display state and fills in defaults, imports no UI, exported from the module's `index.ts` | `@/modules/<module>`, by its route's `validateSearch` |
-| Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks | A relative path, inside the module |
+| Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks; with behavior, `<name>.state.ts`, `<name>.view.tsx` and `<name>.tsx` ([Component structure](#component-structure)) | A relative path to `<name>`, inside the module |
+| Rule or decision | `src/modules/<module>/model/`: a plain function, with its `*.test.ts` beside it | A relative path, inside the module |
+| Hook | One component's: in its `.state.ts`. Several of a module's components': `src/modules/<module>/components/use-<name>.ts`. Every module's: `src/shared/lib/` | A relative path, or `@/shared/lib/<name>` |
 | Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
 | Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
-| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `components/` | `@/shared/error-message`, or a relative path |
+| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `model/` | `@/shared/error-message`, or a relative path |
 | Module | `src/modules/<module>/` with `index.ts`, `pages/` and `components/` | `@/modules/<module>` |
 
 ## Development
@@ -982,7 +1155,7 @@ and the handlers a test added are removed. `renderWithProviders(ui, { url })`
 and `renderHookWithProviders(hook)` in `src/test/render.tsx` render with a
 new query client with the app's defaults (retries without the delay), and,
 given a `url`, in a router, for a component that renders links. Everything
-renders in React's `StrictMode`, as the app does. A test finds elements by
+renders in React's `StrictMode` and with the app's styles, as the app does. A test finds elements by
 role, label and text, as the Playwright tests do.
 
 The mock mode stays out of these builds: `msw()` from `msw/vite` and
@@ -1216,7 +1389,7 @@ later formatting-only commit adds its hash to the file.
 
 Oxlint lints the client app with type-aware rules, configured in
 `frontend/oxlint.config.ts` (ADR 0033, ADR 0037): the correctness and suspicious
-categories as errors, the promise and React hooks rules, and the module
+categories as errors, the promise and React hooks rules, `no-nested-ternary` (ADR 0042), and the module
 boundaries as `no-restricted-imports` per directory. Outside `src/api/`, code
 imports a service only through `@/api/<service>` (plus the shared files
 directly in `src/api/`), doesn't call `fetch` or import `openapi-fetch`,

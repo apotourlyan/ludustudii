@@ -1,14 +1,8 @@
-import {
-  defaultValidationLogic,
-  FieldApi,
-  FormApi,
-  type ValidationLogicFn,
-} from "@tanstack/react-form";
 import { describe, expect, test } from "vitest";
 
 import { ApiError, type ApiFieldError } from "@/api/http";
 
-import { keepServerErrorsOnBlur, placeFieldErrors } from "./field-errors";
+import { placeFieldErrors } from "./field-errors";
 
 const FIELDS = ["title", "description"] as const;
 type Field = (typeof FIELDS)[number];
@@ -43,6 +37,7 @@ describe("a validation error", () => {
       leftover: false,
       mismatch: false,
       unplaced: [],
+      unexpected: false,
     });
   });
 
@@ -83,6 +78,7 @@ describe("a validation error", () => {
         leftover: true,
         mismatch: true,
         unplaced: [fieldError],
+        unexpected: false,
       });
     },
   );
@@ -93,6 +89,7 @@ describe("a validation error", () => {
       leftover: true,
       mismatch: true,
       unplaced: [],
+      unexpected: false,
     });
   });
 
@@ -143,49 +140,30 @@ describe("a failure that isn't a validation error", () => {
         requestId: undefined,
       }),
     },
-    { why: "an Error", error: new Error("boom") },
-    { why: "a string", error: "boom" },
   ])("($why) is all left over, without a mismatch", ({ error }) => {
-    expect(place(error)).toEqual({ fields: {}, leftover: true, mismatch: false, unplaced: [] });
+    expect(place(error)).toEqual({
+      fields: {},
+      leftover: true,
+      mismatch: false,
+      unplaced: [],
+      unexpected: false,
+    });
   });
 });
 
-// A form with a title field that the server rejected.
-function rejectedTitle(validationLogic: ValidationLogicFn) {
-  const form = new FormApi({ defaultValues: { title: "a" }, validationLogic });
-  form.mount();
-  const field = new FieldApi({ form, name: "title", validators: { onChange: () => undefined } });
-  field.mount();
-  form.setFieldMeta("title", (meta) => ({
-    ...meta,
-    errorMap: { ...meta.errorMap, onServer: ["max_length"] },
-  }));
-  return field;
-}
-
-describe("keepServerErrorsOnBlur", () => {
-  test("keeps the server's error when the field loses focus", () => {
-    const field = rejectedTitle(keepServerErrorsOnBlur);
-
-    field.handleBlur();
-
-    expect(field.state.meta.errorMap.onServer).toEqual(["max_length"]);
-  });
-
-  test("drops it when the field changes", () => {
-    const field = rejectedTitle(keepServerErrorsOnBlur);
-
-    field.handleChange("b");
-
-    expect(field.state.meta.errorMap.onServer).toBeUndefined();
-  });
-
-  // What it changes: TanStack Form's own logic drops the error on a blur.
-  test("differs from the default logic only on a blur", () => {
-    const field = rejectedTitle(defaultValidationLogic);
-
-    field.handleBlur();
-
-    expect(field.state.meta.errorMap.onServer).toBeUndefined();
+describe("an error that isn't an ApiError", () => {
+  test.each([
+    { why: "an Error", error: new Error("boom") },
+    { why: "a TypeError", error: new TypeError("x is undefined") },
+    { why: "a string", error: "boom" },
+    { why: "undefined", error: undefined },
+  ])("($why) is all left over and unexpected", ({ error }) => {
+    expect(place(error)).toEqual({
+      fields: {},
+      leftover: true,
+      mismatch: false,
+      unplaced: [],
+      unexpected: true,
+    });
   });
 });

@@ -1,6 +1,6 @@
 // The card form's fields: their limits, how their text is canonicalized and
 // checked. Checks return the API's field codes, never text; the wording is
-// chosen from a field and a code in components/card-field-message.ts
+// chosen from a field and a code in card-field-message.ts
 // (ADR 0038).
 
 import type { ApiFieldError } from "@/api/http";
@@ -26,13 +26,16 @@ export const canonicalize = (value: string) => value.normalize("NFC").trim();
 // Counts code points, as the server does, rather than UTF-16 code units.
 export const canonicalLength = (value: string) => [...canonicalize(value)].length;
 
+// Whether a field is empty once canonicalized: what its check rejects as
+// required, and what the preview shows a placeholder for.
+export const isBlank = (value: string) => canonicalize(value) === "";
+
 function checkField(field: CardField): (props: { value: string }) => CardFieldCode | undefined {
   return ({ value }) => {
-    const length = canonicalLength(value);
-    if (length === 0) {
+    if (isBlank(value)) {
       return "required";
     }
-    return length > CARD_LIMITS[field] ? "max_length" : undefined;
+    return canonicalLength(value) > CARD_LIMITS[field] ? "max_length" : undefined;
   };
 }
 

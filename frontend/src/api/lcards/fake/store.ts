@@ -58,7 +58,7 @@ export class CardStore {
 
     const sorted = [...this.#cards.values()]
       .filter((card) => after === undefined || card.id < after)
-      .toSorted((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+      .toSorted((a, b) => descending(a.id, b.id));
 
     const items = sorted.slice(0, limit).map((card) => ({ ...card }));
     const last = items.at(-1);
@@ -113,6 +113,14 @@ export class CardStore {
     this.#cursors.set(token, lastId);
     return token;
   }
+}
+
+// Orders strings from greatest to least by code unit, so UUIDv7 IDs come
+// newest first.
+function descending(a: string, b: string): number {
+  if (a < b) return 1;
+  if (a > b) return -1;
+  return 0;
 }
 
 // The store the fake's handlers use. Other fakes may call it to simulate

@@ -1,6 +1,3 @@
-import type { ValidationLogicFn } from "@tanstack/react-form";
-import { defaultValidationLogic } from "@tanstack/react-form";
-
 import { ApiError, type ApiFieldError } from "@/api/http";
 
 type FieldCode = ApiFieldError["code"];
@@ -20,6 +17,9 @@ export interface PlacedFieldErrors<Field extends string> {
   readonly mismatch: boolean;
   // The validation error's field errors the form can't place.
   readonly unplaced: readonly ApiFieldError[];
+  // True when the error isn't an ApiError at all: not a failed request but
+  // a bug behind it, which the form logs.
+  readonly unexpected: boolean;
 }
 
 // Splits a failed request's field errors into those the form can show on
@@ -35,12 +35,11 @@ export function placeFieldErrors<Field extends string>(
   apiNames: Readonly<Record<string, Field>> = {},
 ): PlacedFieldErrors<Field> {
   const placed: Partial<Record<Field, FieldCode[]>> = {};
-  if (
-    !(error instanceof ApiError) ||
-    error.failure.kind !== "http" ||
-    error.failure.code !== "validation_error"
-  ) {
-    return { fields: placed, leftover: true, mismatch: false, unplaced: [] };
+  if (!(error instanceof ApiError)) {
+    return { fields: placed, leftover: true, mismatch: false, unplaced: [], unexpected: true };
+  }
+  if (error.failure.kind !== "http" || error.failure.code !== "validation_error") {
+    return { fields: placed, leftover: true, mismatch: false, unplaced: [], unexpected: false };
   }
   const unplaced: ApiFieldError[] = [];
   for (const fieldError of error.failure.fieldErrors) {
@@ -55,23 +54,5 @@ export function placeFieldErrors<Field extends string>(
     (placed[name] ??= []).push(code);
   }
   const mismatch = error.failure.fieldErrors.length === 0 || unplaced.length > 0;
-  return { fields: placed, leftover: mismatch, mismatch, unplaced };
+  return { fields: placed, leftover: mismatch, mismatch, unplaced, unexpected: false };
 }
-
-// TanStack Form drops a field's server error (its `onServer` error) when
-// the field changes, which ADR 0038 wants, and also when it loses focus,
-// which it doesn't: the server judged the value, and a blur doesn't change
-// it. Pass this as the form's `validationLogic` to keep the error through a
-// blur.
-export const keepServerErrorsOnBlur: ValidationLogicFn = (props) =>
-  defaultValidationLogic({
-    ...props,
-    runValidation: (run) =>
-      props.runValidation({
-        ...run,
-        validators:
-          props.event.type === "blur"
-            ? run.validators.filter((validator) => validator?.cause !== "server")
-            : run.validators,
-      }),
-  });

@@ -4,8 +4,14 @@ import { defineConfig, type DummyRuleMap } from "oxlint";
 
 /** A package, or some of its exports, that may not be imported. */
 type RestrictedPath = { name: string; importNames?: string[]; message: string };
-/** Import paths that may not be imported: a regex, or a gitignore group. */
-type RestrictedPattern = { regex: string; message: string } | { group: string[]; message: string };
+/**
+ * Import paths that may not be imported: a regex, or a gitignore group;
+ * with allowTypeImports, only `import type` of them is allowed.
+ */
+type RestrictedPattern = ({ regex: string } | { group: string[] }) & {
+  message: string;
+  allowTypeImports?: boolean;
+};
 type Restriction = RestrictedPath | RestrictedPattern;
 
 // ---- Everywhere
@@ -233,6 +239,58 @@ const widgetsInComponents: RestrictedPattern = {
   message: "Components don't render widgets; pages do (ADR 0036).",
 };
 
+// ---- Component structure (ADR 0042)
+
+const modelMessage =
+  "A module's model/ is plain TypeScript: rules and decisions as functions, without React, TanStack, UI or components, and only types from the API layer (ADR 0042).";
+
+// React and the React DOM renderer, and their subpaths.
+const reactInModel: RestrictedPattern = {
+  regex: "^react(-dom)?(/|$)",
+  message: modelMessage,
+};
+
+// Every TanStack package: Query, Router, Form, Virtual.
+const tanstackInModel: RestrictedPattern = {
+  regex: "^@tanstack/",
+  message: modelMessage,
+};
+
+const sharedUiInModel: RestrictedPattern = {
+  regex: "^(@|\\.{1,2}(/\\.{1,2})*)/shared/ui(/|$)",
+  message: modelMessage,
+};
+
+// ../components/..., ../pages/... and ../widgets/... from model/: a
+// module's components, wherever they live.
+const componentsInModel: RestrictedPattern = {
+  regex: "^(\\.{1,2}/)+(components|pages|widgets)(/|$)",
+  message: modelMessage,
+};
+
+// Any import from the API layer but `import type`, by alias or relative
+// path.
+const apiValuesInModel: RestrictedPattern = {
+  regex: "^(@|\\.{1,2}(/\\.{1,2})*)/api(/|$)",
+  allowTypeImports: true,
+  message: modelMessage,
+};
+
+// The API layer, types included, by alias or relative path. A view's props
+// type comes from its state hook (ADR 0042).
+const apiInViews: RestrictedPattern = {
+  regex: "^(@|\\.{1,2}(/\\.{1,2})*)/api(/|$)",
+  message:
+    "A view renders its props: it imports nothing from the API layer; its state hook reads and changes data (ADR 0042).",
+};
+
+// The whole package: a view holds no data hooks (ADR 0042).
+const queryInViews: RestrictedPath = {
+  name: "@tanstack/react-query",
+  message:
+    "A view renders its props: it holds no data or mutation hooks; its state hook does (ADR 0042).",
+};
+
 // An override replaces a rule's options instead of merging them, so each
 // override that sets no-restricted-imports lists every restriction that
 // applies to its files; of two overrides that set it for a file, the later
@@ -280,6 +338,9 @@ export default defineConfig({
     "typescript/consistent-return": "off",
     // [...value].length counts code points on purpose, as the server does.
     "typescript/no-misused-spread": "off",
+    // Markup reads named values; a choice between more than two goes into a
+    // named value or the state hook (ADR 0042).
+    "no-nested-ternary": "error",
     "no-restricted-imports": restrictImports(
       phosphorMainEntry,
       moduleIndexOnly,
@@ -467,6 +528,57 @@ export default defineConfig({
       },
     },
     {
+      // A module's model/ (ADR 0042): plain functions, which import no
+      // React, no TanStack, no UI and none of the module's components,
+      // pages or widgets, and from the API layer only types; the boundaries one folder
+      // down still apply. Comes after the overrides above, so it applies to
+      // these files instead.
+      files: ["src/modules/*/model/*"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          openapiFetchOutsideApi,
+          serviceIndexOnly,
+          fakesOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleOneDown,
+          ownIndexOneDown,
+          dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+          reactInModel,
+          tanstackInModel,
+          sharedUiInModel,
+          componentsInModel,
+          apiValuesInModel,
+        ),
+      },
+    },
+    {
+      // model/'s tests (ADR 0043) build the API layer's errors and may use
+      // the fakes; the rest of model/'s boundaries apply.
+      files: ["src/modules/*/model/*.test.ts", "src/modules/*/model/*.test.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          openapiFetchOutsideApi,
+          serviceIndexOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleOneDown,
+          ownIndexOneDown,
+          dotDotAfterFolder,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+          reactInModel,
+          tanstackInModel,
+          sharedUiInModel,
+          componentsInModel,
+        ),
+      },
+    },
+    {
       // A module's components (ADR 0036): data comes in as props and
       // outcomes go out through callbacks, so a component reads no query,
       // doesn't navigate and renders no widget. It comes after the override
@@ -513,6 +625,33 @@ export default defineConfig({
           widgetsInComponents,
           toastEntryOutsideShell,
           toastOutsideShell,
+        ),
+      },
+    },
+    {
+      // A component's view (ADR 0042) renders its props: on top of the
+      // components' boundaries, nothing from the API layer, types included.
+      // A view's test (.view.test.tsx) isn't matched, and keeps the test
+      // override above.
+      files: ["src/modules/*/components/*.view.tsx"],
+      rules: {
+        "no-restricted-imports": restrictImports(
+          phosphorMainEntry,
+          queryInViews,
+          navigationInComponents,
+          routeDataInComponents,
+          openapiFetchOutsideApi,
+          serviceIndexOnly,
+          fakesOnlyInMock,
+          noOtherModules,
+          noShellOrRoutes,
+          climbOutOfModuleOneDown,
+          ownIndexOneDown,
+          dotDotAfterFolder,
+          widgetsInComponents,
+          toastEntryOutsideShell,
+          toastOutsideShell,
+          apiInViews,
         ),
       },
     },

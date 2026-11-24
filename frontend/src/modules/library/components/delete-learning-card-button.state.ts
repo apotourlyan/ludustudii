@@ -1,0 +1,56 @@
+import { useRef, useState } from "react";
+
+import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
+import { notifyError } from "@/shared/notify";
+
+import { cardErrorMessage } from "../model/card-error-message";
+
+export interface DeleteLearningCardButtonProps {
+  card: Pick<LearningCard, "id">;
+  // Called after the card is deleted; the page decides what follows, such
+  // as leaving the card's page (ADR 0036).
+  onDeleted?: () => void;
+}
+
+// The delete button's confirmation dialog and its delete: the dialog
+// closes when the request settles, and can't be closed while it runs. A
+// failure is a toast, which outlives the dialog and the card's row (ADR
+// 0041); a success calls onDeleted. Returns what
+// DeleteLearningCardButtonView renders.
+export function useDeleteLearningCardButton({ card, onDeleted }: DeleteLearningCardButtonProps) {
+  const [open, setOpen] = useState(false);
+  const deleteCard = useDeleteLearningCard();
+  // Closes the toast of the last failed delete, if any (ADR 0041).
+  const dismissDeleteError = useRef<(() => void) | undefined>(undefined);
+  const deleting = deleteCard.isPending;
+
+  // Awaited rather than given callbacks, which wouldn't run if the button
+  // unmounted first, such as when a refetch drops the card's row.
+  async function confirmDelete() {
+    // Trying again replaces what the last attempt reported.
+    dismissDeleteError.current?.();
+    dismissDeleteError.current = undefined;
+    try {
+      await deleteCard.mutateAsync({ id: card.id });
+    } catch (error) {
+      setOpen(false);
+      dismissDeleteError.current = notifyError(cardErrorMessage(error, "delete the card"));
+      return;
+    }
+    setOpen(false);
+    onDeleted?.();
+  }
+
+  return {
+    open,
+    // Keeps the dialog open until the request settles.
+    onOpenChange: (nextOpen: boolean) => {
+      if (!deleting) setOpen(nextOpen);
+    },
+    onConfirm: () => void confirmDelete(),
+    deleting,
+    confirmLabel: deleting ? "Deleting..." : "Delete",
+  };
+}
+
+export type DeleteLearningCardButtonState = ReturnType<typeof useDeleteLearningCardButton>;

@@ -71,11 +71,14 @@ export function LearningCardFrame({
   description,
   className,
 }: LearningCardFrameProps) {
+  const hasStrip = strip !== undefined;
+  const hasActions = actions !== undefined;
+
   return (
     // The bands are the card's direct children, so a parent can line them
     // up with another frame's in a subgrid.
     <Card className={cn("min-w-0 gap-0 py-0 *:not-first:border-t", className)}>
-      {strip !== undefined && (
+      {hasStrip && (
         <div className={STRIP}>
           {/* A plate in the strip's own color keeps the hatching off the
               text, and the hatching runs right up to it. */}
@@ -88,14 +91,12 @@ export function LearningCardFrame({
       <CardHeader
         className={cn(
           "py-(--card-spacing)",
-          actions !== undefined && "items-center",
+          hasActions && "items-center",
           title.active && ACTIVE_LINE,
         )}
       >
         {title.content}
-        {actions !== undefined && (
-          <CardAction className="row-span-1 self-center">{actions}</CardAction>
-        )}
+        {hasActions && <CardAction className="row-span-1 self-center">{actions}</CardAction>}
       </CardHeader>
       <StatusBar section={title} />
       <LabelBar section={description} />
@@ -114,6 +115,14 @@ export function LearningCardFrame({
 
 function LabelBar({ section }: { section: LearningCardFrameSection }) {
   if (section.label === undefined && section.meta === undefined) return null;
+  const hasMeta = section.meta !== undefined;
+  // The progress bar's width, the count's share of its limit, at most the
+  // whole bar; no bar without a progress.
+  const progressWidth =
+    section.progress === undefined
+      ? undefined
+      : `${Math.min(Math.max(section.progress, 0), 1) * 100}%`;
+
   return (
     <div
       className={cn(
@@ -124,15 +133,15 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
       )}
     >
       {section.label}
-      {section.meta !== undefined && <span className="tabular-nums">{section.meta}</span>}
-      {section.progress !== undefined && (
+      {hasMeta && <span className="tabular-nums">{section.meta}</span>}
+      {progressWidth && (
         <div
           aria-hidden
           className={cn(
             "absolute bottom-0 left-0 h-0.5 bg-primary/40 transition-[width]",
             section.invalid && "bg-destructive",
           )}
-          style={{ width: `${Math.min(Math.max(section.progress, 0), 1) * 100}%` }}
+          style={{ width: progressWidth }}
         />
       )}
     </div>
@@ -141,11 +150,13 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
 
 function StatusBar({ section }: { section: LearningCardFrameSection }) {
   if (section.status === undefined) return null;
+  const hasMessage = section.status !== null;
+
   return (
     // Holds one line when empty, so a message appearing shifts nothing; a
     // message fades in.
     <div className={cn(BAR, "min-h-8", section.invalid && INVALID_BAR)}>
-      {section.status !== null && (
+      {hasMessage && (
         <div className="animate-in duration-200 fade-in-0 motion-reduce:animate-none">
           {section.status}
         </div>

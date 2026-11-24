@@ -1,6 +1,6 @@
 # 0042. Component structure: logic, state and view
 
-- Status: Accepted
+- Status: Accepted, Amended by [0044](0044-named-values-in-components.md) (named values that only shape rendering may stay in the component)
 - Date: 2026-11-23
 - Tags: front-end, architecture, testing
 

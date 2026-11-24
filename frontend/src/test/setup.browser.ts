@@ -9,6 +9,10 @@ import { resetFakeStores } from "@/api/fake";
 
 import { fakeBackend } from "./fake-backend";
 
+// The app's styles, as main.tsx loads them, so views lay out and look as
+// in the app: the virtualized list places its items, a dialog overlays.
+import "../styles/global.css";
+
 // As main.tsx renders the app.
 configure({ reactStrictMode: true });
 
