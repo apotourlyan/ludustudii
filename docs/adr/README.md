@@ -84,3 +84,4 @@ Records in force. Superseded records are kept as history in
 | [0042](0042-component-structure-logic-state-and-view.md) | Component structure: logic, state and view | Accepted, Amended by [0044](0044-named-values-in-components.md) | front-end, architecture, testing |
 | [0043](0043-unit-and-component-tests-with-vitest.md) | Unit and component tests with Vitest | Accepted | front-end, testing |
 | [0044](0044-named-values-in-components.md) | Named values in components | Accepted | front-end, architecture |
+| [0045](0045-ui-text-inline-in-sentence-case.md) | UI text inline, in sentence case | Accepted | front-end, ux |
