@@ -7,7 +7,7 @@ import { parseCardsView, type CardsView } from "../model/learning-cards-view";
 // function. Like a load file, it imports no UI: the router keeps it in the
 // initial bundle. A link may leave view out, so the input marks it optional
 // (SearchSchemaInput), while the page always reads one.
-export function validateCardsPageSearch(search: { view?: CardsView } & SearchSchemaInput): {
+export function validateLearningCardsPageSearch(search: { view?: CardsView } & SearchSchemaInput): {
   view: CardsView;
 } {
   return { view: parseCardsView(search.view) };

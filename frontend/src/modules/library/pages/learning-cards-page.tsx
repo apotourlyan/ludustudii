@@ -9,10 +9,10 @@ import { LearningCardsViewSwitch } from "../components/learning-cards-view-switc
 import type { CardsView } from "../model/learning-cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
-// ?view=grid). Reads what loadCardsPage, in cards-page.load.ts, fills, and
-// the search params validateCardsPageSearch, in cards-page.search.ts,
-// checks.
-export function CardsPage() {
+// ?view=grid). Reads what loadLearningCardsPage, in
+// learning-cards-page.load.ts, fills, and the search params
+// validateLearningCardsPageSearch, in learning-cards-page.search.ts, checks.
+export function LearningCardsPage() {
   const { data: cards } = useSuspenseQuery(lcardQueries.list());
   const { view } = useSearch({ from: "/library/cards/" });
   const navigate = useNavigate({ from: "/library/cards/" });

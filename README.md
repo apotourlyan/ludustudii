@@ -333,10 +333,11 @@ frontend/
   a navigation or, later, a dashboard built from what each module exports.
 - **`src/routes/`** stays thin: a route file declares its path and params,
   checks its search params with its page's validator, if the page has
-  display state (`validateSearch: validateCardsPageSearch`), calls its
-  page's load function in its loader
-  (`loader: ({ context: { queryClient } }) => loadCardsPage(queryClient)`),
-  and renders a page from a module's index. Pages take route
+  display state (`validateSearch: validateLearningCardsPageSearch`), calls
+  its page's load function in its loader
+  (`loader: ({ context: { queryClient } }) =>
+  loadLearningCardsPage(queryClient)`), and renders a page from a module's
+  index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
   effects (`sideEffects`), so the build drops the index's other exports from
   each route's chunk, and every route still gets a chunk of its own. That
@@ -362,11 +363,11 @@ frontend/
 
 | URL | Page | Shows |
 | --- | --- | --- |
-| `/library/cards?view=list` | `CardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
-| `/library/cards?view=grid` | `CardsPage` | The same, as a grid of cards of one size |
-| `/library/cards/new` | `NewCardPage` | The form for a new card, with its preview |
-| `/library/cards/$cardId` | `CardPage` | One card, its title the page's `<h1>`, with Update and Delete |
-| `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
+| `/library/cards?view=list` | `LearningCardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
+| `/library/cards?view=grid` | `LearningCardsPage` | The same, as a grid of cards of one size |
+| `/library/cards/new` | `NewLearningCardPage` | The form for a new card, with its preview |
+| `/library/cards/$cardId` | `LearningCardPage` | One card, its title the page's `<h1>`, with Update and Delete |
+| `/library/cards/$cardId/edit` | `EditLearningCardPage` | The form for that card, its preview where `LearningCardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,
 switched by the two icon buttons next to its "Add card" link ("List view"
@@ -408,7 +409,7 @@ theme's `--recent-new` and `--recent-updated` (`src/styles/global.css`),
 each at least 3:1 against a card in both themes. The marks are only on
 the overview, which keeps its newest-first order.
 
-Both card URLs show `CardNotFoundPage` for an ID that names no card.
+Both card URLs show `LearningCardNotFoundPage` for an ID that names no card.
 Creating a card and saving an edit end on the card's page; Cancel goes to
 the card's page from its editor, and to the list from the new card's form.
 Deleting a card on its page ends on the list; deleting one in the list
@@ -436,13 +437,14 @@ decides what each kind of file in a module may do:
 
 - **A page** (`pages/<page>.tsx`) exports only its component, and its load
   function lives beside it in `pages/<page>.load.ts`, such as
-  `loadEditCardPage(queryClient, cardId)` in `edit-card-page.load.ts`. The
-  load function fills every query the page reads and nothing else, returns
-  no data, and turns a missing resource into the router's `notFound()`. A
-  page that reads exactly what another reads may call that page's load
-  function from its own (`loadEditCardPage` calls `loadCardPage`). A
-  load file imports only the API layer and the router, never UI, since it
-  is in the initial bundle. The page owns the
+  `loadEditLearningCardPage(queryClient, cardId)` in
+  `edit-learning-card-page.load.ts`. The load function fills every query
+  the page reads and nothing else, returns no data, and turns a missing
+  resource into the router's `notFound()`. A page that reads exactly what
+  another reads may call that page's load function from its own
+  (`loadEditLearningCardPage` calls `loadLearningCardPage`). A load file
+  imports only the API layer and the router, never UI, since it is in the
+  initial bundle. The page owns the
   screen: its `<h1>`, its width and placement, and what follows a
   successful action, such as going to the card's page. The root layout
   provides the `<main>` landmark around every page.
@@ -453,7 +455,7 @@ decides what each kind of file in a module may do:
 - **Display state**, such as the overview's chosen view, lives in the
   URL's search params, so a reload, Back or a shared link keeps it. The
   route checks them with `validateSearch`, which calls the page's
-  validator in `pages/<page>.search.ts` (`validateCardsPageSearch`), and
+  validator in `pages/<page>.search.ts` (`validateLearningCardsPageSearch`), and
   turns anything invalid or missing into the default. The page reads them
   with `useSearch`, and changing them navigates with `replace: true`, so
   Back leaves the page instead of stepping through each change. Changing
@@ -548,7 +550,8 @@ decides how the client app reports outcomes and waits.
 - **Failure pages have one `<h1>`**: `RouteError` ("This page couldn't
   load", the reason, "Try again") and `NotFoundPage` ("Page not found", a
   link to the library) are the router's defaults; a missing card has
-  `CardNotFoundPage`. A failed background refetch stays silent (ADR 0030).
+  `LearningCardNotFoundPage`. A failed background refetch stays silent (ADR
+  0030).
 
 ### Boundaries
 

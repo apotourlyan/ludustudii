@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/shared/ui/card";
 
 // Shown for a card ID that doesn't exist, or that can't be one.
-export function CardNotFoundPage() {
+export function LearningCardNotFoundPage() {
   return (
     <div className="mx-auto max-w-xl p-6">
       <h1 className="mb-6 text-xl font-semibold">Card not found</h1>

@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/shared/ui/card";
 
 // The router's default not-found component, shown for a URL that names no
-// page. A missing card has its own, CardNotFoundPage.
+// page. A missing card has its own, LearningCardNotFoundPage.
 export function NotFoundPage() {
   return (
     <div className="mx-auto max-w-xl p-6">

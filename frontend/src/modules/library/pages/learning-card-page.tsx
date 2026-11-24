@@ -7,14 +7,15 @@ import { DeleteLearningCardButton } from "../components/delete-learning-card-but
 import { UpdateLearningCardLink } from "../components/learning-card-actions";
 import { LearningCardDisplay } from "../components/learning-card-display";
 
-// One learning card, its title the page's heading. Reads what loadCardPage,
-// in card-page.load.ts, fills; a missing card never reaches it.
+// One learning card, its title the page's heading. Reads what
+// loadLearningCardPage, in learning-card-page.load.ts, fills; a missing card
+// never reaches it.
 //
 // The card sits where the preview does on the edit page, in the first of
 // the same two columns, below a row as tall as that page's heading, so
 // opening the editor doesn't move it. The row holds the link to a new
 // card, at the card's right edge.
-export function CardPage({ cardId }: { cardId: string }) {
+export function LearningCardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
   const navigate = useNavigate();
 

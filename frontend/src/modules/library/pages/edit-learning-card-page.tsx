@@ -6,9 +6,9 @@ import { lcardQueries } from "@/api/lcards";
 import { LearningCardForm } from "../components/learning-card-form";
 
 // Edits a learning card, then shows it on its page, as Cancel does. Reads
-// what loadEditCardPage, in edit-card-page.load.ts, fills; a missing card
-// never reaches it.
-export function EditCardPage({ cardId }: { cardId: string }) {
+// what loadEditLearningCardPage, in edit-learning-card-page.load.ts, fills; a
+// missing card never reaches it.
+export function EditLearningCardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
   const navigate = useNavigate();
 

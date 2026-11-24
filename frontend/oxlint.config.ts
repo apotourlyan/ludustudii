@@ -489,7 +489,8 @@ export default defineConfig({
       },
     },
     {
-      // A file one folder down in a module, such as pages/cards-page.tsx.
+      // A file one folder down in a module, such as
+      // pages/learning-cards-page.tsx.
       files: ["src/modules/*/*/*"],
       rules: {
         "no-restricted-imports": restrictImports(

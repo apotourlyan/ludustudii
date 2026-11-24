@@ -1,16 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { CardNotFoundPage, EditCardPage, loadEditCardPage } from "@/modules/library";
+import {
+  EditLearningCardPage,
+  LearningCardNotFoundPage,
+  loadEditLearningCardPage,
+} from "@/modules/library";
 
 export const Route = createFileRoute("/library/cards/$cardId/edit")({
   loader: ({ context: { queryClient }, params: { cardId } }) =>
-    loadEditCardPage(queryClient, cardId),
+    loadEditLearningCardPage(queryClient, cardId),
   component: LearningCardEditRoute,
-  notFoundComponent: CardNotFoundPage,
+  notFoundComponent: LearningCardNotFoundPage,
 });
 
 function LearningCardEditRoute() {
   const { cardId } = Route.useParams();
 
-  return <EditCardPage cardId={cardId} />;
+  return <EditLearningCardPage cardId={cardId} />;
 }

@@ -6,7 +6,7 @@ import { LearningCardForm } from "../components/learning-card-form";
 
 // Adds a learning card, then shows it on its page. Cancel goes back to the
 // list.
-export function NewCardPage() {
+export function NewLearningCardPage() {
   const navigate = useNavigate();
 
   // The form is used up once the card exists, so the card's page replaces
