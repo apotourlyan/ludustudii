@@ -11,10 +11,14 @@ const inlineComponents = {
       {children}
     </a>
   ),
-  // Bold keeps preflight's bolder weight and gains a dashed underline in the
-  // muted color, set off from the text by a pixel.
+  // Bold keeps preflight's bolder weight and gains a dotted underline in the
+  // muted color. A text underline, not a border: it stays inside the line
+  // box, so a title that truncate or line-clamp clips keeps it.
   strong: ({ node: _node, ...props }) => (
-    <strong className="border-b border-dashed border-muted-foreground pb-px" {...props} />
+    <strong
+      className="underline decoration-muted-foreground decoration-dotted underline-offset-4"
+      {...props}
+    />
   ),
   // Merges a fenced block's language-* class instead of losing the style to it.
   code: ({ node: _node, className, ...props }) => (
