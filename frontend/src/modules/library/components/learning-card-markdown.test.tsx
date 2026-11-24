@@ -1,13 +1,23 @@
 import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 
-import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
+import {
+  LearningCardDescriptionMarkdown,
+  LearningCardTitleMarkdown,
+} from "./learning-card-markdown";
 
 test.each([
-  { kind: "title", markdown: <CardTitleMarkdown>{"Light and **chlorophyll**"}</CardTitleMarkdown> },
+  {
+    kind: "title",
+    markdown: <LearningCardTitleMarkdown>{"Light and **chlorophyll**"}</LearningCardTitleMarkdown>,
+  },
   {
     kind: "description",
-    markdown: <CardDescriptionMarkdown>{"Light and **chlorophyll**"}</CardDescriptionMarkdown>,
+    markdown: (
+      <LearningCardDescriptionMarkdown>
+        {"Light and **chlorophyll**"}
+      </LearningCardDescriptionMarkdown>
+    ),
   },
 ])("a $kind's bold text is bolder than its text, with a dotted underline", async ({ markdown }) => {
   const screen = await render(<div>{markdown}</div>);

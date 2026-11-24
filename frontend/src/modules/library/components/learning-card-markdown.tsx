@@ -99,7 +99,7 @@ const showSourceWhenEmpty = () => (tree: TreeNode, file: { value: unknown }) => 
 
 // A card's title, rendered from its Markdown as inline text, for its parent
 // to place in a heading or a block of its own.
-export function CardTitleMarkdown({ children }: { children: string }) {
+export function LearningCardTitleMarkdown({ children }: { children: string }) {
   return (
     <Markdown
       components={inlineComponents}
@@ -114,6 +114,6 @@ export function CardTitleMarkdown({ children }: { children: string }) {
 
 // A card's description, rendered from its Markdown, with its headings one
 // level down.
-export function CardDescriptionMarkdown({ children }: { children: string }) {
+export function LearningCardDescriptionMarkdown({ children }: { children: string }) {
   return <Markdown components={descriptionComponents}>{children}</Markdown>;
 }

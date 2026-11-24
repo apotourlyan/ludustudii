@@ -15,7 +15,7 @@ import {
   type CardField,
 } from "../model/learning-card-fields";
 import { CARD_FORM_TEXT, cardFieldDisplay, cardSaveFailure } from "../model/learning-card-form";
-import { useCardForm } from "./use-card-form";
+import { useLearningCardAppForm } from "./use-learning-card-app-form";
 
 export interface LearningCardFormProps<
   TRouter extends RegisteredRouter = RegisteredRouter,
@@ -64,7 +64,7 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   const mutation = card ? updateLearningCard : createLearningCard;
   const text = CARD_FORM_TEXT[mode];
 
-  const form = useCardForm({
+  const form = useLearningCardAppForm({
     defaultValues: {
       title: card?.title ?? "",
       description: card?.description ?? "",

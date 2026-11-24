@@ -4,7 +4,7 @@ import { useCallback, useRef } from "react";
 import { useDocumentTop } from "@/shared/lib/use-document-top";
 
 import { cardSlots, rowCount, withRow } from "../model/learning-card-rows";
-import type { VirtualCardListState } from "./virtual-card-list.state";
+import type { LearningCardVirtualListState } from "./learning-card-virtual-list.state";
 
 // The list both views of the overview are: the cards as a list named
 // "Learning cards", in rows of `columns` cards of one size, with only the
@@ -16,7 +16,7 @@ import type { VirtualCardListState } from "./virtual-card-list.state";
 // tab to. initialScrollOffset is where the window is about to be scrolled,
 // such as the position Back restores, so the first render shows the rows
 // there. Takes at least one card: an empty list is its parent's to show.
-export function VirtualCardListView({
+export function LearningCardVirtualListView({
   cards,
   columns,
   rowHeight,
@@ -27,7 +27,7 @@ export function VirtualCardListView({
   keptRow,
   onFocus,
   onBlur,
-}: VirtualCardListState) {
+}: LearningCardVirtualListState) {
   const listRef = useRef<HTMLUListElement>(null);
   const scrollMargin = useDocumentTop(listRef);
   const rangeExtractor = useCallback(

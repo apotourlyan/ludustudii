@@ -415,12 +415,13 @@ Deleting a card on its page ends on the list; deleting one in the list
 stays there.
 
 A card's Markdown renders through two components in
-`components/card-markdown.tsx`. `CardTitleMarkdown` renders a title as
-inline Markdown only (bold, italic, code and links); other syntax is
-unwrapped to its text, so `# Photosynthesis` reads "Photosynthesis" and a
-title fits in any heading or line. `CardDescriptionMarkdown` renders a
-description with its headings one level down, `#` as `<h2>` through
-`#####` and `######` as `<h6>`, so a page's own `<h1>` stays its only one.
+`components/learning-card-markdown.tsx`. `LearningCardTitleMarkdown`
+renders a title as inline Markdown only (bold, italic, code and links);
+other syntax is unwrapped to its text, so `# Photosynthesis` reads
+"Photosynthesis" and a title fits in any heading or line.
+`LearningCardDescriptionMarkdown` renders a description with its headings
+one level down, `#` as `<h2>` through `#####` and `######` as `<h6>`, so a
+page's own `<h1>` stays its only one.
 
 #### Pages, components and widgets
 
@@ -485,7 +486,7 @@ decides what each kind of file in a module may do:
 shows what is wrong with its fields. The card form is the reference: its
 save workflow in `modules/library/components/learning-card-form.state.ts`,
 its markup in `learning-card-form.view.tsx`, and its fields as components
-of the module's form hook, `use-card-form.ts`
+of the module's form hook, `use-learning-card-app-form.ts`
 ([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
@@ -657,7 +658,7 @@ on its own and its markup with given state, without a backend
     shows which code, what is toasted, what is logged) holds whatever the
     form looks like, and its tests call it.
 - **A page reads as its parts.** A choice between whole blocks of content
-  is a component that makes it, such as `CardsOverview`, which shows the
+  is a component that makes it, such as `LearningCardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,
   such as replacing the history entry, is a named function in the page
   with the reason on it, such as the overview's `handleViewChange` and
@@ -690,10 +691,11 @@ on its own and its markup with given state, without a backend
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
-  Form's composition API: `use-card-form.ts` makes the module's form hook,
-  `useCardForm`, with `createFormHook`, its fields render
-  `CardTextField` through `form.AppField`, and `withCardForm` makes
-  components that take the form, such as `CardFormPreview`.
+  Form's composition API: `use-learning-card-app-form.ts` makes the
+  module's form hook, `useLearningCardAppForm`, with `createFormHook`, its
+  fields render `LearningCardTextField` through `form.AppField`, and
+  `withLearningCardForm` makes components that take the form, such as
+  `LearningCardFormPreview`.
 - **Shared code moves up only when it's shared.** A hook used by one
   component lives in its `.state.ts`; one used by several of a module's
   components is its own file in `components/` (`use-<name>.ts`); one useful
@@ -738,7 +740,7 @@ the state hook, and the view renders what it returns:
 ```tsx
 // learning-card-form.state.ts
 export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
-  const form = useCardForm({ /* … */ onSubmit: ({ value }) => save(value) });
+  const form = useLearningCardAppForm({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
   // with what cardSaveFailure(error, mode) decides
   return {
@@ -758,13 +760,13 @@ export function LearningCardFormView({ form, title, submitLabel, /* … */ }: Le
         title={fieldSection(
           title,
           <form.AppField name="title" validators={title.validators}>
-            {(field) => <field.CardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
+            {(field) => <field.LearningCardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
           </form.AppField>,
         )}
         /* … */
       />
       <Button type="submit" disabled={submitDisabled}>{submitLabel}</Button>
-      <CardFormPreview form={form} className={PREVIEW} />
+      <LearningCardFormPreview form={form} className={PREVIEW} />
     </form>
   );
 }

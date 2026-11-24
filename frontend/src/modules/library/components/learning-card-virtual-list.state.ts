@@ -4,7 +4,7 @@ import type { LearningCard } from "@/api/lcards";
 
 import { rowOfCard } from "../model/learning-card-rows";
 
-export interface VirtualCardListProps {
+export interface LearningCardVirtualListProps {
   cards: LearningCard[];
   columns: number;
   rowHeight: number;
@@ -19,8 +19,8 @@ export interface VirtualCardListProps {
 // from it. Kept by ID rather than position, so the right card stays
 // rendered when cards before it are added or removed. Returns the list's
 // props, the row to keep rendered (null when the focus is outside the
-// list), and the list's focus handlers, for VirtualCardListView.
-export function useVirtualCardList(props: VirtualCardListProps) {
+// list), and the list's focus handlers, for LearningCardVirtualListView.
+export function useLearningCardVirtualList(props: LearningCardVirtualListProps) {
   const { cards, columns } = props;
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
@@ -44,4 +44,4 @@ export function useVirtualCardList(props: VirtualCardListProps) {
   };
 }
 
-export type VirtualCardListState = ReturnType<typeof useVirtualCardList>;
+export type LearningCardVirtualListState = ReturnType<typeof useLearningCardVirtualList>;

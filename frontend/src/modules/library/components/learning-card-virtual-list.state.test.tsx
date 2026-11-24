@@ -3,11 +3,16 @@ import { renderHook } from "vitest-browser-react";
 
 import { makeCards } from "@/api/lcards/fake/factories";
 
-import { useVirtualCardList, type VirtualCardListProps } from "./virtual-card-list.state";
+import {
+  useLearningCardVirtualList,
+  type LearningCardVirtualListProps,
+} from "./learning-card-virtual-list.state";
 
 const cards = makeCards(10);
 
-function propsFor(overrides: Partial<VirtualCardListProps> = {}): VirtualCardListProps {
+function propsFor(
+  overrides: Partial<LearningCardVirtualListProps> = {},
+): LearningCardVirtualListProps {
   return {
     cards,
     columns: 3,
@@ -34,13 +39,13 @@ function listWithItem(position: number) {
 
 test("passes the list's props on, with no row kept while nothing has the focus", async () => {
   const props = propsFor();
-  const { result } = await renderHook(() => useVirtualCardList(props));
+  const { result } = await renderHook(() => useLearningCardVirtualList(props));
 
   expect(result.current).toMatchObject({ ...props, keptRow: null });
 });
 
 test("keeps the row of the card whose item has the focus", async () => {
-  const { result, act } = await renderHook(() => useVirtualCardList(propsFor()));
+  const { result, act } = await renderHook(() => useLearningCardVirtualList(propsFor()));
   const { button } = listWithItem(8);
 
   await act(() => result.current.onFocus({ target: button }));
@@ -50,7 +55,7 @@ test("keeps the row of the card whose item has the focus", async () => {
 });
 
 test("keeps the row while the focus moves inside the list, and drops it when it leaves", async () => {
-  const { result, act } = await renderHook(() => useVirtualCardList(propsFor()));
+  const { result, act } = await renderHook(() => useLearningCardVirtualList(propsFor()));
   const { list, button } = listWithItem(4);
   await act(() => result.current.onFocus({ target: button }));
 
@@ -63,7 +68,7 @@ test("keeps the row while the focus moves inside the list, and drops it when it 
 
 test("follows the focused card when cards before it go", async () => {
   const { result, act, rerender } = await renderHook(
-    (props?: VirtualCardListProps) => useVirtualCardList(props ?? propsFor()),
+    (props?: LearningCardVirtualListProps) => useLearningCardVirtualList(props ?? propsFor()),
     { initialProps: propsFor() },
   );
   const { button } = listWithItem(7);
@@ -78,7 +83,7 @@ test("follows the focused card when cards before it go", async () => {
 
 test("keeps no row when the focused card is gone", async () => {
   const { result, act, rerender } = await renderHook(
-    (props?: VirtualCardListProps) => useVirtualCardList(props ?? propsFor()),
+    (props?: LearningCardVirtualListProps) => useLearningCardVirtualList(props ?? propsFor()),
     { initialProps: propsFor() },
   );
   const { button } = listWithItem(1);

@@ -4,12 +4,14 @@ import { page } from "vitest/browser";
 
 import { makeCards } from "@/api/lcards/fake/factories";
 
-import type { VirtualCardListState } from "./virtual-card-list.state";
-import { VirtualCardListView } from "./virtual-card-list.view";
+import type { LearningCardVirtualListState } from "./learning-card-virtual-list.state";
+import { LearningCardVirtualListView } from "./learning-card-virtual-list.view";
 
 const cards = makeCards(300, (index) => ({ title: `Card ${index + 1}` }));
 
-function props(overrides: Partial<VirtualCardListState> = {}): VirtualCardListState {
+function props(
+  overrides: Partial<LearningCardVirtualListState> = {},
+): LearningCardVirtualListState {
   return {
     cards,
     columns: 1,
@@ -34,7 +36,7 @@ const item = (position: number) =>
 const top = (position: number) => item(position)?.getBoundingClientRect().top;
 
 test("renders the rows near the window, each item placed among all the cards", async () => {
-  await render(<VirtualCardListView {...props()} />);
+  await render(<LearningCardVirtualListView {...props()} />);
 
   const list = page.getByRole("list", { name: "Learning cards" });
   await expect.element(list.getByRole("button", { name: "Card 1", exact: true })).toBeVisible();
@@ -44,7 +46,7 @@ test("renders the rows near the window, each item placed among all the cards", a
 });
 
 test("renders the kept row wherever the window is", async () => {
-  await render(<VirtualCardListView {...props({ keptRow: 249 })} />);
+  await render(<LearningCardVirtualListView {...props({ keptRow: 249 })} />);
 
   await expect.element(page.getByRole("button", { name: "Card 250" })).toBeInTheDocument();
   expect(item(250)).not.toBeNull();
@@ -52,7 +54,7 @@ test("renders the kept row wherever the window is", async () => {
 });
 
 test("lays out rows of several cards", async () => {
-  await render(<VirtualCardListView {...props({ columns: 3 })} />);
+  await render(<LearningCardVirtualListView {...props({ columns: 3 })} />);
 
   await expect.element(page.getByRole("button", { name: "Card 3", exact: true })).toBeVisible();
   // The first row's three cards share its top; the fourth starts the next.

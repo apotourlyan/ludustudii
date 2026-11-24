@@ -1,7 +1,7 @@
 // How the overview's virtualized list lays its cards out
-// (components/virtual-card-list.view.tsx): rows of `columns` cards of one
-// size, `gap` pixels apart, of which only the rows near the window are
-// rendered. A card's position counts from 1, as aria-posinset does.
+// (components/learning-card-virtual-list.view.tsx): rows of `columns` cards
+// of one size, `gap` pixels apart, of which only the rows near the window
+// are rendered. A card's position counts from 1, as aria-posinset does.
 
 // The rows `count` cards take.
 export function rowCount(count: number, columns: number): number {

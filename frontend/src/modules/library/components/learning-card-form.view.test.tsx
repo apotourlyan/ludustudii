@@ -5,7 +5,7 @@ import { renderWithProviders } from "@/test/render";
 
 import type { LearningCardFormState } from "./learning-card-form.state";
 import { LearningCardFormView } from "./learning-card-form.view";
-import { useCardForm } from "./use-card-form";
+import { useLearningCardAppForm } from "./use-learning-card-app-form";
 
 type FieldState = LearningCardFormState["title"];
 
@@ -30,7 +30,7 @@ function field(name: "title" | "description", overrides: Partial<FieldState> = {
 // The view with the given props. Its fields bind to a form, so it gets a
 // real one, empty and without validators; everything else is given.
 function View(props: Partial<Omit<LearningCardFormState, "form" | "formRef">>) {
-  const form = useCardForm({ defaultValues: { title: "", description: "" } });
+  const form = useLearningCardAppForm({ defaultValues: { title: "", description: "" } });
   return (
     <LearningCardFormView
       form={form}

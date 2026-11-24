@@ -4,10 +4,10 @@ import type { LearningCard } from "@/api/lcards";
 import { Card, CardTitle } from "@/shared/ui/card";
 
 import { recentChange } from "../model/recent-change";
-import { CardTitleMarkdown } from "./card-markdown";
 import { LearningCardActions } from "./learning-card-actions";
+import { LearningCardTitleMarkdown } from "./learning-card-markdown";
+import { LearningCardVirtualList } from "./learning-card-virtual-list";
 import { RecentChangeMark } from "./recent-change-mark";
-import { VirtualCardList } from "./virtual-card-list";
 
 // Cards per row by the window's width, widest first: Tailwind's lg, md and
 // sm breakpoints, and one below sm.
@@ -39,7 +39,7 @@ function currentColumns(): number {
 // The cards as a grid of titles, each card the same size, the title cut to
 // three lines, with the card's mark in the top right corner if it was
 // created or updated recently, as of `now`, and its actions at the bottom
-// right. Virtualized by VirtualCardList, which takes the same
+// right. Virtualized by LearningCardVirtualList, which takes the same
 // initialScrollOffset.
 export function LearningCardGrid({
   cards,
@@ -55,7 +55,7 @@ export function LearningCardGrid({
   const columns = useSyncExternalStore(subscribeToColumns, currentColumns);
 
   return (
-    <VirtualCardList
+    <LearningCardVirtualList
       cards={cards}
       columns={columns}
       rowHeight={144}
@@ -85,7 +85,7 @@ function GridCard({ card, now }: { card: LearningCard; now: number }) {
           between them, on every card, so titles wrap the same way
           whether a card has a mark or not. */}
       <CardTitle className="line-clamp-3 pr-6 wrap-break-word">
-        <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
+        <LearningCardTitleMarkdown>{card.title}</LearningCardTitleMarkdown>
       </CardTitle>
       <div className="mt-auto self-end">
         <LearningCardActions card={card} />

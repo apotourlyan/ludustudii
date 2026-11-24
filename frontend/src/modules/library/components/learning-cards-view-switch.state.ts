@@ -1,6 +1,6 @@
 import { toggledCardsView, type CardsView } from "../model/learning-cards-view";
 
-export interface CardsViewSwitchProps {
+export interface LearningCardsViewSwitchProps {
   view: CardsView;
   onChange: (view: CardsView) => void;
 }
@@ -8,8 +8,8 @@ export interface CardsViewSwitchProps {
 // The view switch's value and its change: the view that is on is the one
 // pressed, pressing the other one calls onChange with it, and pressing
 // the one that is on does nothing, so one view is always shown. Returns
-// what CardsViewSwitchView renders.
-export function useCardsViewSwitch({ view, onChange }: CardsViewSwitchProps) {
+// what LearningCardsViewSwitchView renders.
+export function useLearningCardsViewSwitch({ view, onChange }: LearningCardsViewSwitchProps) {
   function handleValueChange(pressed: readonly unknown[]) {
     const next = toggledCardsView(pressed, view);
     if (next) onChange(next);
@@ -21,4 +21,4 @@ export function useCardsViewSwitch({ view, onChange }: CardsViewSwitchProps) {
   };
 }
 
-export type CardsViewSwitchState = ReturnType<typeof useCardsViewSwitch>;
+export type LearningCardsViewSwitchState = ReturnType<typeof useLearningCardsViewSwitch>;

@@ -4,8 +4,8 @@ import { Link, useElementScrollRestoration, useNavigate, useSearch } from "@tans
 import { lcardQueries } from "@/api/lcards";
 import { useNow } from "@/shared/lib/use-now";
 
-import { CardsOverview } from "../components/cards-overview";
-import { CardsViewSwitch } from "../components/cards-view-switch";
+import { LearningCardsOverview } from "../components/learning-cards-overview";
+import { LearningCardsViewSwitch } from "../components/learning-cards-view-switch";
 import type { CardsView } from "../model/learning-cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
@@ -37,7 +37,7 @@ export function CardsPage() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning cards</h1>
         <div className="flex items-center gap-4">
-          <CardsViewSwitch view={view} onChange={handleViewChange} />
+          <LearningCardsViewSwitch view={view} onChange={handleViewChange} />
           <Link
             to="/library/cards/new"
             className="text-sm text-primary underline underline-offset-4"
@@ -47,7 +47,7 @@ export function CardsPage() {
         </div>
       </div>
 
-      <CardsOverview
+      <LearningCardsOverview
         cards={cards}
         view={view}
         now={now}

@@ -2,10 +2,10 @@ import { expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 
-import { CardsViewSwitchView } from "./cards-view-switch.view";
+import { LearningCardsViewSwitchView } from "./learning-cards-view-switch.view";
 
 test("shows the views as a group, the one that is on pressed", async () => {
-  await render(<CardsViewSwitchView value={["grid"]} onValueChange={vi.fn()} />);
+  await render(<LearningCardsViewSwitchView value={["grid"]} onValueChange={vi.fn()} />);
 
   const group = page.getByRole("group", { name: "View" });
   await expect
@@ -18,7 +18,7 @@ test("shows the views as a group, the one that is on pressed", async () => {
 
 test("pressing a view reports the group's new values", async () => {
   const onValueChange = vi.fn();
-  await render(<CardsViewSwitchView value={["list"]} onValueChange={onValueChange} />);
+  await render(<LearningCardsViewSwitchView value={["list"]} onValueChange={onValueChange} />);
 
   await page.getByRole("button", { name: "Grid view" }).click();
 

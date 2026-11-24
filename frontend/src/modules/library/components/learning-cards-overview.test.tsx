@@ -5,14 +5,19 @@ import { makeCards } from "@/api/lcards/fake/factories";
 import { renderWithProviders } from "@/test/render";
 
 import type { CardsView } from "../model/learning-cards-view";
-import { CardsOverview } from "./cards-overview";
+import { LearningCardsOverview } from "./learning-cards-overview";
 
 const cards = makeCards(3, (index) => ({ title: `Card ${index + 1}` }));
 
 // The overview in a router, for the cards' links.
 function renderOverview(view: CardsView, overviewCards = cards) {
   return renderWithProviders(
-    <CardsOverview cards={overviewCards} view={view} now={Date.now()} initialScrollOffset={0} />,
+    <LearningCardsOverview
+      cards={overviewCards}
+      view={view}
+      now={Date.now()}
+      initialScrollOffset={0}
+    />,
     { url: "/" },
   );
 }
