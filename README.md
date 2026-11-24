@@ -605,7 +605,8 @@ decides how the client app reports outcomes and waits.
 
 ### Component structure
 
-[ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md)
+[ADR 0042](docs/adr/0042-component-structure-logic-state-and-view.md),
+amended by [ADR 0044](docs/adr/0044-named-values-in-components.md),
 decides how a component is built inside, so that its logic can be tested
 on its own and its markup with given state, without a backend
 ([Unit and component tests](#unit-and-component-tests)).
@@ -634,10 +635,26 @@ on its own and its markup with given state, without a backend
   (`{saveError && …}`), choose between two elements or strings on one named
   value, map a list to one component per item, and call one function in a
   one-line handler. Comparisons, arithmetic, string building and handlers of
-  more than one statement go into the state hook, a named value above the
-  `return`, or `model/`. Composing classes with `cn(BASE, flag && CLASS)`
-  counts as testing a named value. Lint forbids nested ternaries
-  (`no-nested-ternary`); review enforces the rest.
+  more than one statement don't go in the JSX: they become a named value
+  above the `return`, or move to `model/` or the state hook, by the test
+  below. Composing classes with `cn(BASE, flag && CLASS)` counts as testing
+  a named value. Lint forbids nested ternaries (`no-nested-ternary`);
+  review enforces the rest.
+- **Rule or markup** (ADR 0044): would a test of the value check a rule of
+  the application, or only what the markup looks like?
+  - **Markup** may stay in the component, view or not, as a named value
+    above the `return`: whether a slot was given, which class or element to
+    use, which of two labels to show, a number formatted for display or a
+    style. The frame's `hasStrip` (was a strip given) and `progressWidth`
+    (the progress clamped to a CSS width) are markup: only what the frame
+    renders shows them.
+  - **A rule** goes to `model/`, or to the state hook when it needs React:
+    limits, validation, classification (what counts as recent), wording,
+    what a failure means. So does a value that uses data, mutations,
+    navigation or the clock, and one that more than one component needs.
+    `cardSaveFailure` is a rule: what a failed save means (which field
+    shows which code, what is toasted, what is logged) holds whatever the
+    form looks like, and its tests call it.
 - **A page reads as its parts.** A choice between whole blocks of content
   is a component that makes it, such as `CardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,

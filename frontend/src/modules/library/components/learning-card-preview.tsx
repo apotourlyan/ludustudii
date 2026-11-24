@@ -3,6 +3,7 @@ import { useId } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { CardTitle } from "@/shared/ui/card";
 
+import { isBlank } from "../model/card-fields";
 import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
 import { LearningCardFrame } from "./learning-card-frame";
 
@@ -59,8 +60,6 @@ export function LearningCardPreview({
     </section>
   );
 }
-
-const isBlank = (value: string) => value.trim() === "";
 
 function Placeholder({ children }: { children: string }) {
   return <p className="text-muted-foreground">{children}</p>;

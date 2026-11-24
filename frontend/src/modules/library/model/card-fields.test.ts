@@ -4,6 +4,7 @@ import {
   CARD_LIMITS,
   canonicalize,
   canonicalLength,
+  isBlank,
   validateDescription,
   validateTitle,
 } from "./card-fields";
@@ -27,6 +28,19 @@ describe("canonicalize", () => {
   test("strips a byte order mark and keeps U+0085", () => {
     expect(canonicalize("﻿a﻿")).toBe("a");
     expect(canonicalize("\u0085a\u0085")).toBe("\u0085a\u0085");
+  });
+});
+
+describe("isBlank", () => {
+  test("is true for empty text and whitespace only, which canonicalizing empties", () => {
+    expect(isBlank("")).toBe(true);
+    expect(isBlank(" \t\n\r\n ")).toBe(true);
+    expect(isBlank("﻿")).toBe(true);
+  });
+
+  test("is false for any text that canonicalizing keeps", () => {
+    expect(isBlank(" a ")).toBe(false);
+    expect(isBlank("\u0085")).toBe(false);
   });
 });
 
