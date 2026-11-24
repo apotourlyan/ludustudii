@@ -11,6 +11,11 @@ const inlineComponents = {
       {children}
     </a>
   ),
+  // Bold keeps preflight's bolder weight and gains a dashed underline in the
+  // muted color, set off from the text by a pixel.
+  strong: ({ node: _node, ...props }) => (
+    <strong className="border-b border-dashed border-muted-foreground pb-px" {...props} />
+  ),
   // Merges a fenced block's language-* class instead of losing the style to it.
   code: ({ node: _node, className, ...props }) => (
     <code className={cn("bg-muted px-1 py-0.5 font-mono", className)} {...props} />
