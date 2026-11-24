@@ -661,6 +661,31 @@ on its own and its markup with given state, without a backend
   such as replacing the history entry, is a named function in the page
   with the reason on it, such as the overview's `handleViewChange` and
   the card page's `handleDeleted`.
+- **Handlers are `handle…`, the props that take them `on…`.** A prop that
+  receives a callback is `on<Event>`, or `on<Thing><Event>` when a
+  component takes several (`onChange`, `onSaved`, `onDeleted`). A function
+  that handles an event is `handle<Event>` or `handle<Thing><Event>`. A
+  state hook defines its handlers as `handle…` and returns them under the
+  view's prop names:
+
+  ```ts
+  function handleOpenChange(nextOpen: boolean) {
+    if (!deleting) setOpen(nextOpen);
+  }
+  return { open, onOpenChange: handleOpenChange /* … */ };
+  ```
+
+  A one-line inline handler that calls one function stays inline
+  (`onClick={() => void router.invalidate()}`). Review enforces the rule:
+  Oxlint's `react/jsx-handler-names` doesn't fit it, since it flags a view
+  passing on the `on…` props it was given, and, with inline checks, the
+  one-liners.
+- **UI text** is inline and in sentence case, with no extraction into
+  constants or catalogs
+  ([ADR 0045](docs/adr/0045-ui-text-inline-in-sentence-case.md)): a label,
+  heading or message is a string in the component that shows it ("Add
+  card", "Learning cards"), and moves to `model/` only when it varies with
+  state or more than one component needs it, such as `CARD_FORM_TEXT`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
