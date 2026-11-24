@@ -10,12 +10,14 @@ export interface CardsViewSwitchProps {
 // the one that is on does nothing, so one view is always shown. Returns
 // what CardsViewSwitchView renders.
 export function useCardsViewSwitch({ view, onChange }: CardsViewSwitchProps) {
+  function handleValueChange(pressed: readonly unknown[]) {
+    const next = toggledCardsView(pressed, view);
+    if (next) onChange(next);
+  }
+
   return {
     value: [view],
-    onValueChange: (pressed: readonly unknown[]) => {
-      const next = toggledCardsView(pressed, view);
-      if (next) onChange(next);
-    },
+    onValueChange: handleValueChange,
   };
 }
 

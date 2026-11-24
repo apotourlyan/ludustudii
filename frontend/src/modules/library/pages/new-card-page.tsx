@@ -11,14 +11,14 @@ export function NewCardPage() {
 
   // The form is used up once the card exists, so the card's page replaces
   // it in the history, and Back returns to where the user came from.
-  function showSavedCard(card: Pick<LearningCard, "id">) {
+  function handleSaved(card: Pick<LearningCard, "id">) {
     return navigate({ to: "/library/cards/$cardId", params: { cardId: card.id }, replace: true });
   }
 
   return (
     <div className="mx-auto max-w-6xl p-6">
       <h1 className="mb-6 text-xl font-semibold">Add Card</h1>
-      <LearningCardForm cancel={{ to: "/library/cards" }} onSaved={showSavedCard} />
+      <LearningCardForm cancel={{ to: "/library/cards" }} onSaved={handleSaved} />
     </div>
   );
 }

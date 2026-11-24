@@ -659,8 +659,8 @@ on its own and its markup with given state, without a backend
   is a component that makes it, such as `CardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,
   such as replacing the history entry, is a named function in the page
-  with the reason on it, such as the overview's `switchView` and the card
-  page's `leaveDeletedCard`.
+  with the reason on it, such as the overview's `handleViewChange` and
+  the card page's `handleDeleted`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack

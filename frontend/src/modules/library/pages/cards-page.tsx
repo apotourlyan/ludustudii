@@ -28,7 +28,7 @@ export function CardsPage() {
 
   // The view is display state: switching it replaces the history entry, so
   // Back leaves the page instead of stepping through the switches.
-  function switchView(next: CardsView) {
+  function handleViewChange(next: CardsView) {
     void navigate({ search: (prev) => ({ ...prev, view: next }), replace: true });
   }
 
@@ -37,7 +37,7 @@ export function CardsPage() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning Cards</h1>
         <div className="flex items-center gap-4">
-          <CardsViewSwitch view={view} onChange={switchView} />
+          <CardsViewSwitch view={view} onChange={handleViewChange} />
           <Link
             to="/library/cards/new"
             className="text-sm text-primary underline underline-offset-4"
