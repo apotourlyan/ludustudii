@@ -11,7 +11,7 @@ import { cardAt, cardItems } from "../support/overview";
 const pages: { name: string; heading: string; open: (page: Page) => Promise<void> }[] = [
   {
     name: "the list",
-    heading: "Learning Cards",
+    heading: "Learning cards",
     open: async (page) => {
       await page.goto("/library/cards");
       await expect(cardItems(page)).toHaveCount(8);
@@ -19,7 +19,7 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
   },
   {
     name: "the empty list",
-    heading: "Learning Cards",
+    heading: "Learning cards",
     open: async (page) => {
       await page.goto("/library/cards?scenario=empty");
       await expect(
@@ -29,10 +29,10 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
   },
   {
     name: "the new card page",
-    heading: "Add Card",
+    heading: "Add card",
     open: async (page) => {
       await page.goto("/library/cards/new");
-      await expect(page.getByRole("button", { name: "Create Card" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Create card" })).toBeVisible();
     },
   },
   {
@@ -48,11 +48,11 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
   },
   {
     name: "the edit page",
-    heading: "Update Card",
+    heading: "Update card",
     open: async (page) => {
       await page.goto("/library/cards");
       await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
-      await expect(page.getByRole("button", { name: "Update Card" })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Update card" })).toBeEnabled();
     },
   },
   ...["", "/edit"].map((suffix) => ({

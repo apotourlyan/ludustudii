@@ -17,8 +17,8 @@ const validationError = (fieldErrors: ApiFieldError[]) =>
 
 test("words each mode", () => {
   expect(CARD_FORM_TEXT).toEqual({
-    create: { action: "create the card", submit: "Create Card", submitting: "Creating..." },
-    update: { action: "save your edits", submit: "Update Card", submitting: "Updating..." },
+    create: { action: "create the card", submit: "Create card", submitting: "Creating..." },
+    update: { action: "save your edits", submit: "Update card", submitting: "Updating..." },
   });
 });
 

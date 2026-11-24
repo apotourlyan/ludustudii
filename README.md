@@ -369,7 +369,7 @@ frontend/
 | `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,
-switched by the two icon buttons next to its "Add Card" link ("List view"
+switched by the two icon buttons next to its "Add card" link ("List view"
 and "Grid view"). The view is in the URL: `view=grid` is the grid, and
 anything else, or nothing, the list. The router writes the default into
 the URL, so links to the overview, and the redirects from `/` and
@@ -659,8 +659,33 @@ on its own and its markup with given state, without a backend
   is a component that makes it, such as `CardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,
   such as replacing the history entry, is a named function in the page
-  with the reason on it, such as the overview's `switchView` and the card
-  page's `leaveDeletedCard`.
+  with the reason on it, such as the overview's `handleViewChange` and
+  the card page's `handleDeleted`.
+- **Handlers are `handle…`, the props that take them `on…`.** A prop that
+  receives a callback is `on<Event>`, or `on<Thing><Event>` when a
+  component takes several (`onChange`, `onSaved`, `onDeleted`). A function
+  that handles an event is `handle<Event>` or `handle<Thing><Event>`. A
+  state hook defines its handlers as `handle…` and returns them under the
+  view's prop names:
+
+  ```ts
+  function handleOpenChange(nextOpen: boolean) {
+    if (!deleting) setOpen(nextOpen);
+  }
+  return { open, onOpenChange: handleOpenChange /* … */ };
+  ```
+
+  A one-line inline handler that calls one function stays inline
+  (`onClick={() => void router.invalidate()}`). Review enforces the rule:
+  Oxlint's `react/jsx-handler-names` doesn't fit it, since it flags a view
+  passing on the `on…` props it was given, and, with inline checks, the
+  one-liners.
+- **UI text** is inline and in sentence case, with no extraction into
+  constants or catalogs
+  ([ADR 0045](docs/adr/0045-ui-text-inline-in-sentence-case.md)): a label,
+  heading or message is a string in the component that shows it ("Add
+  card", "Learning cards"), and moves to `model/` only when it varies with
+  state or more than one component needs it, such as `CARD_FORM_TEXT`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack

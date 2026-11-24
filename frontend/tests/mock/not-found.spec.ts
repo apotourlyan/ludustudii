@@ -25,7 +25,7 @@ for (const { name, id } of cases) {
       await page.getByRole("link", { name: "Back to learning cards" }).click();
 
       await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
-      await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Learning cards", level: 1 })).toBeVisible();
       await expect(cardItems(page)).toHaveCount(8);
     });
   }
@@ -40,7 +40,7 @@ for (const path of ["/nope", "/library/nope", "/library/cards/not-a-card-id/nope
     await page.getByRole("link", { name: "Go to the library" }).click();
 
     await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
-    await expect(page.getByRole("heading", { name: "Learning Cards", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Learning cards", level: 1 })).toBeVisible();
     await expect(cardItems(page)).toHaveCount(8);
   });
 }

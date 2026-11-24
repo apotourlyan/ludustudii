@@ -132,12 +132,12 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
     }
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
-    // onSubmit handles a failed save itself, and the form's state shows
-    // the submission's progress, so the event handler has nothing to wait
-    // for.
+    // The form's onSubmit handles a failed save itself, and the form's
+    // state shows the submission's progress, so the event handler has
+    // nothing to wait for.
     void form.handleSubmit();
   }
 
@@ -168,7 +168,7 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   return {
     form,
     formRef,
-    onSubmit,
+    onSubmit: handleSubmit,
     title: fieldProps("title", titleValue, titleCodes),
     description: fieldProps("description", descriptionValue, descriptionCodes),
     cancel,

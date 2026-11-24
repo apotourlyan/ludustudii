@@ -38,7 +38,7 @@ test("going offline shows the network message on the next request", async ({ pag
 
   await context.setOffline(true);
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
 
   await expect(
     toast(page, "Can't reach the server. Check your connection and try again."),

@@ -29,13 +29,13 @@ async function openForm(page: Page, mode: "create" | "update") {
     await page.goto("/library/cards/new");
     await page.getByLabel("Title").fill("Photosynthesis");
     await page.getByLabel("Description").fill("Plants make sugar from light.");
-    return page.getByRole("button", { name: "Create Card" });
+    return page.getByRole("button", { name: "Create card" });
   }
   await page.goto("/library/cards");
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
   await page.getByLabel("Title").fill("Mitochondrion");
-  return page.getByRole("button", { name: "Update Card" });
+  return page.getByRole("button", { name: "Update card" });
 }
 
 for (const mode of ["create", "update"] as const) {
@@ -142,7 +142,7 @@ test.describe("focus after a failed submit", () => {
   test("an empty form focuses the title", async ({ page }) => {
     await page.goto("/library/cards/new");
 
-    await page.getByRole("button", { name: "Create Card" }).click();
+    await page.getByRole("button", { name: "Create card" }).click();
 
     // Both fields are invalid; the first in the form's order gets the focus.
     await expect(page.getByText(TITLE_REQUIRED, { exact: true })).toBeVisible();
@@ -154,7 +154,7 @@ test.describe("focus after a failed submit", () => {
     await page.goto("/library/cards/new");
     await page.getByLabel("Title").fill("Photosynthesis");
 
-    await page.getByRole("button", { name: "Create Card" }).click();
+    await page.getByRole("button", { name: "Create card" }).click();
 
     await expect(page.getByLabel("Description")).toBeFocused();
   });

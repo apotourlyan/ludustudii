@@ -16,18 +16,18 @@ import {
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
 import { toast, toasts } from "../support/toasts";
 
-// The list's own "Add Card" link, not the navigation's.
+// The list's own "Add card" link, not the navigation's.
 async function addCardFromList(page: Page): Promise<void> {
   await page.goto("/library/cards");
   await expect(cardItems(page)).toHaveCount(8);
-  await page.getByRole("main").getByRole("link", { name: "Add Card" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add Card");
+  await page.getByRole("main").getByRole("link", { name: "Add card" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add card");
 }
 
 // Shows the overview through the navigation, with the 7 cards left after
 // one of the 8 is deleted.
 async function showOverview(page: Page): Promise<void> {
-  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Learning cards" }).click();
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
 }
 
@@ -44,7 +44,7 @@ test("a created card opens on its page, and Back returns to the list", async ({ 
 
   await page.getByLabel("Title").fill("Krebs cycle");
   await page.getByLabel("Description").fill("Happens in the **mitochondrial matrix**.");
-  await page.getByRole("button", { name: "Create Card" }).click();
+  await page.getByRole("button", { name: "Create card" }).click();
 
   await expect(page).toHaveURL(/\/library\/cards\/[^/]+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Krebs cycle");
@@ -64,13 +64,13 @@ test("an edited card shows its changes on its page", async ({ page }) => {
   await expect(title).toHaveValue("Mitochondria");
   await title.fill("Mitochondrion");
   await page.getByLabel("Description").fill("The *powerhouse* of the cell.");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");
   await expect(page.getByRole("main").getByRole("emphasis")).toHaveText("powerhouse");
 
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   await expectCardAt(page, 1, "Mitochondrion", 8);
 });
 
@@ -164,7 +164,7 @@ test("saving a card deleted elsewhere keeps the input and shows the error", asyn
   await deleteCardElsewhere(page, id);
 
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
 
   await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");

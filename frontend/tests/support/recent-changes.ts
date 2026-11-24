@@ -33,16 +33,16 @@ export async function expectNoMark(item: Locator): Promise<void> {
   await expect(item.getByText(/^(New|Updated)$/)).toHaveCount(0);
 }
 
-// Creates a card through the new card form, from the overview's "Add Card"
+// Creates a card through the new card form, from the overview's "Add card"
 // link, and returns to the overview through the navigation, without
 // reloading the page.
 export async function createCardThroughUi(page: Page, title: string): Promise<void> {
-  await page.getByRole("main").getByRole("link", { name: "Add Card" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Add card" }).click();
   await page.getByLabel("Title").fill(title);
   await page.getByLabel("Description").fill("Created by a test.");
-  await page.getByRole("button", { name: "Create Card" }).click();
+  await page.getByRole("button", { name: "Create card" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
 }
 
 // Changes the description of the card an overview's item shows, through
@@ -51,7 +51,7 @@ export async function editCardThroughUi(page: Page, item: Locator, title: string
   await item.getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await page.getByLabel("Description").fill("Edited by a test.");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
 }

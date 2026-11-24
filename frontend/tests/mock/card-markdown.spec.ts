@@ -33,13 +33,13 @@ test("a title renders inline and description headings start at level 2", async (
 
   await expectRendered(page, page.getByRole("region", { name: "Preview" }));
 
-  await page.getByRole("button", { name: "Create Card" }).click();
+  await page.getByRole("button", { name: "Create card" }).click();
 
   // Creating ends on the card's page.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photosynthesis basics");
   await expectRendered(page, page.getByRole("main"));
 
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   // The overview shows the title only.
   const item = cardAt(page, 1);
   await expect(item).toHaveAttribute("aria-setsize", "9");

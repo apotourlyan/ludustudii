@@ -36,7 +36,7 @@ test("Open in the list shows the card on its own page", async ({ page }) => {
   await expect(card.getByRole("link", { name: "Open" })).toHaveCount(0);
 
   // The page has no link back of its own; the navigation's leads to the list.
-  await page.getByRole("link", { name: "Learning Cards", exact: true }).click();
+  await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expect(cardItems(page)).toHaveCount(8);
 });
@@ -46,9 +46,9 @@ test("the card's page links to a new card", async ({ page }) => {
 
   // The root layout's navigation has a link of the same name; the page's
   // own is in main.
-  await page.getByRole("main").getByRole("link", { name: "Add Card" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Add card" }).click();
   await expect(page).toHaveURL(/\/library\/cards\/new$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add Card");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add card");
 });
 
 test("Update on the card's page opens its editor", async ({ page }) => {
@@ -78,14 +78,14 @@ test.describe("at 1280 px", () => {
     expect(Math.abs(card!.width - previewBox!.width), "width").toBeLessThanOrEqual(1);
   });
 
-  test("Add Card is above the card at its right edge, the title level with the buttons", async ({
+  test("Add card is above the card at its right edge, the title level with the buttons", async ({
     page,
   }) => {
     await openNewestCard(page);
     const card = (await cardOnPage(page).boundingBox())!;
     const addCard = (await page
       .getByRole("main")
-      .getByRole("link", { name: "Add Card" })
+      .getByRole("link", { name: "Add card" })
       .boundingBox())!;
     expect(addCard.y + addCard.height).toBeLessThanOrEqual(card.y);
     expect(

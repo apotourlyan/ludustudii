@@ -22,12 +22,12 @@ export type CardFormMode = "create" | "update";
 export const CARD_FORM_TEXT = {
   create: {
     action: "create the card",
-    submit: "Create Card",
+    submit: "Create card",
     submitting: "Creating...",
   },
   update: {
     action: "save your edits",
-    submit: "Update Card",
+    submit: "Update card",
     submitting: "Updating...",
   },
 } as const satisfies Record<CardFormMode, { action: string; submit: string; submitting: string }>;

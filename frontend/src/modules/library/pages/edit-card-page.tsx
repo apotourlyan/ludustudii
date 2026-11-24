@@ -14,7 +14,7 @@ export function EditCardPage({ cardId }: { cardId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <h1 className="mb-6 text-xl font-semibold">Update Card</h1>
+      <h1 className="mb-6 text-xl font-semibold">Update card</h1>
       <LearningCardForm
         key={card.id}
         card={card}

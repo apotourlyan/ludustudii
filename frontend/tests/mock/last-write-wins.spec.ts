@@ -15,7 +15,7 @@ test("saving a card changed elsewhere replaces the other change", async ({ page 
 
   await changeCardElsewhere(page, id);
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");

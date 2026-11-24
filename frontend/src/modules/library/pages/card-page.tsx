@@ -20,7 +20,7 @@ export function CardPage({ cardId }: { cardId: string }) {
 
   // The card is gone, so its page replaces itself in the history with the
   // list, and Back doesn't show "Card not found".
-  function leaveDeletedCard() {
+  function handleDeleted() {
     void navigate({ to: "/library/cards", replace: true });
   }
 
@@ -33,7 +33,7 @@ export function CardPage({ cardId }: { cardId: string }) {
               to="/library/cards/new"
               className="text-sm text-primary underline underline-offset-4"
             >
-              Add Card
+              Add card
             </Link>
           </div>
           <LearningCardDisplay
@@ -42,7 +42,7 @@ export function CardPage({ cardId }: { cardId: string }) {
             actions={
               <div className="flex gap-2">
                 <UpdateLearningCardLink card={card} />
-                <DeleteLearningCardButton card={card} onDeleted={leaveDeletedCard} />
+                <DeleteLearningCardButton card={card} onDeleted={handleDeleted} />
               </div>
             }
           />

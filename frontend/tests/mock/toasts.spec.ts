@@ -41,7 +41,7 @@ test("a save that fails shows one toast, keeps the input and adds nothing to the
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
   await page.getByLabel("Title").fill("Mitochondrion");
-  const submit = page.getByRole("button", { name: "Update Card" });
+  const submit = page.getByRole("button", { name: "Update card" });
 
   await submit.click();
 
@@ -54,7 +54,7 @@ test("a save that fails shows one toast, keeps the input and adds nothing to the
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 
   // The same failure again, while its toast is open. The button reads
-  // "Update Card" again once the save has settled and reported.
+  // "Update card" again once the save has settled and reported.
   await submit.click();
   await expect.poll(() => failedRequests(page)).toBe(2);
   await expect(submit).toBeEnabled();
@@ -68,10 +68,10 @@ test("saving again closes the failed save's toast, and a success leaves none", a
   await page.goto("/library/cards");
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
   await expect(toast(page, SAVE_FAILED)).toBeVisible();
 
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");
   await expect(toasts(page)).toHaveCount(0);
@@ -146,31 +146,31 @@ test("a failure again brings its toast to the front, even from behind the others
   await deleteCard(page, cardAt(page, 1));
   await expect(toast(page, DELETE_FAILED)).toBeVisible();
 
-  await page.getByRole("navigation").getByRole("link", { name: "Add Card" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Add card" }).click();
   await page.getByLabel("Title").fill("Krebs cycle");
   await page.getByLabel("Description").fill("Happens in the mitochondrial matrix.");
-  await page.getByRole("button", { name: "Create Card" }).click();
+  await page.getByRole("button", { name: "Create card" }).click();
   await expect(toast(page, CREATE_FAILED)).toBeVisible();
 
-  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Learning cards" }).click();
   await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
   await expect(toast(page, SAVE_FAILED)).toBeVisible();
 
   // Another card's editor: saving again in the same one would close the
   // save's toast (see above).
-  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Learning cards" }).click();
   await cardAt(page, 2).getByRole("link", { name: "Update" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("日本語: は vs. が");
   await context.setOffline(true);
-  await page.getByRole("button", { name: "Update Card" }).click();
+  await page.getByRole("button", { name: "Update card" }).click();
   await expect(toast(page, OFFLINE)).toBeVisible();
   await context.setOffline(false);
   await expect(toasts(page)).toHaveCount(4);
   await expect(toasts(page).first()).toHaveText(OFFLINE);
 
-  await page.getByRole("navigation").getByRole("link", { name: "Learning Cards" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Learning cards" }).click();
   await deleteCard(page, cardAt(page, 1));
 
   await expect(toasts(page).first()).toHaveText(DELETE_FAILED);
@@ -189,7 +189,7 @@ const repeats = [
       await page.getByLabel("Title").fill("Mitochondrion");
     },
     fail: async (page: Page) => {
-      await page.getByRole("button", { name: "Update Card" }).click();
+      await page.getByRole("button", { name: "Update card" }).click();
     },
   },
   {
