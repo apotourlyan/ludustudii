@@ -3,9 +3,12 @@ import { useId } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { CardTitle } from "@/shared/ui/card";
 
-import { isBlank } from "../model/card-fields";
-import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
+import { isBlank } from "../model/learning-card-fields";
 import { LearningCardFrame } from "./learning-card-frame";
+import {
+  LearningCardDescriptionMarkdown,
+  LearningCardTitleMarkdown,
+} from "./learning-card-markdown";
 
 // A card as it will look once saved, beside its editor: the same bands as
 // the editor's, with plain labels and empty status bars, so the two can
@@ -40,7 +43,7 @@ export function LearningCardPreview({
                 <Placeholder>Untitled</Placeholder>
               ) : (
                 <CardTitle className="min-w-0 wrap-break-word">
-                  <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
+                  <LearningCardTitleMarkdown>{card.title}</LearningCardTitleMarkdown>
                 </CardTitle>
               )}
             </div>
@@ -52,7 +55,7 @@ export function LearningCardPreview({
           content: undescribed ? (
             <Placeholder>Nothing to preview yet</Placeholder>
           ) : (
-            <CardDescriptionMarkdown>{card.description}</CardDescriptionMarkdown>
+            <LearningCardDescriptionMarkdown>{card.description}</LearningCardDescriptionMarkdown>
           ),
           status: null,
         }}

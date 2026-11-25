@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import type { LearningCard } from "@/api/lcards";
 import { CardTitle } from "@/shared/ui/card";
 
-import { CardDescriptionMarkdown, CardTitleMarkdown } from "./card-markdown";
 import { LearningCardFrame } from "./learning-card-frame";
+import {
+  LearningCardDescriptionMarkdown,
+  LearningCardTitleMarkdown,
+} from "./learning-card-markdown";
 
 // A card's title and description as Markdown, in the frame every mode of
 // a card shares, with no strip and no bars. On a page that shows this one
@@ -19,7 +22,7 @@ export function LearningCardDisplay({
   actions?: ReactNode;
   pageHeading?: boolean;
 }) {
-  const title = <CardTitleMarkdown>{card.title}</CardTitleMarkdown>;
+  const title = <LearningCardTitleMarkdown>{card.title}</LearningCardTitleMarkdown>;
 
   return (
     <LearningCardFrame
@@ -32,7 +35,9 @@ export function LearningCardDisplay({
         ),
       }}
       description={{
-        content: <CardDescriptionMarkdown>{card.description}</CardDescriptionMarkdown>,
+        content: (
+          <LearningCardDescriptionMarkdown>{card.description}</LearningCardDescriptionMarkdown>
+        ),
       }}
     />
   );

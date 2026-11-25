@@ -2,15 +2,15 @@ import type { LearningCard } from "@/api/lcards";
 import { Card, CardTitle } from "@/shared/ui/card";
 
 import { recentChange } from "../model/recent-change";
-import { CardTitleMarkdown } from "./card-markdown";
 import { LearningCardActions } from "./learning-card-actions";
+import { LearningCardTitleMarkdown } from "./learning-card-markdown";
+import { LearningCardVirtualList } from "./learning-card-virtual-list";
 import { RecentChangeMark } from "./recent-change-mark";
-import { VirtualCardList } from "./virtual-card-list";
 
 // The cards as a list of titles, one row each, the title cut to one line,
 // led by the card's mark if it was created or updated recently, as of
 // `now`, with the card's actions on the right. Virtualized by
-// VirtualCardList, which takes the same initialScrollOffset.
+// LearningCardVirtualList, which takes the same initialScrollOffset.
 export function LearningCardList({
   cards,
   now,
@@ -21,7 +21,7 @@ export function LearningCardList({
   initialScrollOffset: number;
 }) {
   return (
-    <VirtualCardList
+    <LearningCardVirtualList
       cards={cards}
       columns={1}
       rowHeight={48}
@@ -47,7 +47,7 @@ function ListRow({ card, now }: { card: LearningCard; now: number }) {
           <RecentChangeMark change={change} />
         </span>
         <CardTitle className="min-w-0 flex-1 truncate">
-          <CardTitleMarkdown>{card.title}</CardTitleMarkdown>
+          <LearningCardTitleMarkdown>{card.title}</LearningCardTitleMarkdown>
         </CardTitle>
       </div>
       <LearningCardActions card={card} />

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 
-import { CardFormPreview } from "./card-form-preview";
+import { LearningCardFormPreview } from "./learning-card-form-preview";
 import type { LearningCardFormState } from "./learning-card-form.state";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
 
@@ -63,7 +63,7 @@ export function LearningCardFormView({
           title,
           <form.AppField name="title" validators={title.validators}>
             {(field) => (
-              <field.CardTextField
+              <field.LearningCardTextField
                 className="min-h-5"
                 placeholder="Enter title..."
                 maxLength={title.maxLength}
@@ -80,7 +80,7 @@ export function LearningCardFormView({
             {(field) => (
               // Fills its row, so it ends where the preview's description
               // does when the preview is the taller of the two.
-              <field.CardTextField
+              <field.LearningCardTextField
                 className="h-full min-h-50"
                 placeholder="Enter description..."
                 maxLength={description.maxLength}
@@ -102,7 +102,7 @@ export function LearningCardFormView({
         </Button>
       </div>
 
-      <CardFormPreview form={form} className={PREVIEW} />
+      <LearningCardFormPreview form={form} className={PREVIEW} />
     </form>
   );
 }

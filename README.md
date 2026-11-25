@@ -333,10 +333,11 @@ frontend/
   a navigation or, later, a dashboard built from what each module exports.
 - **`src/routes/`** stays thin: a route file declares its path and params,
   checks its search params with its page's validator, if the page has
-  display state (`validateSearch: validateCardsPageSearch`), calls its
-  page's load function in its loader
-  (`loader: ({ context: { queryClient } }) => loadCardsPage(queryClient)`),
-  and renders a page from a module's index. Pages take route
+  display state (`validateSearch: validateLearningCardsPageSearch`), calls
+  its page's load function in its loader
+  (`loader: ({ context: { queryClient } }) =>
+  loadLearningCardsPage(queryClient)`), and renders a page from a module's
+  index. Pages take route
   params as props. `frontend/package.json` declares only CSS as having side
   effects (`sideEffects`), so the build drops the index's other exports from
   each route's chunk, and every route still gets a chunk of its own. That
@@ -356,17 +357,17 @@ frontend/
   module shares: the network, server errors and anything unexpected. A module
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
-  (`modules/library/model/card-error-message.ts`).
+  (`modules/library/model/learning-card-error-message.ts`).
 
 #### The library
 
 | URL | Page | Shows |
 | --- | --- | --- |
-| `/library/cards?view=list` | `CardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
-| `/library/cards?view=grid` | `CardsPage` | The same, as a grid of cards of one size |
-| `/library/cards/new` | `NewCardPage` | The form for a new card, with its preview |
-| `/library/cards/$cardId` | `CardPage` | One card, its title the page's `<h1>`, with Update and Delete |
-| `/library/cards/$cardId/edit` | `EditCardPage` | The form for that card, its preview where `CardPage` shows the card, so opening the editor doesn't move it |
+| `/library/cards?view=list` | `LearningCardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
+| `/library/cards?view=grid` | `LearningCardsPage` | The same, as a grid of cards of one size |
+| `/library/cards/new` | `NewLearningCardPage` | The form for a new card, with its preview |
+| `/library/cards/$cardId` | `LearningCardPage` | One card, its title the page's `<h1>`, with Update and Delete |
+| `/library/cards/$cardId/edit` | `EditLearningCardPage` | The form for that card, its preview where `LearningCardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,
 switched by the two icon buttons next to its "Add card" link ("List view"
@@ -408,19 +409,20 @@ theme's `--recent-new` and `--recent-updated` (`src/styles/global.css`),
 each at least 3:1 against a card in both themes. The marks are only on
 the overview, which keeps its newest-first order.
 
-Both card URLs show `CardNotFoundPage` for an ID that names no card.
+Both card URLs show `LearningCardNotFoundPage` for an ID that names no card.
 Creating a card and saving an edit end on the card's page; Cancel goes to
 the card's page from its editor, and to the list from the new card's form.
 Deleting a card on its page ends on the list; deleting one in the list
 stays there.
 
 A card's Markdown renders through two components in
-`components/card-markdown.tsx`. `CardTitleMarkdown` renders a title as
-inline Markdown only (bold, italic, code and links); other syntax is
-unwrapped to its text, so `# Photosynthesis` reads "Photosynthesis" and a
-title fits in any heading or line. `CardDescriptionMarkdown` renders a
-description with its headings one level down, `#` as `<h2>` through
-`#####` and `######` as `<h6>`, so a page's own `<h1>` stays its only one.
+`components/learning-card-markdown.tsx`. `LearningCardTitleMarkdown`
+renders a title as inline Markdown only (bold, italic, code and links);
+other syntax is unwrapped to its text, so `# Photosynthesis` reads
+"Photosynthesis" and a title fits in any heading or line.
+`LearningCardDescriptionMarkdown` renders a description with its headings
+one level down, `#` as `<h2>` through `#####` and `######` as `<h6>`, so a
+page's own `<h1>` stays its only one.
 
 #### Pages, components and widgets
 
@@ -435,13 +437,14 @@ decides what each kind of file in a module may do:
 
 - **A page** (`pages/<page>.tsx`) exports only its component, and its load
   function lives beside it in `pages/<page>.load.ts`, such as
-  `loadEditCardPage(queryClient, cardId)` in `edit-card-page.load.ts`. The
-  load function fills every query the page reads and nothing else, returns
-  no data, and turns a missing resource into the router's `notFound()`. A
-  page that reads exactly what another reads may call that page's load
-  function from its own (`loadEditCardPage` calls `loadCardPage`). A
-  load file imports only the API layer and the router, never UI, since it
-  is in the initial bundle. The page owns the
+  `loadEditLearningCardPage(queryClient, cardId)` in
+  `edit-learning-card-page.load.ts`. The load function fills every query
+  the page reads and nothing else, returns no data, and turns a missing
+  resource into the router's `notFound()`. A page that reads exactly what
+  another reads may call that page's load function from its own
+  (`loadEditLearningCardPage` calls `loadLearningCardPage`). A load file
+  imports only the API layer and the router, never UI, since it is in the
+  initial bundle. The page owns the
   screen: its `<h1>`, its width and placement, and what follows a
   successful action, such as going to the card's page. The root layout
   provides the `<main>` landmark around every page.
@@ -452,7 +455,7 @@ decides what each kind of file in a module may do:
 - **Display state**, such as the overview's chosen view, lives in the
   URL's search params, so a reload, Back or a shared link keeps it. The
   route checks them with `validateSearch`, which calls the page's
-  validator in `pages/<page>.search.ts` (`validateCardsPageSearch`), and
+  validator in `pages/<page>.search.ts` (`validateLearningCardsPageSearch`), and
   turns anything invalid or missing into the default. The page reads them
   with `useSearch`, and changing them navigates with `replace: true`, so
   Back leaves the page instead of stepping through each change. Changing
@@ -485,27 +488,28 @@ decides what each kind of file in a module may do:
 shows what is wrong with its fields. The card form is the reference: its
 save workflow in `modules/library/components/learning-card-form.state.ts`,
 its markup in `learning-card-form.view.tsx`, and its fields as components
-of the module's form hook, `use-card-form.ts`
+of the module's form hook, `use-learning-card-app-form.ts`
 ([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
-  (`model/card-fields.ts`: `required`, `max_length`). The limits live in
-  that file, next to the checks.
+  (`model/learning-card-fields.ts`: `required`, `max_length`). The limits
+  live in that file, next to the checks.
 - **One wording function per module** turns a field and a code into the
   message, or undefined for a pair it has no wording for
-  (`model/card-field-message.ts`). The form renders its field's codes
+  (`model/learning-card-field-message.ts`). The form renders its field's codes
   through it, so a client error and the API's read the same.
 - **The API's field errors go on their fields.** `placeFieldErrors` in
   `src/shared/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
-  name map. `cardSaveFailure` in `model/card-form.ts` turns that into what
-  the card form does: the codes per field, the toast, and what to log. The
-  form puts the codes in the field's `onServer` error, so `canSubmit`, the
-  invalid look and the error rendering are TanStack Form's own. A field's
-  server error clears when its value changes, not when it loses focus
-  (`keepServerErrorsOnBlur` in `src/shared/keep-server-errors-on-blur.ts`,
-  the form's `validationLogic`).
+  name map. `learningCardSaveFailure` in `model/learning-card-form.ts`
+  turns that into what the card form does: the codes per field, the toast,
+  and what to log. The form puts the codes in the field's `onServer` error,
+  so `canSubmit`, the invalid look and the error rendering are TanStack
+  Form's own. A field's server error clears when its value changes, not when it
+  loses focus (`keepServerErrorsOnBlur` in
+  `src/shared/keep-server-errors-on-blur.ts`, the form's
+  `validationLogic`).
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
 - **Everything that isn't about a field is a toast**
@@ -546,7 +550,8 @@ decides how the client app reports outcomes and waits.
 - **Failure pages have one `<h1>`**: `RouteError` ("This page couldn't
   load", the reason, "Try again") and `NotFoundPage` ("Page not found", a
   link to the library) are the router's defaults; a missing card has
-  `CardNotFoundPage`. A failed background refetch stays silent (ADR 0030).
+  `LearningCardNotFoundPage`. A failed background refetch stays silent (ADR
+  0030).
 
 ### Boundaries
 
@@ -613,8 +618,8 @@ on its own and its markup with given state, without a backend
 
 - **Rules and decisions are plain functions in the module's `model/`**:
   validation, canonicalizing, wording, classification (`recentChange`),
-  what a failed save means (`cardSaveFailure`), layout arithmetic
-  (`cardSlots`), and the types they share. `model/` imports no React, no
+  what a failed save means (`learningCardSaveFailure`), layout arithmetic
+  (`itemSlots`), and the types they share. `model/` imports no React, no
   TanStack, no UI and no components, and from the API layer only types;
   lint enforces it ([Boundaries](#boundaries)).
 - **A component with behavior is three files**, side by side in
@@ -652,11 +657,11 @@ on its own and its markup with given state, without a backend
     limits, validation, classification (what counts as recent), wording,
     what a failure means. So does a value that uses data, mutations,
     navigation or the clock, and one that more than one component needs.
-    `cardSaveFailure` is a rule: what a failed save means (which field
-    shows which code, what is toasted, what is logged) holds whatever the
-    form looks like, and its tests call it.
+    `learningCardSaveFailure` is a rule: what a failed save means (which
+    field shows which code, what is toasted, what is logged) holds whatever
+    the form looks like, and its tests call it.
 - **A page reads as its parts.** A choice between whole blocks of content
-  is a component that makes it, such as `CardsOverview`, which shows the
+  is a component that makes it, such as `LearningCardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,
   such as replacing the history entry, is a named function in the page
   with the reason on it, such as the overview's `handleViewChange` and
@@ -685,14 +690,16 @@ on its own and its markup with given state, without a backend
   ([ADR 0045](docs/adr/0045-ui-text-inline-in-sentence-case.md)): a label,
   heading or message is a string in the component that shows it ("Add
   card", "Learning cards"), and moves to `model/` only when it varies with
-  state or more than one component needs it, such as `CARD_FORM_TEXT`.
+  state or more than one component needs it, such as
+  `LEARNING_CARD_FORM_TEXT`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
-  Form's composition API: `use-card-form.ts` makes the module's form hook,
-  `useCardForm`, with `createFormHook`, its fields render
-  `CardTextField` through `form.AppField`, and `withCardForm` makes
-  components that take the form, such as `CardFormPreview`.
+  Form's composition API: `use-learning-card-app-form.ts` makes the
+  module's form hook, `useLearningCardAppForm`, with `createFormHook`, its
+  fields render `LearningCardTextField` through `form.AppField`, and
+  `withLearningCardForm` makes components that take the form, such as
+  `LearningCardFormPreview`.
 - **Shared code moves up only when it's shared.** A hook used by one
   component lives in its `.state.ts`; one used by several of a module's
   components is its own file in `components/` (`use-<name>.ts`); one useful
@@ -730,16 +737,17 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 }
 ```
 
-After, the decisions are functions in `model/card-form.ts`
-(`cardSaveFailure`, `cardFieldDisplay`, `CARD_FORM_TEXT`), the workflow is
-the state hook, and the view renders what it returns:
+After, the decisions are functions in `model/learning-card-form.ts`
+(`learningCardSaveFailure`, `learningCardFieldDisplay`,
+`LEARNING_CARD_FORM_TEXT`), the workflow is the state hook, and the view
+renders what it returns:
 
 ```tsx
 // learning-card-form.state.ts
 export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
-  const form = useCardForm({ /* … */ onSubmit: ({ value }) => save(value) });
+  const form = useLearningCardAppForm({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
-  // with what cardSaveFailure(error, mode) decides
+  // with what learningCardSaveFailure(error, mode) decides
   return {
     form, formRef, onSubmit, cancel,
     title: fieldProps("title", titleCodes), // label, counter, errors, invalid, active, handlers
@@ -757,13 +765,13 @@ export function LearningCardFormView({ form, title, submitLabel, /* … */ }: Le
         title={fieldSection(
           title,
           <form.AppField name="title" validators={title.validators}>
-            {(field) => <field.CardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
+            {(field) => <field.LearningCardTextField placeholder="Enter title..." aria-invalid={title.invalid} /* … */ />}
           </form.AppField>,
         )}
         /* … */
       />
       <Button type="submit" disabled={submitDisabled}>{submitLabel}</Button>
-      <CardFormPreview form={form} className={PREVIEW} />
+      <LearningCardFormPreview form={form} className={PREVIEW} />
     </form>
   );
 }
@@ -774,8 +782,8 @@ export function LearningCardForm(props: LearningCardFormProps): ReactNode {
 }
 ```
 
-`model/card-form.test.ts` checks every failure kind and counter by calling
-functions; `learning-card-form.state.test.tsx` saves against the fake
+`model/learning-card-form.test.ts` checks every failure kind and counter by
+calling functions; `learning-card-form.state.test.tsx` saves against the fake
 backend (create, update, placeable and unplaceable 400s, a network failure,
 the label while saving); `learning-card-form.view.test.tsx` renders labels,
 disabled states and errors from given props. The pages still import

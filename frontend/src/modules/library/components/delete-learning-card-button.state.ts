@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
 import { notifyError } from "@/shared/notify";
 
-import { cardErrorMessage } from "../model/card-error-message";
+import { learningCardErrorMessage } from "../model/learning-card-error-message";
 
 export interface DeleteLearningCardButtonProps {
   card: Pick<LearningCard, "id">;
@@ -34,7 +34,7 @@ export function useDeleteLearningCardButton({ card, onDeleted }: DeleteLearningC
       await deleteCard.mutateAsync({ id: card.id });
     } catch (error) {
       setOpen(false);
-      dismissDeleteError.current = notifyError(cardErrorMessage(error, "delete the card"));
+      dismissDeleteError.current = notifyError(learningCardErrorMessage(error, "delete the card"));
       return;
     }
     setOpen(false);
