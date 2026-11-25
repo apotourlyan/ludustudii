@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { linkOptions, useNavigate } from "@tanstack/react-router";
 
 import { lcardQueries } from "@/api/lcards";
 
@@ -24,7 +24,7 @@ export function EditLearningCardPage({ cardId }: { cardId: string }) {
       <LearningCardForm
         key={card.id}
         card={card}
-        cancel={{ to: "/library/cards/$cardId", params: { cardId } }}
+        cancelLink={linkOptions({ to: "/library/cards/$cardId", params: { cardId } })}
         onSaved={handleSaved}
       />
     </div>

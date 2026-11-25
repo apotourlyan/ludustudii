@@ -50,7 +50,7 @@ export function LearningCardFormView({
   onSubmit,
   title,
   description,
-  cancel,
+  cancelLink,
   submitLabel,
   submitDisabled,
 }: LearningCardFormState) {
@@ -94,7 +94,7 @@ export function LearningCardFormView({
       />
 
       <div className={BUTTONS}>
-        <Link {...cancel} className={buttonVariants({ variant: "outline" })}>
+        <Link {...cancelLink} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>
         <Button type="submit" disabled={submitDisabled}>
