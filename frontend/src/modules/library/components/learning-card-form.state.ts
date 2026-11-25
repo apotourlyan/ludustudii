@@ -4,7 +4,7 @@ import { useRef, useState, type Dispatch, type SetStateAction, type SubmitEvent 
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
-import { useErrorToast } from "@/shared/use-error-toast";
+import { useFormFailure } from "@/shared/use-form-failure";
 
 import {
   canonicalize,
@@ -113,8 +113,6 @@ function useFieldProps(
 export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardFormProps) {
   const focus = useState<LearningCardField | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  // The toast of the last failed save, if any (ADR 0041).
-  const saveError = useErrorToast();
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const target: LearningCardSaveTarget = card
@@ -140,15 +138,17 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     },
     validationLogic: keepServerErrorsOnBlur,
     // The form's own checks stopped the submit.
-    onSubmitInvalid: () => focusFirstInvalidField(),
+    onSubmitInvalid: () => saveFailure.focusFirstInvalid(),
     onSubmit: ({ value }) => save(value),
   });
+  // What a failed save reports: field errors, the toast and the log.
+  const saveFailure = useFormFailure(form, LEARNING_CARD_FIELDS, formRef);
 
   // Saves the card: creates it, or updates the given one, with its fields
   // canonicalized as the server stores them, then hands it to onSaved.
   async function save(value: { title: string; description: string }) {
     // Trying again replaces what the last attempt reported.
-    saveError.clear();
+    saveFailure.clear();
     const input = {
       title: canonicalize(value.title),
       description: canonicalize(value.description),
@@ -157,43 +157,14 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     try {
       id = await target.save(input);
     } catch (error) {
-      reportFailure(error);
+      // What the API says about a field goes on that field; the rest is a
+      // toast, and a bug or a contract mismatch is logged
+      // (model/learning-card-form.ts).
+      saveFailure.report(learningCardSaveFailure(error, target.mode));
       return;
     }
     // The form keeps its values after a save: its page leaves it.
     await onSaved({ id, ...input });
-  }
-
-  // What the API says about a field goes on that field; the rest is a
-  // toast, and a bug or a contract mismatch is logged
-  // (model/learning-card-form.ts).
-  function reportFailure(error: unknown) {
-    const failure = learningCardSaveFailure(error, target.mode);
-    for (const name of LEARNING_CARD_FIELDS) {
-      // The server's error, which TanStack Form clears when the field
-      // changes (see keepServerErrorsOnBlur).
-      form.setFieldMeta(name, (meta) => ({
-        ...meta,
-        errorMap: { ...meta.errorMap, onServer: failure.fields[name] },
-      }));
-    }
-    if (failure.notice !== undefined) {
-      saveError.show(failure.notice);
-    }
-    if (failure.log.length > 0) {
-      console.error(...failure.log);
-    }
-    focusFirstInvalidField();
-  }
-
-  // Moves the focus to the first field, in the form's order, that shows an
-  // error, whoever found it (ADR 0038).
-  function focusFirstInvalidField() {
-    const name = LEARNING_CARD_FIELDS.find((field) => form.getFieldMeta(field)?.errors.length);
-    const element = name && formRef.current?.elements.namedItem(name);
-    if (element instanceof HTMLElement) {
-      element.focus();
-    }
   }
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
