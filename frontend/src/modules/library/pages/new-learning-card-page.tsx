@@ -8,6 +8,7 @@ import { LearningCardForm } from "../components/learning-card-form";
 // list.
 export function NewLearningCardPage() {
   const navigate = useNavigate();
+  const cancelLink = linkOptions({ to: "/library/cards" });
 
   // The form is used up once the card exists, so the card's page replaces
   // it in the history, and Back returns to where the user came from. The
@@ -20,7 +21,7 @@ export function NewLearningCardPage() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <h1 className="mb-6 text-xl font-semibold">Add card</h1>
-      <LearningCardForm cancelLink={linkOptions({ to: "/library/cards" })} onSaved={handleSaved} />
+      <LearningCardForm cancelLink={cancelLink} onSaved={handleSaved} />
     </div>
   );
 }

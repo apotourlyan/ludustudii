@@ -11,6 +11,7 @@ import { LearningCardForm } from "../components/learning-card-form";
 export function EditLearningCardPage({ cardId }: { cardId: string }) {
   const { data: card } = useSuspenseQuery(lcardQueries.detail(cardId));
   const navigate = useNavigate();
+  const cancelLink = linkOptions({ to: "/library/cards/$cardId", params: { cardId } });
 
   // The promise is returned, not voided: the form awaits onSaved and stays
   // in its saving state until the card's page has loaded.
@@ -21,12 +22,7 @@ export function EditLearningCardPage({ cardId }: { cardId: string }) {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <h1 className="mb-6 text-xl font-semibold">Update card</h1>
-      <LearningCardForm
-        key={card.id}
-        card={card}
-        cancelLink={linkOptions({ to: "/library/cards/$cardId", params: { cardId } })}
-        onSaved={handleSaved}
-      />
+      <LearningCardForm key={card.id} card={card} cancelLink={cancelLink} onSaved={handleSaved} />
     </div>
   );
 }
