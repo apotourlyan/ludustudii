@@ -1,8 +1,8 @@
-import { toggledCardsView, type CardsView } from "../model/learning-cards-view";
+import { toggledLearningCardsView, type LearningCardsView } from "../model/learning-cards-view";
 
 export interface LearningCardsViewSwitchProps {
-  view: CardsView;
-  onChange: (view: CardsView) => void;
+  view: LearningCardsView;
+  onChange: (view: LearningCardsView) => void;
 }
 
 // The view switch's value and its change: the view that is on is the one
@@ -11,7 +11,7 @@ export interface LearningCardsViewSwitchProps {
 // what LearningCardsViewSwitchView renders.
 export function useLearningCardsViewSwitch({ view, onChange }: LearningCardsViewSwitchProps) {
   function handleValueChange(pressed: readonly unknown[]) {
-    const next = toggledCardsView(pressed, view);
+    const next = toggledLearningCardsView(pressed, view);
     if (next) onChange(next);
   }
 

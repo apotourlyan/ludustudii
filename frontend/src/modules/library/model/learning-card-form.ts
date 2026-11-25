@@ -7,19 +7,27 @@
 import type { ApiFieldError } from "@/api/http";
 import { placeFieldErrors } from "@/shared/field-errors";
 
-import { cardErrorMessage } from "./learning-card-error-message";
-import { CARD_FIELD_LABELS, cardFieldMessage } from "./learning-card-field-message";
-import { CARD_FIELDS, CARD_LIMITS, canonicalLength, type CardField } from "./learning-card-fields";
+import { learningCardErrorMessage } from "./learning-card-error-message";
+import {
+  LEARNING_CARD_FIELD_LABELS,
+  learningCardFieldMessage,
+} from "./learning-card-field-message";
+import {
+  LEARNING_CARD_FIELDS,
+  LEARNING_CARD_LIMITS,
+  canonicalLength,
+  type LearningCardField,
+} from "./learning-card-fields";
 
 type FieldCode = ApiFieldError["code"];
 
 // The form creates a card, or updates the one it was given.
-export type CardFormMode = "create" | "update";
+export type LearningCardFormMode = "create" | "update";
 
 // The form's wording in each mode: the action, phrased to follow "trying
 // to" in a failure's message, and the submit button's label at rest and
 // while saving.
-export const CARD_FORM_TEXT = {
+export const LEARNING_CARD_FORM_TEXT = {
   create: {
     action: "create the card",
     submit: "Create card",
@@ -30,10 +38,13 @@ export const CARD_FORM_TEXT = {
     submit: "Update card",
     submitting: "Updating...",
   },
-} as const satisfies Record<CardFormMode, { action: string; submit: string; submitting: string }>;
+} as const satisfies Record<
+  LearningCardFormMode,
+  { action: string; submit: string; submitting: string }
+>;
 
 // What a field's label bar and status bar show.
-export interface CardFieldDisplay {
+export interface LearningCardFieldDisplay {
   label: string;
   // The counter: the value's length as the API counts it, of the limit.
   meta: string;
@@ -49,19 +60,19 @@ export interface CardFieldDisplay {
 // The bands of `field` holding `value`, with the error codes the form
 // reports for it: its own check's and the API's. The form library lists
 // a field's errors with undefined for a validator that found none.
-export function cardFieldDisplay(
-  field: CardField,
+export function learningCardFieldDisplay(
+  field: LearningCardField,
   value: string,
   codes: readonly (FieldCode | undefined)[],
-): CardFieldDisplay {
-  const limit = CARD_LIMITS[field];
+): LearningCardFieldDisplay {
+  const limit = LEARNING_CARD_LIMITS[field];
   const length = canonicalLength(value);
   return {
-    label: CARD_FIELD_LABELS[field],
+    label: LEARNING_CARD_FIELD_LABELS[field],
     meta: `${length}/${limit}`,
     progress: length / limit,
     errors: codes.flatMap((code) => {
-      const message = code && cardFieldMessage(field, code);
+      const message = code && learningCardFieldMessage(field, code);
       return message ? [{ message }] : [];
     }),
     invalid: codes.length > 0,
@@ -69,10 +80,10 @@ export function cardFieldDisplay(
 }
 
 // What the form does with a failed save. The form keeps the user's input.
-export interface CardSaveFailure {
+export interface LearningCardSaveFailure {
   // The API's codes for each field it reported, to show on that field. A
   // field without any is absent, which clears what it showed.
-  fields: Readonly<Partial<Record<CardField, readonly FieldCode[]>>>;
+  fields: Readonly<Partial<Record<LearningCardField, readonly FieldCode[]>>>;
   // The toast for what no field shows (ADR 0041), or undefined when the
   // fields show it all.
   notice: string | undefined;
@@ -83,11 +94,16 @@ export interface CardSaveFailure {
   log: readonly unknown[];
 }
 
-export function cardSaveFailure(error: unknown, mode: CardFormMode): CardSaveFailure {
-  const placed = placeFieldErrors(error, CARD_FIELDS, cardFieldMessage);
+export function learningCardSaveFailure(
+  error: unknown,
+  mode: LearningCardFormMode,
+): LearningCardSaveFailure {
+  const placed = placeFieldErrors(error, LEARNING_CARD_FIELDS, learningCardFieldMessage);
   return {
     fields: placed.fields,
-    notice: placed.leftover ? cardErrorMessage(error, CARD_FORM_TEXT[mode].action) : undefined,
+    notice: placed.leftover
+      ? learningCardErrorMessage(error, LEARNING_CARD_FORM_TEXT[mode].action)
+      : undefined,
     log: failureLog(error, placed),
   };
 }

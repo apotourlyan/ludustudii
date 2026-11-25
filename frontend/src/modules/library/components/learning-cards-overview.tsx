@@ -1,6 +1,6 @@
 import type { LearningCard } from "@/api/lcards";
 
-import type { CardsView } from "../model/learning-cards-view";
+import type { LearningCardsView } from "../model/learning-cards-view";
 import { LearningCardGrid } from "./learning-card-grid";
 import { LearningCardList } from "./learning-card-list";
 
@@ -14,7 +14,7 @@ export function LearningCardsOverview({
   initialScrollOffset,
 }: {
   cards: LearningCard[];
-  view: CardsView;
+  view: LearningCardsView;
   now: number;
   initialScrollOffset: number;
 }) {

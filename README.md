@@ -502,11 +502,11 @@ of the module's form hook, `use-learning-card-app-form.ts`
   `src/shared/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
-  name map. `cardSaveFailure` in `model/learning-card-form.ts` turns that
-  into what the card form does: the codes per field, the toast, and what to
-  log. The form puts the codes in the field's `onServer` error, so
-  `canSubmit`, the invalid look and the error rendering are TanStack Form's
-  own. A field's server error clears when its value changes, not when it
+  name map. `learningCardSaveFailure` in `model/learning-card-form.ts`
+  turns that into what the card form does: the codes per field, the toast,
+  and what to log. The form puts the codes in the field's `onServer` error,
+  so `canSubmit`, the invalid look and the error rendering are TanStack
+  Form's own. A field's server error clears when its value changes, not when it
   loses focus (`keepServerErrorsOnBlur` in
   `src/shared/keep-server-errors-on-blur.ts`, the form's
   `validationLogic`).
@@ -618,8 +618,8 @@ on its own and its markup with given state, without a backend
 
 - **Rules and decisions are plain functions in the module's `model/`**:
   validation, canonicalizing, wording, classification (`recentChange`),
-  what a failed save means (`cardSaveFailure`), layout arithmetic
-  (`cardSlots`), and the types they share. `model/` imports no React, no
+  what a failed save means (`learningCardSaveFailure`), layout arithmetic
+  (`itemSlots`), and the types they share. `model/` imports no React, no
   TanStack, no UI and no components, and from the API layer only types;
   lint enforces it ([Boundaries](#boundaries)).
 - **A component with behavior is three files**, side by side in
@@ -657,9 +657,9 @@ on its own and its markup with given state, without a backend
     limits, validation, classification (what counts as recent), wording,
     what a failure means. So does a value that uses data, mutations,
     navigation or the clock, and one that more than one component needs.
-    `cardSaveFailure` is a rule: what a failed save means (which field
-    shows which code, what is toasted, what is logged) holds whatever the
-    form looks like, and its tests call it.
+    `learningCardSaveFailure` is a rule: what a failed save means (which
+    field shows which code, what is toasted, what is logged) holds whatever
+    the form looks like, and its tests call it.
 - **A page reads as its parts.** A choice between whole blocks of content
   is a component that makes it, such as `LearningCardsOverview`, which shows the
   empty state, the list or the grid. A handler that carries a decision,
@@ -690,7 +690,8 @@ on its own and its markup with given state, without a backend
   ([ADR 0045](docs/adr/0045-ui-text-inline-in-sentence-case.md)): a label,
   heading or message is a string in the component that shows it ("Add
   card", "Learning cards"), and moves to `model/` only when it varies with
-  state or more than one component needs it, such as `CARD_FORM_TEXT`.
+  state or more than one component needs it, such as
+  `LEARNING_CARD_FORM_TEXT`.
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
@@ -737,15 +738,16 @@ export function LearningCardForm({ card, cancel, onSaved }: LearningCardFormProp
 ```
 
 After, the decisions are functions in `model/learning-card-form.ts`
-(`cardSaveFailure`, `cardFieldDisplay`, `CARD_FORM_TEXT`), the workflow is
-the state hook, and the view renders what it returns:
+(`learningCardSaveFailure`, `learningCardFieldDisplay`,
+`LEARNING_CARD_FORM_TEXT`), the workflow is the state hook, and the view
+renders what it returns:
 
 ```tsx
 // learning-card-form.state.ts
 export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
   const form = useLearningCardAppForm({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
-  // with what cardSaveFailure(error, mode) decides
+  // with what learningCardSaveFailure(error, mode) decides
   return {
     form, formRef, onSubmit, cancel,
     title: fieldProps("title", titleCodes), // label, counter, errors, invalid, active, handlers

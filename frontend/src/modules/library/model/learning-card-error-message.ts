@@ -11,6 +11,6 @@ const cardFailureWording: FailureWording = (failure) => {
 
 // The user-facing text for a failed request about a card, phrased to follow
 // "trying to" (see errorMessage).
-export function cardErrorMessage(error: unknown, action: string): string {
+export function learningCardErrorMessage(error: unknown, action: string): string {
   return errorMessage(error, action, cardFailureWording);
 }

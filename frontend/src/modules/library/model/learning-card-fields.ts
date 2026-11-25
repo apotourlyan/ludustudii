@@ -5,18 +5,18 @@
 
 import type { ApiFieldError } from "@/api/http";
 
-export const CARD_FIELDS = ["title", "description"] as const;
-export type CardField = (typeof CARD_FIELDS)[number];
+export const LEARNING_CARD_FIELDS = ["title", "description"] as const;
+export type LearningCardField = (typeof LEARNING_CARD_FIELDS)[number];
 
 // The limits the API enforces, in characters (code points) after
 // canonicalization.
-export const CARD_LIMITS = {
+export const LEARNING_CARD_LIMITS = {
   title: 200,
   description: 2000,
-} as const satisfies Record<CardField, number>;
+} as const satisfies Record<LearningCardField, number>;
 
 // The codes the form's own checks can return.
-export type CardFieldCode = Extract<ApiFieldError["code"], "required" | "max_length">;
+export type LearningCardFieldCode = Extract<ApiFieldError["code"], "required" | "max_length">;
 
 // The server stores fields in this form and checks their length after
 // applying it. JS trim() also strips U+FEFF and keeps U+0085, unlike Go's
@@ -30,12 +30,14 @@ export const canonicalLength = (value: string) => [...canonicalize(value)].lengt
 // required, and what the preview shows a placeholder for.
 export const isBlank = (value: string) => canonicalize(value) === "";
 
-function checkField(field: CardField): (props: { value: string }) => CardFieldCode | undefined {
+function checkField(
+  field: LearningCardField,
+): (props: { value: string }) => LearningCardFieldCode | undefined {
   return ({ value }) => {
     if (isBlank(value)) {
       return "required";
     }
-    return canonicalLength(value) > CARD_LIMITS[field] ? "max_length" : undefined;
+    return canonicalLength(value) > LEARNING_CARD_LIMITS[field] ? "max_length" : undefined;
   };
 }
 

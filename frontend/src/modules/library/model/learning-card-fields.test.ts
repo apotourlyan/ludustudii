@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  CARD_LIMITS,
+  LEARNING_CARD_LIMITS,
   canonicalize,
   canonicalLength,
   isBlank,
@@ -55,8 +55,8 @@ describe("canonicalLength", () => {
 });
 
 describe.each([
-  { field: "title", validate: validateTitle, limit: CARD_LIMITS.title },
-  { field: "description", validate: validateDescription, limit: CARD_LIMITS.description },
+  { field: "title", validate: validateTitle, limit: LEARNING_CARD_LIMITS.title },
+  { field: "description", validate: validateDescription, limit: LEARNING_CARD_LIMITS.description },
 ] as const)("the $field check", ({ validate, limit }) => {
   const check = (value: string) => validate({ value });
 
@@ -89,5 +89,5 @@ describe.each([
 });
 
 test("the limits are the API's", () => {
-  expect(CARD_LIMITS).toEqual({ title: 200, description: 2000 });
+  expect(LEARNING_CARD_LIMITS).toEqual({ title: 200, description: 2000 });
 });

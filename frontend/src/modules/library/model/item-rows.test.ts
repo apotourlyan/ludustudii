@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { cardSlots, rowCount, rowOfCard, withRow } from "./learning-card-rows";
+import { itemSlots, rowCount, rowOfItem, withRow } from "./item-rows";
 
-const cards = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+const items = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
 
 test.each([
   { count: 0, columns: 1, rows: 0 },
@@ -10,24 +10,24 @@ test.each([
   { count: 4, columns: 4, rows: 1 },
   { count: 5, columns: 4, rows: 2 },
   { count: 150, columns: 3, rows: 50 },
-])("$count cards in rows of $columns take $rows rows", ({ count, columns, rows }) => {
+])("$count items in rows of $columns take $rows rows", ({ count, columns, rows }) => {
   expect(rowCount(count, columns)).toBe(rows);
 });
 
-describe("rowOfCard", () => {
+describe("rowOfItem", () => {
   test.each([
     { id: "a", columns: 1, row: 0 },
     { id: "e", columns: 1, row: 4 },
     { id: "b", columns: 2, row: 0 },
     { id: "c", columns: 2, row: 1 },
     { id: "e", columns: 4, row: 1 },
-  ])("finds card $id in row $row of rows of $columns", ({ id, columns, row }) => {
-    expect(rowOfCard(cards, id, columns)).toBe(row);
+  ])("finds item $id in row $row of rows of $columns", ({ id, columns, row }) => {
+    expect(rowOfItem(items, id, columns)).toBe(row);
   });
 
-  test("is null without an ID or for a card that isn't there", () => {
-    expect(rowOfCard(cards, null, 2)).toBeNull();
-    expect(rowOfCard(cards, "z", 2)).toBeNull();
+  test("is null without an ID or for an item that isn't there", () => {
+    expect(rowOfItem(items, null, 2)).toBeNull();
+    expect(rowOfItem(items, "z", 2)).toBeNull();
   });
 });
 
@@ -43,20 +43,20 @@ describe("withRow", () => {
   });
 });
 
-describe("cardSlots", () => {
-  test("places each rendered row's cards side by side, with their positions", () => {
-    const slots = cardSlots(
+describe("itemSlots", () => {
+  test("places each rendered row's items side by side, with their positions", () => {
+    const slots = itemSlots(
       [
         { index: 0, size: 100, start: 300 },
         { index: 2, size: 100, start: 532 },
       ],
-      cards,
+      items,
       { columns: 2, gap: 16, scrollMargin: 300 },
     );
 
     expect(slots).toEqual([
       {
-        card: { id: "a" },
+        item: { id: "a" },
         position: 1,
         style: {
           height: 100,
@@ -66,7 +66,7 @@ describe("cardSlots", () => {
         },
       },
       {
-        card: { id: "b" },
+        item: { id: "b" },
         position: 2,
         style: {
           height: 100,
@@ -77,7 +77,7 @@ describe("cardSlots", () => {
       },
       // The last row holds what is left.
       {
-        card: { id: "e" },
+        item: { id: "e" },
         position: 5,
         style: {
           height: 100,
@@ -90,14 +90,14 @@ describe("cardSlots", () => {
   });
 
   test("gives a single column the full width", () => {
-    const [slot] = cardSlots([{ index: 1, size: 50, start: 66 }], cards, {
+    const [slot] = itemSlots([{ index: 1, size: 50, start: 66 }], items, {
       columns: 1,
       gap: 8,
       scrollMargin: 0,
     });
 
     expect(slot).toEqual({
-      card: { id: "b" },
+      item: { id: "b" },
       position: 2,
       style: {
         height: 50,

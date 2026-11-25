@@ -6,7 +6,7 @@ import { useNow } from "@/shared/lib/use-now";
 
 import { LearningCardsOverview } from "../components/learning-cards-overview";
 import { LearningCardsViewSwitch } from "../components/learning-cards-view-switch";
-import type { CardsView } from "../model/learning-cards-view";
+import type { LearningCardsView } from "../model/learning-cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
 // ?view=grid). Reads what loadLearningCardsPage, in
@@ -28,7 +28,7 @@ export function LearningCardsPage() {
 
   // The view is display state: switching it replaces the history entry, so
   // Back leaves the page instead of stepping through the switches.
-  function handleViewChange(next: CardsView) {
+  function handleViewChange(next: LearningCardsView) {
     void navigate({ search: (prev) => ({ ...prev, view: next }), replace: true });
   }
 

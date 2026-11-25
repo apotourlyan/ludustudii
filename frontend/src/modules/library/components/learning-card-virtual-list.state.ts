@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import type { LearningCard } from "@/api/lcards";
 
-import { rowOfCard } from "../model/learning-card-rows";
+import { rowOfItem } from "../model/item-rows";
 
 export interface LearningCardVirtualListProps {
   cards: LearningCard[];
@@ -38,7 +38,7 @@ export function useLearningCardVirtualList(props: LearningCardVirtualListProps) 
 
   return {
     ...props,
-    keptRow: rowOfCard(cards, focusedId, columns),
+    keptRow: rowOfItem(cards, focusedId, columns),
     onFocus: handleFocus,
     onBlur: handleBlur,
   };

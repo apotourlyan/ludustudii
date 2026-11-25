@@ -1,26 +1,26 @@
-// How the overview's virtualized list lays its cards out
-// (components/learning-card-virtual-list.view.tsx): rows of `columns` cards
+// How a virtualized list lays its items out, such as the overview's
+// (components/learning-card-virtual-list.view.tsx): rows of `columns` items
 // of one size, `gap` pixels apart, of which only the rows near the window
-// are rendered. A card's position counts from 1, as aria-posinset does.
+// are rendered. An item's position counts from 1, as aria-posinset does.
 
-// The rows `count` cards take.
+// The rows `count` items take.
 export function rowCount(count: number, columns: number): number {
   return Math.ceil(count / columns);
 }
 
-// The row of the card with the given ID, or null for no ID or a card that
+// The row of the item with the given ID, or null for no ID or an item that
 // isn't among them.
-export function rowOfCard(
-  cards: readonly { id: string }[],
+export function rowOfItem(
+  items: readonly { id: string }[],
   id: string | null,
   columns: number,
 ): number | null {
-  const index = id === null ? -1 : cards.findIndex((card) => card.id === id);
+  const index = id === null ? -1 : items.findIndex((item) => item.id === id);
   return index === -1 ? null : Math.floor(index / columns);
 }
 
 // The rows to render: `rows`, and `kept` among them in order if it isn't
-// already, so the card that holds the focus stays rendered.
+// already, so the item that holds the focus stays rendered.
 export function withRow(rows: readonly number[], kept: number | null): number[] {
   if (kept === null || rows.includes(kept)) return [...rows];
   return [...rows, kept].toSorted((a, b) => a - b);
@@ -34,27 +34,27 @@ export interface RowBox {
   start: number;
 }
 
-export interface CardSlot<Card> {
-  card: Card;
+export interface ItemSlot<Item> {
+  item: Item;
   position: number;
-  // Where the card sits, as an absolutely placed item of the list.
+  // Where the item sits, as an absolutely placed element of the list.
   style: { height: number; width: string; left: string; transform: string };
 }
 
-// The cards of the rendered rows, each with its position among all the
-// cards and its place: its row's height and top, less `scrollMargin`, the
-// list's own top in the document, and its width and left edge, every card
+// The items of the rendered rows, each with its position among all the
+// items and its place: its row's height and top, less `scrollMargin`, the
+// list's own top in the document, and its width and left edge, every item
 // as wide as the row allows with `gap` between them.
-export function cardSlots<Card>(
+export function itemSlots<Item>(
   rows: readonly RowBox[],
-  cards: readonly Card[],
+  items: readonly Item[],
   { columns, gap, scrollMargin }: { columns: number; gap: number; scrollMargin: number },
-): CardSlot<Card>[] {
-  // A card's width, and the distance from one card's left edge to the next.
+): ItemSlot<Item>[] {
+  // An item's width, and the distance from one item's left edge to the next.
   const width = `((100% - ${(columns - 1) * gap}px) / ${columns})`;
   return rows.flatMap((row) =>
-    cards.slice(row.index * columns, (row.index + 1) * columns).map((card, column) => ({
-      card,
+    items.slice(row.index * columns, (row.index + 1) * columns).map((item, column) => ({
+      item,
       position: row.index * columns + column + 1,
       style: {
         height: row.size,

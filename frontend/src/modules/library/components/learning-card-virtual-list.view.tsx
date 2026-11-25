@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 
 import { useDocumentTop } from "@/shared/lib/use-document-top";
 
-import { cardSlots, rowCount, withRow } from "../model/learning-card-rows";
+import { itemSlots, rowCount, withRow } from "../model/item-rows";
 import type { LearningCardVirtualListState } from "./learning-card-virtual-list.state";
 
 // The list both views of the overview are: the cards as a list named
@@ -45,7 +45,7 @@ export function LearningCardVirtualListView({
     rangeExtractor,
   });
   const totalHeight = virtualizer.getTotalSize();
-  const slots = cardSlots(virtualizer.getVirtualItems(), cards, {
+  const slots = itemSlots(virtualizer.getVirtualItems(), cards, {
     columns,
     gap,
     scrollMargin: virtualizer.options.scrollMargin,
@@ -68,7 +68,7 @@ export function LearningCardVirtualListView({
       onFocus={onFocus}
       onBlur={onBlur}
     >
-      {slots.map(({ card, position, style }) => (
+      {slots.map(({ item: card, position, style }) => (
         <li
           key={card.id}
           aria-setsize={cards.length}
