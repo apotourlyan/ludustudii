@@ -323,6 +323,9 @@ export default defineConfig({
   rules: {
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
+    // Not in the categories above (pedantic). Flags uses of APIs marked
+    // @deprecated, such as React's FormEvent.
+    "typescript/no-deprecated": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
     // Not in the categories above. Fast Refresh keeps component state only

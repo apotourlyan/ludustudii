@@ -1,6 +1,6 @@
 import { useSelector } from "@tanstack/react-form";
 import type { LinkOptions } from "@tanstack/react-router";
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type SubmitEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
@@ -135,7 +135,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
     // The form's onSubmit handles a failed save itself, and the form's
