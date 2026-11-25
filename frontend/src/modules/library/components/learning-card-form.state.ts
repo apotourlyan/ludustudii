@@ -18,6 +18,7 @@ import {
   LEARNING_CARD_FORM_TEXT,
   learningCardFieldDisplay,
   learningCardSaveFailure,
+  type LearningCardFormMode,
 } from "../model/learning-card-form";
 import { useLearningCardAppForm } from "./use-learning-card-app-form";
 
@@ -38,6 +39,16 @@ export interface LearningCardFormProps {
 // body, so anything else about the card comes from the next read.
 export type SavedLearningCard = Pick<LearningCard, "id" | "title" | "description">;
 
+// What the form saves to, decided once from its card: a new card, or the
+// one it was given.
+interface LearningCardSaveTarget {
+  mode: LearningCardFormMode;
+  // The save's request is in flight.
+  saving: boolean;
+  // Sends the canonicalized fields and resolves to the saved card's ID.
+  save: (input: Omit<SavedLearningCard, "id">) => Promise<string>;
+}
+
 // A field's errors as the form library lists them (learningCardFieldDisplay).
 type CardFieldCodes = Parameters<typeof learningCardFieldDisplay>[2];
 
@@ -52,9 +63,8 @@ const FIELD_VALIDATORS = {
 } as const satisfies Record<LearningCardField, object>;
 
 // The card form's state and its save workflow: the form and its fields,
-// the mutation for its mode, which field is being edited, and what a
-// save does on success and failure. Returns what LearningCardFormView
-// renders.
+// what it saves to, which field is being edited, and what a save does on
+// success and failure. Returns what LearningCardFormView renders.
 export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardFormProps) {
   const [focused, setFocused] = useState<LearningCardField | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -62,9 +72,21 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
   const dismissSaveError = useRef<(() => void) | undefined>(undefined);
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
-  const mode = card ? "update" : "create";
-  const mutation = card ? updateLearningCard : createLearningCard;
-  const text = LEARNING_CARD_FORM_TEXT[mode];
+  const target: LearningCardSaveTarget = card
+    ? {
+        mode: "update",
+        saving: updateLearningCard.isPending,
+        save: async (input) => {
+          await updateLearningCard.mutateAsync({ id: card.id, ...input });
+          return card.id;
+        },
+      }
+    : {
+        mode: "create",
+        saving: createLearningCard.isPending,
+        save: async (input) => (await createLearningCard.mutateAsync(input)).id,
+      };
+  const text = LEARNING_CARD_FORM_TEXT[target.mode];
 
   const form = useLearningCardAppForm({
     defaultValues: {
@@ -89,12 +111,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     };
     let id: string;
     try {
-      if (card) {
-        await updateLearningCard.mutateAsync({ id: card.id, ...input });
-        id = card.id;
-      } else {
-        ({ id } = await createLearningCard.mutateAsync(input));
-      }
+      id = await target.save(input);
     } catch (error) {
       reportFailure(error);
       return;
@@ -107,7 +124,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
   // toast, and a bug or a contract mismatch is logged
   // (model/learning-card-form.ts).
   function reportFailure(error: unknown) {
-    const failure = learningCardSaveFailure(error, mode);
+    const failure = learningCardSaveFailure(error, target.mode);
     for (const name of LEARNING_CARD_FIELDS) {
       // The server's error, which TanStack Form clears when the field
       // changes (see keepServerErrorsOnBlur).
@@ -165,7 +182,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
   }
 
   // Saving: the form is submitting, or its request is in flight.
-  const saving = useSelector(form.store, (state) => state.isSubmitting) || mutation.isPending;
+  const saving = useSelector(form.store, (state) => state.isSubmitting) || target.saving;
   const canSubmit = useSelector(form.store, (state) => state.canSubmit);
 
   return {
