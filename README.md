@@ -529,7 +529,10 @@ decides how the client app reports outcomes and waits.
   `src/shared/notify.ts`; the API layer reports nothing. An error toast
   stays until dismissed (its Dismiss button, or F6, Tab and Escape) or
   until its call site tries the action again (`notifyError` returns a
-  function that closes it). It is announced at once and doesn't stack:
+  function that closes it). For an action that can be retried, such as a
+  save or a delete, `useErrorToast()` from `src/shared/use-error-toast.ts`
+  keeps that function: `show(message)` replaces the toast of the last
+  failure, and `clear()` closes it when the user tries again. It is announced at once and doesn't stack:
   each message has one toast, and a repeat replaces it, in front, and is
   announced again. The
   toasts are Base UI's, through shadcn's `toast`, mounted once in
