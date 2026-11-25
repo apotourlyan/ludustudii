@@ -754,10 +754,10 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   const form = useLearningCardFormInstance({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
   // with what learningCardSaveFailure(error, mode) decides
+  const title = useFieldProps(form, "title", focus); // label, counter, errors, invalid, active, handlers
+  const description = useFieldProps(form, "description", focus);
   return {
-    form, formRef, onSubmit, cancel,
-    title: fieldProps("title", titleCodes), // label, counter, errors, invalid, active, handlers
-    description: fieldProps("description", descriptionCodes),
+    form, formRef, onSubmit, cancel, title, description,
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,
   };
