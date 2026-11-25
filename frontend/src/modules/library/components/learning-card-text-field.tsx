@@ -10,7 +10,7 @@ type LearningCardTextFieldProps = Pick<
 >;
 
 // A text field of the card form, bound to its field with form.AppField
-// (use-learning-card-app-form.ts): a textarea named and identified by the
+// (learning-card-form-hook.ts): a textarea named and identified by the
 // field's name, so its label points at it and the form can focus it,
 // holding the field's value. Leaving it marks the field blurred, then calls
 // onBlur.

@@ -488,7 +488,7 @@ decides what each kind of file in a module may do:
 shows what is wrong with its fields. The card form is the reference: its
 save workflow in `modules/library/components/learning-card-form.state.ts`,
 its markup in `learning-card-form.view.tsx`, and its fields as components
-of the module's form hook, `use-learning-card-app-form.ts`
+of the card form's setup, `learning-card-form-hook.ts`
 ([Component structure](#component-structure)).
 
 - **Validators return the API's field codes**, not text
@@ -698,11 +698,14 @@ on its own and its markup with given state, without a backend
 - **A render-prop callback renders one component.** Anything more is a
   component of its own, such as the list's `ListRow` and the grid's
   `GridCard`. Form fields are components bound to the form with TanStack
-  Form's composition API: `use-learning-card-app-form.ts` makes the
-  module's form hook, `useLearningCardAppForm`, with `createFormHook`, its
-  fields render `LearningCardTextField` through `form.AppField`, and
-  `withLearningCardForm` makes components that take the form, such as
-  `LearningCardFormPreview`.
+  Form's composition API: `learning-card-form-hook.ts` sets up the card
+  form with `createFormHook`. `useLearningCardFormInstance` creates the
+  form, its fields render `LearningCardTextField` through `form.AppField`,
+  and `withLearningCardFormInstance` makes components that take the form,
+  such as `LearningCardFormPreview`. The contexts that bind them are in
+  `learning-card-form-context.ts`: the setup imports the field components,
+  which read the contexts, so with the contexts in the setup the two would
+  import each other.
 - **Shared code moves up only when it's shared.** A hook used by one
   component lives in its `.state.ts`; one used by several of a module's
   components is its own file in `components/` (`use-<name>.ts`); one useful
@@ -748,7 +751,7 @@ renders what it returns:
 ```tsx
 // learning-card-form.state.ts
 export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
-  const form = useLearningCardAppForm({ /* … */ onSubmit: ({ value }) => save(value) });
+  const form = useLearningCardFormInstance({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
   // with what learningCardSaveFailure(error, mode) decides
   return {

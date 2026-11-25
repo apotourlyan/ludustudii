@@ -20,7 +20,7 @@ import {
   learningCardSaveFailure,
   type LearningCardFormMode,
 } from "../model/learning-card-form";
-import { useLearningCardAppForm } from "./use-learning-card-app-form";
+import { useLearningCardFormInstance } from "./learning-card-form-hook";
 
 export interface LearningCardFormProps {
   card?: LearningCard;
@@ -88,7 +88,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
       };
   const text = LEARNING_CARD_FORM_TEXT[target.mode];
 
-  const form = useLearningCardAppForm({
+  const form = useLearningCardFormInstance({
     defaultValues: {
       title: card?.title ?? "",
       description: card?.description ?? "",
