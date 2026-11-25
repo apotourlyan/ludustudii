@@ -4,7 +4,7 @@ import { useRef, useState, type SubmitEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
-import { notifyError } from "@/shared/notify";
+import { useErrorToast } from "@/shared/use-error-toast";
 
 import {
   canonicalize,
@@ -68,8 +68,8 @@ const FIELD_VALIDATORS = {
 export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardFormProps) {
   const [focused, setFocused] = useState<LearningCardField | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  // Closes the toast of the last failed save, if any (ADR 0041).
-  const dismissSaveError = useRef<(() => void) | undefined>(undefined);
+  // The toast of the last failed save, if any (ADR 0041).
+  const saveError = useErrorToast();
   const createLearningCard = useCreateLearningCard();
   const updateLearningCard = useUpdateLearningCard();
   const target: LearningCardSaveTarget = card
@@ -103,8 +103,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
   // canonicalized as the server stores them, then hands it to onSaved.
   async function save(value: { title: string; description: string }) {
     // Trying again replaces what the last attempt reported.
-    dismissSaveError.current?.();
-    dismissSaveError.current = undefined;
+    saveError.clear();
     const input = {
       title: canonicalize(value.title),
       description: canonicalize(value.description),
@@ -134,7 +133,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
       }));
     }
     if (failure.notice !== undefined) {
-      dismissSaveError.current = notifyError(failure.notice);
+      saveError.show(failure.notice);
     }
     if (failure.log.length > 0) {
       console.error(...failure.log);

@@ -16,10 +16,13 @@ const openErrors = new Map<string, string>();
 // leaving reused that alert, and a hidden toast behind the toaster's limit
 // was only updated in place, and stayed hidden.)
 //
+// Closes the toast that notifyError opened.
+export type CloseToast = () => void;
+
 // Returns a function that closes this toast. A call site calls it when the
 // user tries the action again, so the toast doesn't outlive the failure it
-// reports.
-export function notifyError(message: string): () => void {
+// reports; useErrorToast does this for an action that can be retried.
+export function notifyError(message: string): CloseToast {
   const previous = openErrors.get(message);
   if (previous !== undefined) {
     toast.close(previous);

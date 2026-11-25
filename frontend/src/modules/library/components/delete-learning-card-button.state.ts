@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
-import { notifyError } from "@/shared/notify";
+import { useErrorToast } from "@/shared/use-error-toast";
 
 import { learningCardErrorMessage } from "../model/learning-card-error-message";
 
@@ -20,21 +20,20 @@ export interface DeleteLearningCardButtonProps {
 export function useDeleteLearningCardButton({ card, onDeleted }: DeleteLearningCardButtonProps) {
   const [open, setOpen] = useState(false);
   const deleteCard = useDeleteLearningCard();
-  // Closes the toast of the last failed delete, if any (ADR 0041).
-  const dismissDeleteError = useRef<(() => void) | undefined>(undefined);
+  // The toast of the last failed delete, if any (ADR 0041).
+  const deleteError = useErrorToast();
   const deleting = deleteCard.isPending;
 
   // Awaited rather than given callbacks, which wouldn't run if the button
   // unmounted first, such as when a refetch drops the card's row.
   async function confirmDelete() {
     // Trying again replaces what the last attempt reported.
-    dismissDeleteError.current?.();
-    dismissDeleteError.current = undefined;
+    deleteError.clear();
     try {
       await deleteCard.mutateAsync({ id: card.id });
     } catch (error) {
       setOpen(false);
-      dismissDeleteError.current = notifyError(learningCardErrorMessage(error, "delete the card"));
+      deleteError.show(learningCardErrorMessage(error, "delete the card"));
       return;
     }
     setOpen(false);
