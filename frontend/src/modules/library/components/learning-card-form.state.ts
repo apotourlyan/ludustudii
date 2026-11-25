@@ -1,6 +1,6 @@
 import { useSelector } from "@tanstack/react-form";
 import type { LinkOptions } from "@tanstack/react-router";
-import { useRef, useState, type SubmitEvent } from "react";
+import { useRef, useState, type Dispatch, type SetStateAction, type SubmitEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
 import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
@@ -56,17 +56,62 @@ type CardFieldCodes = Parameters<typeof learningCardFieldDisplay>[2];
 // only caps runaway pastes; validation reports the real limit.
 const INPUT_SLACK = 2;
 
-// Each field's own check, on every change and again on submit.
-const FIELD_VALIDATORS = {
-  title: { onChange: validateTitle, onSubmit: validateTitle },
-  description: { onChange: validateDescription, onSubmit: validateDescription },
-} as const satisfies Record<LearningCardField, object>;
+// What the view binds each field with: its name, its own check, on every
+// change and again on submit, and its input's maxLength.
+const FIELD_BINDINGS = {
+  title: {
+    name: "title",
+    validators: { onChange: validateTitle, onSubmit: validateTitle },
+    maxLength: LEARNING_CARD_LIMITS.title * INPUT_SLACK,
+  },
+  description: {
+    name: "description",
+    validators: { onChange: validateDescription, onSubmit: validateDescription },
+    maxLength: LEARNING_CARD_LIMITS.description * INPUT_SLACK,
+  },
+} as const satisfies Record<
+  LearningCardField,
+  { name: LearningCardField; validators: object; maxLength: number }
+>;
+
+// The errors of a field without any. One array for all, so a selector that
+// returns it returns the same value each time.
+const NO_CODES: CardFieldCodes = [];
+
+// What useFieldProps reads from the form's state: each field's value and,
+// once the field is mounted, its meta.
+interface CardFieldsSnapshot {
+  values: Readonly<Record<LearningCardField, string>>;
+  fieldMeta: Readonly<Partial<Record<LearningCardField, { errors: CardFieldCodes }>>>;
+}
+
+// The field being edited, if any, as useState holds it.
+type FieldFocus = [LearningCardField | null, Dispatch<SetStateAction<LearningCardField | null>>];
+
+// A field's props for the view: what its bands show, from its value and
+// errors, which it reads from the form's store, and what the view binds it
+// with.
+function useFieldProps(
+  form: { store: Parameters<typeof useSelector<CardFieldsSnapshot>>[0] },
+  name: LearningCardField,
+  [focused, setFocused]: FieldFocus,
+) {
+  const value = useSelector(form.store, (state) => state.values[name]);
+  const codes = useSelector(form.store, (state) => state.fieldMeta[name]?.errors ?? NO_CODES);
+  return {
+    ...learningCardFieldDisplay(name, value, codes),
+    ...FIELD_BINDINGS[name],
+    active: focused === name,
+    onFocus: () => setFocused(name),
+    onBlur: () => setFocused(null),
+  };
+}
 
 // The card form's state and its save workflow: the form and its fields,
 // what it saves to, which field is being edited, and what a save does on
 // success and failure. Returns what LearningCardFormView renders.
 export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardFormProps) {
-  const [focused, setFocused] = useState<LearningCardField | null>(null);
+  const focus = useState<LearningCardField | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   // The toast of the last failed save, if any (ADR 0041).
   const saveError = useErrorToast();
@@ -160,36 +205,18 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     void form.handleSubmit();
   }
 
-  // Each field's value and errors, for its counter and status bar. A
-  // field's meta exists once it is mounted; until then it has no errors.
-  const titleValue = useSelector(form.store, (state) => state.values.title);
-  const titleCodes = useSelector(form.store, (state) => state.fieldMeta.title?.errors);
-  const descriptionValue = useSelector(form.store, (state) => state.values.description);
-  const descriptionCodes = useSelector(form.store, (state) => state.fieldMeta.description?.errors);
-
-  // What a field's bands show, and what the view binds it with.
-  function fieldProps(name: LearningCardField, value: string, codes: CardFieldCodes = []) {
-    return {
-      ...learningCardFieldDisplay(name, value, codes),
-      name,
-      validators: FIELD_VALIDATORS[name],
-      maxLength: LEARNING_CARD_LIMITS[name] * INPUT_SLACK,
-      active: focused === name,
-      onFocus: () => setFocused(name),
-      onBlur: () => setFocused(null),
-    };
-  }
-
   // Saving: the form is submitting, or its request is in flight.
   const saving = useSelector(form.store, (state) => state.isSubmitting) || target.saving;
   const canSubmit = useSelector(form.store, (state) => state.canSubmit);
+  const title = useFieldProps(form, "title", focus);
+  const description = useFieldProps(form, "description", focus);
 
   return {
     form,
     formRef,
     onSubmit: handleSubmit,
-    title: fieldProps("title", titleValue, titleCodes),
-    description: fieldProps("description", descriptionValue, descriptionCodes),
+    title,
+    description,
     cancelLink,
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,
