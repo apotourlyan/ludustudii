@@ -1,5 +1,5 @@
 import { useSelector } from "@tanstack/react-form";
-import type { RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-router";
+import type { LinkOptions } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
@@ -21,13 +21,11 @@ import {
 } from "../model/learning-card-form";
 import { useLearningCardAppForm } from "./use-learning-card-app-form";
 
-export interface LearningCardFormProps<
-  TRouter extends RegisteredRouter = RegisteredRouter,
-  TOptions = unknown,
-> {
+export interface LearningCardFormProps {
   card?: LearningCard;
   // Where Cancel goes, which is the page's decision.
-  cancel: ValidateLinkOptions<TRouter, TOptions>;
+  // Build it with linkOptions(); the prop's type doesn't check the route.
+  cancelLink: LinkOptions;
   // Called with the saved card after a successful save, and awaited; what
   // follows a save, such as going to the card's page, is the page's
   // (ADR 0036). Required: the form keeps its values after a save, so a page
@@ -57,7 +55,7 @@ const FIELD_VALIDATORS = {
 // the mutation for its mode, which field is being edited, and what a
 // save does on success and failure. Returns what LearningCardFormView
 // renders.
-export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormProps) {
+export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardFormProps) {
   const [focused, setFocused] = useState<LearningCardField | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   // Closes the toast of the last failed save, if any (ADR 0041).
@@ -176,7 +174,7 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
     onSubmit: handleSubmit,
     title: fieldProps("title", titleValue, titleCodes),
     description: fieldProps("description", descriptionValue, descriptionCodes),
-    cancel,
+    cancelLink,
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,
   };

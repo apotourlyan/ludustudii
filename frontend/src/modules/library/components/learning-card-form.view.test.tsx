@@ -38,7 +38,7 @@ function View(props: Partial<Omit<LearningCardFormState, "form" | "formRef">>) {
       onSubmit={vi.fn()}
       title={field("title")}
       description={field("description")}
-      cancel={{ to: "/library/cards" }}
+      cancelLink={{ to: "/library/cards" }}
       submitLabel="Create card"
       submitDisabled={false}
       {...props}

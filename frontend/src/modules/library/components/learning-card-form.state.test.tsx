@@ -31,7 +31,7 @@ afterEach(() => {
 async function renderForm(props: Partial<LearningCardFormProps> = {}) {
   const onSaved = vi.fn<LearningCardFormProps["onSaved"]>();
   const rendered = await renderHookWithProviders(() => {
-    const state = useLearningCardForm({ cancel: { to: "/library/cards" }, onSaved, ...props });
+    const state = useLearningCardForm({ cancelLink: { to: "/library/cards" }, onSaved, ...props });
     useField({ form: state.form, name: "title", validators: state.title.validators });
     useField({ form: state.form, name: "description", validators: state.description.validators });
     return state;
