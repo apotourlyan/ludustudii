@@ -510,6 +510,15 @@ of the card form's setup, `learning-card-form-hook.ts`
   loses focus (`keepServerErrorsOnBlur` in
   `src/shared/keep-server-errors-on-blur.ts`, the form's
   `validationLogic`).
+- **A form reports a failed submit with `useFormFailure(form, fields,
+  formRef)`** from `src/shared/use-form-failure.ts`. The module's `model/`
+  turns the error into a `FormFailure` (the codes per field, the toast and
+  what to log; `learningCardSaveFailure` for the card form), and
+  `report(failure)` applies it: the codes go in each field's `onServer`
+  error, the toast through `useErrorToast` ([Feedback](#feedback)), the log
+  to `console.error`, and the focus to the first invalid field.
+  `clear()` closes the toast when the user submits again, and
+  `focusFirstInvalid()` is the form's `onSubmitInvalid`.
 - **After a failed submit the first invalid field, in the form's order,
   gets the focus**, whoever rejected it.
 - **Everything that isn't about a field is a toast**

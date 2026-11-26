@@ -2,10 +2,12 @@
 // wording in each mode, what each field's bands show, and what a failed save
 // means (ADR 0038, 0041). The form's state hook applies these. Nothing here,
 // nor anything it imports, loads React or the form library:
-// placeFieldErrors lives apart from keepServerErrorsOnBlur for that.
+// placeFieldErrors lives apart from keepServerErrorsOnBlur for that, and
+// useFormFailure's FormFailure is a type import.
 
 import type { ApiFieldError } from "@/api/http";
 import { placeFieldErrors } from "@/shared/field-errors";
+import type { FormFailure } from "@/shared/use-form-failure";
 
 import { learningCardErrorMessage } from "./learning-card-error-message";
 import {
@@ -79,20 +81,8 @@ export function learningCardFieldDisplay(
   };
 }
 
-// What the form does with a failed save. The form keeps the user's input.
-export interface LearningCardSaveFailure {
-  // The API's codes for each field it reported, to show on that field. A
-  // field without any is absent, which clears what it showed.
-  fields: Readonly<Partial<Record<LearningCardField, readonly FieldCode[]>>>;
-  // The toast for what no field shows (ADR 0041), or undefined when the
-  // fields show it all.
-  notice: string | undefined;
-  // What to log to the console for developers, as console.error's
-  // arguments; empty for nothing: an error that isn't an API failure is a
-  // bug, and field errors the form can't place mean the API and the form
-  // disagree about the contract.
-  log: readonly unknown[];
-}
+// What the form does with a failed save; useFormFailure applies it.
+export type LearningCardSaveFailure = FormFailure<LearningCardField>;
 
 export function learningCardSaveFailure(
   error: unknown,
