@@ -12,6 +12,7 @@ import {
   NOT_FOUND_TEXT,
   openCardFromList,
 } from "../support/cards";
+import { heldRequests, holdRequests, interceptFetch, releaseRequests } from "../support/fetch";
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
 import { toast } from "../support/toasts";
 
@@ -95,20 +96,26 @@ test("a card deleted on its page leaves the list, and Back doesn't return to it"
 
 // The delete removes the card's cached copy while its page is still on
 // screen, waiting for the list to load. A re-render then would fetch the
-// deleted card and fail; the delay makes that wait long.
+// deleted card and fail; holding the list's request keeps the card's page
+// up for as long as the test watches it.
 test("a card deleted on its page isn't fetched again while the list loads", async ({ page }) => {
-  await page.goto("/library/cards?delay=800");
-  const id = await openCardFromList(page, cardAt(page, 1));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
+  await interceptFetch(page);
+  const id = await openNewestCard(page);
   const fetched: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "GET" && new URL(request.url()).pathname === `/api/lcards/${id}`) {
       fetched.push(request.url());
     }
   });
+  await holdRequests(page, "GET", /^\/api\/lcards$/);
 
   await deleteCard(page, page.getByRole("main"));
 
+  await expect.poll(() => heldRequests(page)).toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
+  // Long enough for a re-render's request to start: a few frames.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)));
+  await releaseRequests(page);
   await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(page.getByRole("alert")).toHaveCount(0);
