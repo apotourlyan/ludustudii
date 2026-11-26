@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from "react";
 
 import type { LearningCard } from "@/api/lcards";
+import { RecentChangeMark } from "@/shared/components/recent-change-mark";
+import { recentChange } from "@/shared/lib/recent-change";
 import { Card, CardTitle } from "@/shared/ui/card";
 
-import { recentChange } from "../model/recent-change";
 import { LearningCardActions } from "./learning-card-actions";
 import { LearningCardTitleMarkdown } from "./learning-card-markdown";
 import { LearningCardVirtualList } from "./learning-card-virtual-list";
-import { RecentChangeMark } from "./recent-change-mark";
 
 // Cards per row by the window's width, widest first: Tailwind's lg, md and
 // sm breakpoints, and one below sm.
