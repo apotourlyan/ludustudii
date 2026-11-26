@@ -41,9 +41,13 @@ jobs:
       - name: Start test database
         run: docker compose -f .devcontainer/docker-compose.yml up -d --wait db_test
 
+      # MOCK_BUILD=1 runs the app tests on a build of the mock mode rather
+      # than on Vite's dev server, which transforms every module on every
+      # page load (playwright.mock.config.ts).
       - name: make check
         env:
           DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
+          MOCK_BUILD: "1"
         run: make check
 
       # The app tests' report, with the traces and screenshots of failed
