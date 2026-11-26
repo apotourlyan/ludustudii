@@ -2,7 +2,7 @@ import type { AnyFieldLikeMetaBase } from "@tanstack/react-form";
 import type { RefObject } from "react";
 
 import type { ApiFieldError } from "@/api/http";
-import { useErrorToast } from "@/shared/use-error-toast";
+import { useErrorToast } from "@/shared/lib/use-error-toast";
 
 type FieldCode = ApiFieldError["code"];
 

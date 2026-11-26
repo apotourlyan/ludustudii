@@ -177,10 +177,10 @@ const sharedKnowsNoModule: RestrictedPattern = {
 // ---- Feedback (ADR 0041)
 
 // Base UI's Toast, through its subpath or its main entry, and the shadcn
-// component built on it. src/shared/notify.ts adds the toasts and src/app/
+// component built on it. src/shared/lib/notify.ts adds the toasts and src/app/
 // mounts the toaster; everything else reports through notifyError.
 const toastMessage =
-  "Report a failure with notifyError from @/shared/notify; only src/shared/ and src/app/ use the toast component (ADR 0041).";
+  "Report a failure with notifyError from @/shared/lib/notify; only src/shared/ and src/app/ use the toast component (ADR 0041).";
 
 const toastEntryOutsideShell: RestrictedPath = {
   name: "@base-ui/react",

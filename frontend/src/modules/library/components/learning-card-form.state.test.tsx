@@ -4,14 +4,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { makeCard } from "@/api/lcards/fake/factories";
 import { cardStore } from "@/api/lcards/fake/store";
-import { notifyError } from "@/shared/notify";
+import { notifyError } from "@/shared/lib/notify";
 import { fakeBackend } from "@/test/fake-backend";
 import { renderHookWithProviders } from "@/test/render";
 
 import { useLearningCardForm, type LearningCardFormProps } from "./learning-card-form.state";
 
 // Toasts aren't the network: the test checks what the form reports.
-vi.mock("@/shared/notify", () => ({ notifyError: vi.fn(() => () => {}) }));
+vi.mock("@/shared/lib/notify", () => ({ notifyError: vi.fn(() => () => {}) }));
 
 const NETWORK = "Can't reach the server. Check your connection and try again.";
 

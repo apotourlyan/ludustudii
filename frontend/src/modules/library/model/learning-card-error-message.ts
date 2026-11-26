@@ -1,4 +1,4 @@
-import { errorMessage, type FailureWording } from "@/shared/error-message";
+import { errorMessage, type FailureWording } from "@/shared/lib/error-message";
 
 // What a failure means for a learning card. Failures that aren't about the
 // card, such as the network, get the shared wording.

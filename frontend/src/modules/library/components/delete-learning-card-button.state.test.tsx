@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { makeCard } from "@/api/lcards/fake/factories";
 import { cardStore } from "@/api/lcards/fake/store";
-import { notifyError } from "@/shared/notify";
+import { notifyError } from "@/shared/lib/notify";
 import { fakeBackend } from "@/test/fake-backend";
 import { renderHookWithProviders } from "@/test/render";
 
@@ -12,7 +12,7 @@ import { useDeleteLearningCardButton } from "./delete-learning-card-button.state
 // Toasts aren't the network: the test checks what the button reports, and
 // counts the toasts it closes.
 const toasts = vi.hoisted(() => ({ dismissed: 0 }));
-vi.mock("@/shared/notify", () => ({
+vi.mock("@/shared/lib/notify", () => ({
   notifyError: vi.fn(() => () => {
     toasts.dismissed += 1;
   }),
