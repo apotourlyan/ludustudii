@@ -8,6 +8,7 @@ import { configure } from "vitest-browser-react/pure";
 import { resetFakeStores } from "@/api/fake";
 
 import { fakeBackend } from "./fake-backend";
+import { goOnline } from "./online";
 
 // The app's styles, as main.tsx loads them, so views lay out and look as
 // in the app: the virtualized list places its items, a dialog overlays.
@@ -28,6 +29,7 @@ beforeAll(async () => {
 afterEach(() => {
   fakeBackend.resetHandlers();
   resetFakeStores();
+  goOnline();
 });
 
 afterAll(async () => {

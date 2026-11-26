@@ -1,11 +1,13 @@
 // Every page has exactly one level-1 heading, its own, and one main
-// landmark, the root layout's (ADR 0036), the failure pages too (ADR 0041). A card's Markdown adds none: its
-// title renders inline and its headings start at level 2, which
-// card-markdown.spec.ts checks with a card that has "#" lines.
+// landmark, the root layout's (ADR 0036), the failure pages too (ADR 0041).
+// A card's Markdown adds none: its title renders inline and its headings
+// start at level 2, which learning-card-preview.test.tsx and
+// learning-card-display.test.tsx check with a card that has "#" lines.
 
 import { expect, test, type Page } from "@playwright/test";
 
 import { NOT_FOUND_TEXT, openCardFromList } from "../support/cards";
+import { fastForwardUntil } from "../support/clock";
 import { cardAt, cardItems } from "../support/overview";
 
 const pages: { name: string; heading: string; open: (page: Page) => Promise<void> }[] = [
@@ -75,11 +77,13 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
     name: "the error page",
     heading: "This page couldn't load",
     open: async (page) => {
-      // Shown after the retries, about 3 seconds (failures.spec.ts).
+      // Shown after the retries, about 3 seconds on the page's clock
+      // (failures.spec.ts).
+      await page.clock.install();
       await page.goto("/library/cards?scenario=failing");
-      await expect(page.getByRole("button", { name: "Try again" })).toBeVisible({
-        timeout: 10_000,
-      });
+      await fastForwardUntil(page, () =>
+        expect(page.getByRole("button", { name: "Try again" })).toBeVisible({ timeout: 100 }),
+      );
     },
   },
 ];

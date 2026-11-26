@@ -5,6 +5,7 @@
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { holdRequests, releaseRequests } from "../support/fetch";
 import { cardAt, cardItems } from "../support/overview";
 
 function progressBar(page: Page): Locator {
@@ -16,10 +17,11 @@ function animations(bar: Locator): Promise<number> {
   return bar.evaluate((element) => element.getAnimations({ subtree: true }).length);
 }
 
-// Opens the newest card's page from the list, which loads the card with
-// the scenario's delay, and checks the bar while it loads.
+// Opens the newest card's page from the list, holding the card's request
+// until releaseRequests, and checks the bar while the page loads.
 async function openCardSlowly(page: Page): Promise<Locator> {
-  await page.goto("/library/cards?delay=1500");
+  await holdRequests(page, "GET", /^\/api\/lcards\/[^/]+$/);
+  await page.goto("/library/cards");
   await expect(cardItems(page)).toHaveCount(8);
   await expect(progressBar(page)).toHaveCount(0);
 
@@ -37,6 +39,7 @@ test("a slow navigation shows the bar until the page shows", async ({ page }) =>
 
   expect(await animations(bar)).toBeGreaterThan(0);
 
+  await releaseRequests(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
   await expect(bar).toHaveCount(0);
 });
@@ -47,6 +50,7 @@ test("under reduced motion, the bar doesn't move", async ({ page }) => {
 
   expect(await animations(bar)).toBe(0);
 
+  await releaseRequests(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
   await expect(bar).toHaveCount(0);
 });

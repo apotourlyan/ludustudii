@@ -1206,11 +1206,13 @@ Test files and `src/test/` may import the fakes and MSW, except in
 `src/shared/`, which knows no service; every other boundary of the code
 next to them applies ([Boundaries](#boundaries)).
 
-**Each test is isolated.** After every test the fake's stores are emptied
-and the handlers a test added are removed. `renderWithProviders(ui, { url })`
-and `renderHookWithProviders(hook)` in `src/test/render.tsx` render with a
-new query client with the app's defaults (retries without the delay), and,
-given a `url`, in a router, for a component that renders links. Everything
+**Each test is isolated.** After every test the fake's stores are emptied,
+the handlers a test added are removed, and TanStack Query takes the browser
+to be online again (`goOffline` in `src/test/online.ts` takes it offline).
+`renderWithProviders(ui, { url })` and `renderHookWithProviders(hook)` in
+`src/test/render.tsx` render with a new query client with the app's
+defaults (retries without the delay), and, given a `url`, in a router, for
+a component that renders links. Everything
 renders in React's `StrictMode` and with the app's styles, as the app does. A test finds elements by
 role, label and text, as the Playwright tests do.
 
@@ -1235,13 +1237,21 @@ project:
 
 | Command | Tests | Runs against | Covers | Runs in |
 | --- | --- | --- | --- | --- |
-| `make frontend-test` | `frontend/tests/mock/` | The client app on Vite in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database | The client app's flows, error paths included: the overview's list and grid views (the view in the URL, rendering only what is near the window, item positions, cut titles, the grid's columns, tabbing through the actions, Back to the same position), a card's page and its markdown, create, edit, delete and cancel and where each ends, Back after a create or a delete, empty state, saving and deleting a card changed elsewhere (the last write wins), not-found pages, a failing server, a slow server, going offline | `make check` |
+| `make frontend-test` | `frontend/tests/mock/` | The client app in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database. On Vite's dev server, or on a build of the mock mode with `MOCK_BUILD=1`, as CI runs it | Flows across pages and what only the whole app shows: create, edit, delete and cancel and where each ends, Back after a create or a delete, a card deleted or changed elsewhere, the view in the URL and the history, the overview's virtualization (rendering only what is near the window, tabbing through the actions, Back to the same position), routing and not-found pages, the error and pending pages, the navigation's progress bar, one heading and one main landmark per page, and layout at a viewport size (the grid's columns, cut titles, the editor and its preview, where a toast sits) | `make check` |
 | `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, find it in the grid and open it, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
 
 Both targets pass `ARGS` on to Playwright, for example
 `make frontend-test ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
 Run a new or changed test with `--repeat-each=5` before opening a pull request;
 a test that fails only sometimes is a broken test.
+
+**The budget: `make check` runs in under 5 minutes on CI**, the `make check`
+job from checkout to its end. The app tests are its slowest step, a page
+load or more each, so **a new app test is only for a flow across pages**.
+A rule, or a state that one page or component can show, goes to the lowest
+[Vitest layer](#unit-and-component-tests) that can check it, where it takes
+milliseconds. A change that takes the job past the budget first moves
+checks down a layer or makes the slow tests faster.
 
 `make test-e2e` builds the client app and the binary, creates a database with
 a unique name (`ludustudii_e2e_<time>_<random>`) on the server in
@@ -1260,9 +1270,11 @@ tests from starting Vite. Each starts its own server on a port that
 `make dev` doesn't use, and never reuses one already running. Both run
 Chromium's headless shell only, with every test in parallel, and no retries,
 so a flaky test fails instead of passing on its second try. Workers are
-Playwright's default of half the CPU cores, capped at one per GB of free
-memory: each worker's Chromium takes up to about 650 MB, and a renderer that
-runs out of memory crashes its page. A failed test keeps its trace and
+Playwright's default of half the CPU cores, or `PLAYWRIGHT_WORKERS` when it
+is set, capped at one per GB of free memory: each worker's Chromium takes up
+to about 650 MB, and a renderer that runs out of memory crashes its page. CI
+sets `PLAYWRIGHT_WORKERS=3` for the app tests: on its 4-core runner, 3
+workers ran them faster than 2 or 4. A failed test keeps its trace and
 screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
 `npx playwright show-report playwright-report/<kind> --host 0.0.0.0` in
 `frontend/` serves it on port 9323.
@@ -1270,12 +1282,24 @@ screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
 **App tests** get a new page each, and with it a fresh fake, so they run in
 parallel and can rely on the scenario's data, totals included. The fake's
 state lives in the page, so a test moves between pages with the app's links;
-`page.goto` reloads the page and starts the fake over. Scenarios and delays
-come from the URL (`/library/cards?scenario=empty`), and other states from
-inside the page: `changeCardElsewhere` in `tests/support/cards.ts` changes a
-card with a `fetch` the fake answers, as another tab would, so the page's
-copy no longer matches it. `context.setOffline(true)` makes the fake fail requests as
-the network would.
+`page.goto` reloads the page and starts the fake over. Scenarios come from
+the URL (`/library/cards?scenario=empty`), and other states from inside the
+page: `deleteCardElsewhere` in `tests/support/cards.ts` deletes a card with
+a `fetch` the fake answers, as another tab would, so the page's copy no
+longer matches it. `context.setOffline(true)` makes the fake fail requests
+as the network would.
+
+**Tests don't wait for real time to pass.** A test that checks what a page
+shows while a request is pending holds that request with `holdRequests` in
+`tests/support/fetch.ts` and lets it through with `releaseRequests`, so the
+pending state lasts as long as the test looks at it; one that checks that
+nothing happens meanwhile, such as a request, watches for a few frames. Timers, such
+as a query's retries or the router's pending delay, run on Playwright's
+clock (`page.clock.install()` before `page.goto`), which the test moves on
+with `page.clock.fastForward` or, when it can't see when a timer starts,
+`fastForwardUntil` in `tests/support/clock.ts`. A test that measures where
+something ends up emulates reduced motion, so nothing slides there first.
+The mock mode's `delay` URL parameter is for trying a slow server by hand.
 
 **End-to-end tests** share one database and run in parallel, so every test
 creates its own data with a unique title (a random UUID in it) and asserts only
@@ -1300,8 +1324,8 @@ in.
 
 **A new feature adds its tests** in the same pull request: [unit and
 component tests](#unit-and-component-tests) for its rules, state hooks and
-views, next to them; app tests for its
-flows, error paths included, in `tests/mock/<feature>.spec.ts`, with the fake
+views, error paths included, next to them; app tests only for its flows
+across pages, in `tests/mock/<feature>.spec.ts`, with the fake
 extended for what they need ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md));
 an end-to-end test for its main success path, with uniquely named data, in
 `tests/e2e/<feature>.spec.ts`; and steps both kinds share in `tests/support/`.

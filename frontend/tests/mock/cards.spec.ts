@@ -7,14 +7,14 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
-  cardIdOf,
   deleteCard,
   deleteCardElsewhere,
   NOT_FOUND_TEXT,
   openCardFromList,
 } from "../support/cards";
+import { heldRequests, holdRequests, interceptFetch, releaseRequests } from "../support/fetch";
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
-import { toast, toasts } from "../support/toasts";
+import { toast } from "../support/toasts";
 
 // The list's own "Add card" link, not the navigation's.
 async function addCardFromList(page: Page): Promise<void> {
@@ -96,54 +96,34 @@ test("a card deleted on its page leaves the list, and Back doesn't return to it"
 
 // The delete removes the card's cached copy while its page is still on
 // screen, waiting for the list to load. A re-render then would fetch the
-// deleted card and fail; the delay makes that wait long.
+// deleted card and fail; holding the list's request keeps the card's page
+// up for as long as the test watches it.
 test("a card deleted on its page isn't fetched again while the list loads", async ({ page }) => {
-  await page.goto("/library/cards?delay=800");
-  const id = await openCardFromList(page, cardAt(page, 1));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
+  await interceptFetch(page);
+  const id = await openNewestCard(page);
   const fetched: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "GET" && new URL(request.url()).pathname === `/api/lcards/${id}`) {
       fetched.push(request.url());
     }
   });
+  await holdRequests(page, "GET", /^\/api\/lcards$/);
 
   await deleteCard(page, page.getByRole("main"));
 
+  await expect.poll(() => heldRequests(page)).toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
+  // Long enough for a re-render's request to start: a few frames.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)));
+  await releaseRequests(page);
   await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
   await expectCardAt(page, 1, "日本語: は vs. が", 7);
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(fetched).toEqual([]);
 });
 
-test("a card deleted in the list leaves it", async ({ page }) => {
-  await page.goto("/library/cards");
-  await expectCardAt(page, 1, "Mitochondria", 8);
-
-  const dialog = await deleteCard(page, cardAt(page, 1));
-
-  await expect(dialog).toBeHidden();
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
-  await expect(cardItems(page)).toHaveCount(7);
-  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
-  await expect(toasts(page)).toHaveCount(0);
-});
-
 // A card deleted elsewhere answers a write with 404. The error shows as a
-// toast, and the list fetches again, so it stops showing the card.
-
-test("deleting a card deleted elsewhere in the list removes it from the list", async ({ page }) => {
-  await page.goto("/library/cards");
-  await expectCardAt(page, 1, "Mitochondria", 8);
-  await deleteCardElsewhere(page, await cardIdOf(cardAt(page, 1)));
-
-  const dialog = await deleteCard(page, cardAt(page, 1));
-
-  await expect(dialog).toBeHidden();
-  await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
-  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
-});
+// toast, and the card's queries fetch again, so the list stops showing it.
 
 test("deleting a card deleted elsewhere on its page shows the error", async ({ page }) => {
   const id = await openNewestCard(page);

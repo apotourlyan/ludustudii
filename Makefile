@@ -134,7 +134,9 @@ frontend-unit:
 
 ## frontend-test: Runs the app tests: the client app in Chromium against the fake backend (no Go server or database)
 ## ---- ARGS passes options to Playwright, for example ARGS='--repeat-each=5' or ARGS='-g conflict'
-# playwright.mock.config.ts starts Vite in the mock mode on its own port (ADR 0034).
+# playwright.mock.config.ts starts Vite in the mock mode on its own port (ADR 0034):
+# the dev server, or, with MOCK_BUILD=1 (CI), a build of the mock mode in
+# frontend/dist/mock served by vite preview.
 # --forbid-only fails the run on a test.only left behind, which would
 # otherwise pass the gate with the other tests skipped.
 frontend-test:

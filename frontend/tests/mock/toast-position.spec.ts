@@ -12,7 +12,11 @@ import { toast } from "../support/toasts";
 const SAVE_FAILED = "Something went wrong while trying to save your edits.";
 const DELETE_FAILED = "Something went wrong while trying to delete the card.";
 
-// Waits for the toast to settle where it stays, then checks that it
+// Under reduced motion the toast doesn't slide in: it is where it stays
+// as soon as it shows, with no animation to wait for.
+test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+// Waits for any animation of the toast to finish, then checks that it
 // overlaps none of the controls.
 async function expectClearOf(
   page: Page,

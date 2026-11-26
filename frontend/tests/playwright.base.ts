@@ -12,13 +12,17 @@ import { defineConfig, devices } from "@playwright/test";
 // these tests. Playwright's default of half the CPU cores can exhaust the
 // memory of a machine with many cores and little memory, such as the
 // devcontainer under Docker Desktop, and a renderer out of memory crashes
-// its page. So half the cores, but at most one worker per GB of free memory.
+// its page. So half the cores, or PLAYWRIGHT_WORKERS when set (CI sets it),
+// but at most one worker per GB of free memory.
 // process.availableMemory() counts a container's memory limit, unlike
 // os.freemem(), which reports the host's free memory.
 const GB = 1024 ** 3;
+const REQUESTED_WORKERS =
+  Number.parseInt(process.env.PLAYWRIGHT_WORKERS ?? "", 10) ||
+  Math.floor(availableParallelism() / 2);
 const WORKERS = Math.max(
   1,
-  Math.min(Math.floor(availableParallelism() / 2), Math.floor(process.availableMemory() / GB)),
+  Math.min(REQUESTED_WORKERS, Math.floor(process.availableMemory() / GB)),
 );
 
 // The kind of test: names the project and its output folders.
