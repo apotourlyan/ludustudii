@@ -315,10 +315,10 @@ frontend/
 │   │       ├── index.ts    # the module's public surface: its pages, their load functions and search params validators
 │   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
 │   │       ├── components/ # the pages' parts, which take data as props; one with behavior as <name>.state.ts, <name>.view.tsx and <name>.tsx; private to the module
-│   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
+│   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the card fields and messages
 │   ├── shared/             # used by every module, knows none of them; only these three folders
 │   │   ├── lib/            # helpers, hooks and rules, such as the wording for the failures every module shares and notifyError
-│   │   ├── components/     # the app's own components every module can use, such as the recent-change mark, and ConfirmDeleteButton, how a module deletes something after a confirmation
+│   │   ├── components/     # the app's own components every module can use, such as the recent-change mark, ConfirmDeleteButton, how a module deletes something after a confirmation, CollectionViewSwitch, which switches a collection between a list and a grid, and VirtualItemList, which renders only the items near the window
 │   │   └── ui/             # shadcn's components (see UI components)
 │   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
 │   ├── mock/               # the mock mode's start-up and scenarios
@@ -458,14 +458,15 @@ decides what each kind of file in a module may do:
   URL's search params, so a reload, Back or a shared link keeps it. The
   route checks them with `validateSearch`, which calls the page's
   validator in `pages/<page>.search.ts` (`validateLearningCardsPageSearch`), and
-  turns anything invalid or missing into the default. The page reads them
-  with `useSearch`, and changing them navigates with `replace: true`, so
-  Back leaves the page instead of stepping through each change. Changing
-  them doesn't reload the page's data either: the router runs a page's
-  loader again for a navigation that only changes its search params (a
-  "stay") only when it goes to the very same URL, so switching views never
-  waits for a refetch or fails on one (`tests/mock/views.spec.ts` checks
-  it). Entering the page runs the loader as on every route
+  turns anything invalid or missing into the default (for a collection's
+  view, `parseCollectionView` in `src/shared/lib/collection-view.ts`). The
+  page reads them with `useSearch`, and changing them navigates with
+  `replace: true`, so Back leaves the page instead of stepping through
+  each change. Changing them doesn't reload the page's data either: the
+  router runs a page's loader again for a navigation that only changes its
+  search params (a "stay") only when it goes to the very same URL, so
+  switching views never waits for a refetch or fails on one
+  (`tests/mock/views.spec.ts` checks it). Entering the page runs the loader as on every route
   ([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)).
 - **A component** takes data as props and owns only UI state. It may call
   a mutation hook for the interaction it owns (a delete button and its
@@ -634,7 +635,8 @@ decides how a component is built inside, so that its logic can be tested
 on its own and its markup with given state, without a backend
 ([Unit and component tests](#unit-and-component-tests)).
 
-- **Rules and decisions are plain functions in the module's `model/`**:
+- **Rules and decisions are plain functions in the module's `model/`**,
+  or in `src/shared/lib/` when every module's:
   validation, canonicalizing, wording, classification (`recentChange`),
   what a failed save means (`learningCardSaveFailure`), layout arithmetic
   (`itemSlots`), and the types they share. `model/` imports no React, no
@@ -650,9 +652,9 @@ on its own and its markup with given state, without a backend
   | `<name>.tsx` | `<Name>`, the component other code uses: `<NameView {...useName(props)} />` | Through the other two |
 
   A component without behavior stays one file. Today the card form, the
-  shared `ConfirmDeleteButton`, the view switch and the virtualized card
-  list are split; the frame, the preview, the card display, the overview,
-  the list and the grid (whose columns follow the window's width, which is
+  shared `ConfirmDeleteButton`, `CollectionViewSwitch` and
+  `VirtualItemList` are split; the frame, the preview, the card display,
+  the overview, the list and the grid (whose columns follow the window's width, which is
   layout), the card's actions (whose delete binds `ConfirmDeleteButton` to
   the card), the Markdown and the recent-change mark are not.
 - **The markup reads named values.** JSX may test a named value
