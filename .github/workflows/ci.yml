@@ -61,7 +61,7 @@ jobs:
       # A suite that didn't run, because an earlier step failed, is left out.
       - name: Summarize the tests
         if: always() && steps.setup.outcome == 'success'
-        run: make test-summary
+        run: make test-summary; status=$?; cat "$GITHUB_STEP_SUMMARY"; exit $status
 
       # The app tests' report, with the traces and screenshots of failed
       # tests. It exists only when make check got as far as frontend-test.
@@ -102,7 +102,7 @@ jobs:
       # The end-to-end tests' results in the job summary, as in check.
       - name: Summarize the tests
         if: always() && steps.setup.outcome == 'success'
-        run: make test-summary
+        run: make test-summary; status=$?; cat "$GITHUB_STEP_SUMMARY"; exit $status
 
       # The report, with the traces and screenshots of failed tests.
       - name: Upload the end-to-end tests' report
