@@ -47,6 +47,8 @@ backend/internal/infra/apidocs/dist/assets/*
 *.test
 *.out
 backend/coverage/
+# JUnit reports of the Go tests, written on CI (make test-unit, test-integration)
+/test-results/
 
 # Live reload artifacts (Air)
 backend/tmp/

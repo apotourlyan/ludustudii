@@ -28,6 +28,23 @@ PKG ?= ./...
 E2E_DB_URL_PATTERN := ^(postgres(ql)?://[^/?\#]+)(/[^?\#]*)?(\?.*)?$$
 RUN ?=
 RUN_FLAG = $(if $(RUN),-run '$(RUN)')
+# The suites' JUnit reports for the CI job summaries (test-summary),
+# written on CI. The frontend's go to frontend/$(JUNIT_DIR), the backend's
+# to $(JUNIT_DIR).
+JUNIT_DIR := test-results/junit
+# The backend test command, run from backend/: go test, or with GO_JUNIT=1
+# (CI) gotestsum, which runs go test with the same flags, prints its output
+# in go test's format, exits with its code and writes the JUnit report
+# $(JUNIT_DIR)/go-<name>.xml. Usage: $(call go_test,<name>) <go test flags>
+go_test = $(if $(filter 1,$(GO_JUNIT)),mkdir -p ../$(JUNIT_DIR) && \
+	$(GOTESTSUM) --junitfile ../$(JUNIT_DIR)/go-$(1).xml --,go test)
+# standard-quiet prints go test's package lines but not a failed test's
+# output, which the summary after them lists, without the skipped tests.
+# The report names packages relative to the module and leaves out those
+# without tests.
+GOTESTSUM := go tool -modfile=tools/go.mod gotestsum --format standard-quiet \
+	--hide-summary skipped --junitfile-hide-empty-pkg \
+	--junitfile-testsuite-name relative --junitfile-testcase-classname relative
 # The single pin for golangci-lint, read by the devcontainer and CI through
 # install-golangci-lint and enforced by versions-check.
 GOLANGCI_LINT_VERSION := v2.15.0
@@ -203,19 +220,21 @@ test: test-unit test-integration
 ## test-unit: Runs unit tests with the 'unit' build tag
 ## ---- PKG selects packages; RUN selects test names (defaults: all packages and tests)
 ## ---- If selected, the apidocs package runs again with the 'apidocs' tag
+## ---- GO_JUNIT=1 (CI) also writes JUnit reports to test-results/junit/ (go-unit.xml, go-unit-apidocs.xml)
 test-unit:
 	@echo "==> Running unit tests..."
-	cd $(BACKEND_DIR) && go test -tags=unit -race -count=1 -shuffle=on $(RUN_FLAG) $(PKG) 2>&1 | { grep --line-buffered -v '^?' || [ $$? -eq 1 ]; }
+	cd $(BACKEND_DIR) && $(call go_test,unit) -tags=unit -race -count=1 -shuffle=on $(RUN_FLAG) $(PKG) 2>&1 | { grep --line-buffered -v '^?' || [ $$? -eq 1 ]; }
 	@cd $(BACKEND_DIR) && packages=$$(go list -f '{{.Dir}}' $(PKG)) && \
 		if printf '%s\n' "$$packages" | grep -Fxq "$$PWD/internal/infra/apidocs"; then \
-			go test -tags=unit,apidocs -race -count=1 -shuffle=on $(RUN_FLAG) ./internal/infra/apidocs/; \
+			$(call go_test,unit-apidocs) -tags=unit,apidocs -race -count=1 -shuffle=on $(RUN_FLAG) ./internal/infra/apidocs/; \
 		fi
 
 ## test-integration: Runs integration tests with the 'integration' build tag
 ## ---- PKG selects packages; RUN selects test names (defaults: all packages and tests)
+## ---- GO_JUNIT=1 (CI) also writes a JUnit report to test-results/junit/go-integration.xml
 test-integration:
 	@echo "==> Running integration tests..."
-	cd $(BACKEND_DIR) && go test -tags=integration -race -count=1 -shuffle=on $(RUN_FLAG) $(PKG) 2>&1 | { grep --line-buffered -v '^?' || [ $$? -eq 1 ]; }
+	cd $(BACKEND_DIR) && $(call go_test,integration) -tags=integration -race -count=1 -shuffle=on $(RUN_FLAG) $(PKG) 2>&1 | { grep --line-buffered -v '^?' || [ $$? -eq 1 ]; }
 
 ## coverage: Runs all backend tests and writes coverage profile and HTML report to backend/coverage/ (requires DB_TEST_CONNECTION)
 coverage: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
@@ -255,6 +274,25 @@ test-e2e:
 		$(GO_TOOL) goose -dir $(MIGRATIONS_DIR) postgres "$$url" up; \
 		echo "==> Running end-to-end tests..."; \
 		cd $(FRONTEND_DIR) && E2E_DB_CONNECTION="$$url" npm run --silent test:e2e -- --forbid-only $(ARGS)
+
+.PHONY: test-summary
+
+## test-summary: Renders the test suites' JUnit reports as Markdown, into GITHUB_STEP_SUMMARY on CI, else to stdout
+## ---- The reports are written only on CI: CI=true for Vitest and Playwright, GO_JUNIT=1 for the Go tests
+# One section per suite, in make check's order, then the end-to-end tests.
+# A missing report (its suite didn't run) is skipped; one that can't be read
+# gets a section that says so and fails the target.
+test-summary:
+	@[ -d $(FRONTEND_TOOLS_DIR)/node_modules ] || \
+		{ echo "test-summary: $(FRONTEND_TOOLS_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	@node $(FRONTEND_TOOLS_DIR)/junit-summary.ts \
+		'Vitest=$(FRONTEND_DIR)/$(JUNIT_DIR)/vitest.xml' \
+		'Playwright tests (mock back-end)=$(FRONTEND_DIR)/$(JUNIT_DIR)/playwright-mock.xml' \
+		'Go unit tests=$(JUNIT_DIR)/go-unit.xml' \
+		'Go apidocs tests=$(JUNIT_DIR)/go-unit-apidocs.xml' \
+		'Go integration tests=$(JUNIT_DIR)/go-integration.xml' \
+		'Playwright end-to-end tests=$(FRONTEND_DIR)/$(JUNIT_DIR)/playwright-e2e.xml' \
+		>> "$${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
 .PHONY: build build-frontend build-backend clean
 

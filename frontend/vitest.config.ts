@@ -30,6 +30,17 @@ export default defineConfig((env) => {
 
   return mergeConfig(app, {
     test: {
+      // On CI, also a JUnit report for the job summary (make test-summary).
+      // Listing reporters replaces Vitest's defaults, so they are listed
+      // too; the github-actions reporter keeps its failure annotations, and
+      // its own job summary is off, since the JUnit one replaces it.
+      ...(process.env.CI && {
+        reporters: [
+          "default",
+          ["github-actions", { jobSummary: { enabled: false } }],
+          ["junit", { outputFile: "test-results/junit/vitest.xml" }],
+        ],
+      }),
       projects: [
         {
           extends: true,
