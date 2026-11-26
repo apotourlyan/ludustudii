@@ -43,11 +43,14 @@ jobs:
 
       # MOCK_BUILD=1 runs the app tests on a build of the mock mode rather
       # than on Vite's dev server, which transforms every module on every
-      # page load (playwright.mock.config.ts).
+      # page load (playwright.mock.config.ts). PLAYWRIGHT_WORKERS runs them
+      # with more workers than half of the runner's 4 cores, still capped by
+      # memory (tests/playwright.base.ts).
       - name: make check
         env:
           DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
           MOCK_BUILD: "1"
+          PLAYWRIGHT_WORKERS: "3"
         run: make check
 
       # The app tests' report, with the traces and screenshots of failed
