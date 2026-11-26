@@ -316,11 +316,10 @@ frontend/
 │   │       ├── pages/      # one component per route (<page>.tsx), and beside it the load function that fills what it reads (<page>.load.ts) and, for a page with display state, its search params validator (<page>.search.ts)
 │   │       ├── components/ # the pages' parts, which take data as props; one with behavior as <name>.state.ts, <name>.view.tsx and <name>.tsx; private to the module
 │   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
-│   ├── shared/             # used by every module, knows none of them
-│   │   ├── ui/             # shadcn components (see UI components)
-│   │   ├── lib/            # helpers
-│   │   ├── error-message.ts # wording for the failures every module shares
-│   │   └── notify.ts       # notifyError: reports a failure as a toast
+│   ├── shared/             # used by every module, knows none of them; only these three folders
+│   │   ├── lib/            # helpers, hooks and rules, such as the wording for the failures every module shares and notifyError
+│   │   ├── components/     # the app's own components every module can use, such as the recent-change mark
+│   │   └── ui/             # shadcn's components (see UI components)
 │   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
 │   ├── mock/               # the mock mode's start-up and scenarios
 │   ├── test/               # what the unit and component tests share: the fake backend in the test page, render helpers
@@ -353,7 +352,7 @@ frontend/
   redirect to `/library/cards` until the dashboard exists.
 - **Wording:** the API layer has none
   ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
-  `errorMessage` in `src/shared/error-message.ts` words the failures every
+  `errorMessage` in `src/shared/lib/error-message.ts` words the failures every
   module shares: the network, server errors and anything unexpected. A module
   words what is about its own resources, such as a missing or changed card,
   in a `FailureWording` it passes to `errorMessage`
@@ -393,9 +392,12 @@ cards just added or edited, here or in another tab or device, are found at
 a glance. A card created in that window is new, a blue sparkle; otherwise
 one updated in it is updated, an amber clockwise clock; a card created and
 then edited within it stays new. The window is `RECENT_CHANGE_WINDOW_MS`
-in `model/recent-change.ts`, and the times are the API's `created_at` and
-`updated_at`, compared with the device's clock
-([ADR 0040](docs/adr/0040-row-timestamps-in-the-api.md)). The page reads
+in `src/shared/lib/recent-change.ts`, and the times are the API's
+`created_at` and `updated_at`, compared with the device's clock
+([ADR 0040](docs/adr/0040-row-timestamps-in-the-api.md)). The rule takes
+any `created_at` and `updated_at`, and the mark is
+`src/shared/components/recent-change-mark.tsx`, so another module can mark
+its own resources the same way. The page reads
 the time once with `useNow` (`src/shared/lib/use-now.ts`), which renders
 it again every minute, so a mark goes within a minute of its window's end
 without a reload. In the list, the mark leads the title, and every row
@@ -499,7 +501,7 @@ of the card form's setup, `learning-card-form-hook.ts`
   (`model/learning-card-field-message.ts`). The form renders its field's codes
   through it, so a client error and the API's read the same.
 - **The API's field errors go on their fields.** `placeFieldErrors` in
-  `src/shared/field-errors.ts` splits a failed save's field errors into the
+  `src/shared/lib/field-errors.ts` splits a failed save's field errors into the
   codes per form field that the wording can place and whether anything was
   left over; a form that names a field differently from the API passes a
   name map. `learningCardSaveFailure` in `model/learning-card-form.ts`
@@ -508,10 +510,10 @@ of the card form's setup, `learning-card-form-hook.ts`
   so `canSubmit`, the invalid look and the error rendering are TanStack
   Form's own. A field's server error clears when its value changes, not when it
   loses focus (`keepServerErrorsOnBlur` in
-  `src/shared/keep-server-errors-on-blur.ts`, the form's
+  `src/shared/lib/keep-server-errors-on-blur.ts`, the form's
   `validationLogic`).
 - **A form reports a failed submit with `useFormFailure(form, fields,
-  formRef)`** from `src/shared/use-form-failure.ts`. The module's `model/`
+  formRef)`** from `src/shared/lib/use-form-failure.ts`. The module's `model/`
   turns the error into a `FormFailure` (the codes per field, the toast and
   what to log; `learningCardSaveFailure` for the card form), and
   `report(failure)` applies it: the codes go in each field's `onServer`
@@ -535,11 +537,11 @@ decides how the client app reports outcomes and waits.
 - **A failure that isn't about a field is a toast**: a save no field can
   show, a delete, a network failure. The call site words it with its
   module's wording and calls `notifyError(message)` from
-  `src/shared/notify.ts`; the API layer reports nothing. An error toast
+  `src/shared/lib/notify.ts`; the API layer reports nothing. An error toast
   stays until dismissed (its Dismiss button, or F6, Tab and Escape) or
   until its call site tries the action again (`notifyError` returns a
   function that closes it). For an action that can be retried, such as a
-  save or a delete, `useErrorToast()` from `src/shared/use-error-toast.ts`
+  save or a delete, `useErrorToast()` from `src/shared/lib/use-error-toast.ts`
   keeps that function: `show(message)` replaces the toast of the last
   failure, and `clear()` closes it when the user tries again. It is announced at once and doesn't stack:
   each message has one toast, and a repeat replaces it, in front, and is
@@ -594,7 +596,8 @@ decides how the client app reports outcomes and waits.
   and adds these; `components/` is flat, since the override covers only
   files directly in it.
 - A module's `model/` is plain TypeScript (ADR 0042): no `react` or
-  `react-dom`, no `@tanstack/*`, no `@/shared/ui/`, none of the module's
+  `react-dom`, no `@tanstack/*`, no `@/shared/ui/` or
+  `@/shared/components/`, none of the module's
   `components/`, `pages/` or `widgets/`, and from the API layer only
   `import type` (the rule's `allowTypeImports`). Its tests may also import
   the API layer's values and the fakes.
@@ -605,7 +608,10 @@ decides how the client app reports outcomes and waits.
   which keeps its load function in its own `.load.ts` file. That a load
   file imports no UI is checked in review.
 - `src/shared/` imports nothing from `src/app/`, `src/routes/` or
-  `src/modules/`, and from the API layer only `@/api/http`.
+  `src/modules/`, and from the API layer only `@/api/http`. One override,
+  `src/shared/**`, covers all three of its folders: `lib/` (helpers, hooks
+  and rules), `components/` (the app's own components) and `ui/`
+  (shadcn's).
 - Only `src/shared/` and `src/app/` import the toast component
   (`@/shared/ui/toast`, or Base UI's `Toast`); everything else reports a
   failure with `notifyError` (ADR 0041).
@@ -812,13 +818,13 @@ disabled states and errors from given props. The pages still import
 | Load function | `src/modules/<module>/pages/<page>.load.ts`, beside its page: fills what the page reads, imports only the API layer and the router, exported from the module's `index.ts` | `@/modules/<module>`, by its route's loader |
 | Search params validator | `src/modules/<module>/pages/<page>.search.ts`, beside its page: checks the page's display state and fills in defaults, imports no UI, exported from the module's `index.ts` | `@/modules/<module>`, by its route's `validateSearch` |
 | Component | `src/modules/<module>/components/`: data as props, outcomes as callbacks; with behavior, `<name>.state.ts`, `<name>.view.tsx` and `<name>.tsx` ([Component structure](#component-structure)) | A relative path to `<name>`, inside the module |
-| Rule or decision | `src/modules/<module>/model/`: a plain function, with its `*.test.ts` beside it | A relative path, inside the module |
+| Rule or decision | One module's: `src/modules/<module>/model/`, a plain function with its `*.test.ts` beside it. Every module's: `src/shared/lib/` | A relative path, inside the module, or `@/shared/lib/<name>` |
 | Hook | One component's: in its `.state.ts`. Several of a module's components': `src/modules/<module>/components/use-<name>.ts`. Every module's: `src/shared/lib/` | A relative path, or `@/shared/lib/<name>` |
 | Widget | `src/modules/<module>/widgets/`, created with the first one: data the page shouldn't wait for, with its own query, loading and failure | A relative path by a page, or `@/modules/<module>` by `src/app/` |
 | Route | A module's page: `src/routes/<module>/`, a file named after its URL (`library/cards/new.tsx` is `/library/cards/new`): path, params, a loader that calls the page's load function, and the page. A route that belongs to no module stays at the top of `src/routes/`, next to `__root.tsx` (the root layout) and `index.tsx` (home's redirect) | Generated into `routeTree.gen.ts` |
 | API call | `src/api/<service>/`: the request, its query options or mutation hook, exported from the service's `index.ts`; the fake's handler in `src/api/<service>/fake/` | `@/api/<service>` |
-| Shared UI piece | `src/shared/ui/`, with `npx shadcn@latest add` for a shadcn component ([UI components](#ui-components)) | `@/shared/ui/<name>` |
-| Wording | A failure every module shares: `src/shared/error-message.ts`. Anything about one module's resources: that module's `model/` | `@/shared/error-message`, or a relative path |
+| Shared component | The app's own, for every module: `src/shared/components/`. A shadcn component: `src/shared/ui/`, with `npx shadcn@latest add` ([UI components](#ui-components)) | `@/shared/components/<name>` or `@/shared/ui/<name>` |
+| Wording | A failure every module shares: `src/shared/lib/error-message.ts`. Anything about one module's resources: that module's `model/` | `@/shared/lib/error-message`, or a relative path |
 | Module | `src/modules/<module>/` with `index.ts`, `pages/` and `components/` | `@/modules/<module>` |
 
 ## Development
@@ -963,7 +969,9 @@ The client app's UI components come from [shadcn/ui](https://ui.shadcn.com),
 copied into `frontend/src/shared/ui/` and maintained there like the rest
 of the code. `frontend/components.json` configures the shadcn CLI: its
 aliases point at `src/shared/ui/` for components and `src/shared/lib/` for
-helpers and hooks, so the CLI writes there. To add a component, run from
+helpers and hooks, so the CLI writes there. `src/shared/ui/` holds only
+shadcn's components; the app's own shared components go in
+`src/shared/components/`. To add a component, run from
 `frontend/`:
 
 ```sh
@@ -1159,7 +1167,7 @@ file it tests, and its name decides where it runs:
 
 | File | Vitest project | Runs in | For |
 | --- | --- | --- | --- |
-| `<name>.test.ts` | `unit` | Node, without a DOM | Plain functions: a module's `model/`, the logic in `src/shared/` |
+| `<name>.test.ts` | `unit` | Node, without a DOM | Plain functions: a module's `model/`, the logic in `src/shared/lib/` |
 | `<name>.test.tsx` | `browser` | Chromium's headless shell, through Playwright, the one `make frontend-deps` installs | State hooks, rendered with `renderHook`, and views, rendered with `render`, both from `vitest-browser-react` |
 
 The client app's test layers, lowest first:
@@ -1176,10 +1184,10 @@ A check belongs to the lowest layer that can make it: a field's message for
 one code is a `model/` test, not a page, a form and a submit in Playwright.
 
 ```sh
-make frontend-unit                                          # every test, as make check runs them
-make frontend-unit ARGS='src/shared/field-errors.test.ts'   # one file (or a folder)
-make frontend-unit ARGS='--project unit -t canonicalize'    # Node tests whose name matches
-cd frontend && npx vitest                                   # watch mode: reruns what a change affects
+make frontend-unit                                              # every test, as make check runs them
+make frontend-unit ARGS='src/shared/lib/field-errors.test.ts'   # one file (or a folder)
+make frontend-unit ARGS='--project unit -t canonicalize'        # Node tests whose name matches
+cd frontend && npx vitest                                       # watch mode: reruns what a change affects
 ```
 
 `make frontend-unit` fails on a `test.only` left behind. A failed browser
