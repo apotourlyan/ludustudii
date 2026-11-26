@@ -1,32 +1,30 @@
 import { expect, test } from "vitest";
 import { renderHook } from "vitest-browser-react";
 
-import { makeCards } from "@/api/lcards/fake/factories";
+import { useVirtualItemList, type VirtualItemListProps } from "./virtual-item-list.state";
 
-import {
-  useLearningCardVirtualList,
-  type LearningCardVirtualListProps,
-} from "./learning-card-virtual-list.state";
+interface Item {
+  id: string;
+}
 
-const cards = makeCards(10);
+const items: Item[] = Array.from({ length: 10 }, (_, index) => ({ id: `item-${index + 1}` }));
 
-function propsFor(
-  overrides: Partial<LearningCardVirtualListProps> = {},
-): LearningCardVirtualListProps {
+function propsFor(overrides: Partial<VirtualItemListProps<Item>> = {}): VirtualItemListProps<Item> {
   return {
-    cards,
+    items,
+    label: "Items",
     columns: 3,
     rowHeight: 100,
     gap: 16,
     overscan: 2,
     initialScrollOffset: 0,
-    renderCard: () => null,
+    renderItem: () => null,
     ...overrides,
   };
 }
 
 // A list with an item at `position` holding a button, as the view renders
-// a card's actions.
+// an item's actions.
 function listWithItem(position: number) {
   const list = document.createElement("ul");
   const item = document.createElement("li");
@@ -39,23 +37,23 @@ function listWithItem(position: number) {
 
 test("passes the list's props on, with no row kept while nothing has the focus", async () => {
   const props = propsFor();
-  const { result } = await renderHook(() => useLearningCardVirtualList(props));
+  const { result } = await renderHook(() => useVirtualItemList(props));
 
   expect(result.current).toMatchObject({ ...props, keptRow: null });
 });
 
-test("keeps the row of the card whose item has the focus", async () => {
-  const { result, act } = await renderHook(() => useLearningCardVirtualList(propsFor()));
+test("keeps the row of the item that has the focus", async () => {
+  const { result, act } = await renderHook(() => useVirtualItemList(propsFor()));
   const { button } = listWithItem(8);
 
   await act(() => result.current.onFocus({ target: button }));
 
-  // The eighth card is in the third row of three.
+  // The eighth item is in the third row of three.
   expect(result.current.keptRow).toBe(2);
 });
 
 test("keeps the row while the focus moves inside the list, and drops it when it leaves", async () => {
-  const { result, act } = await renderHook(() => useLearningCardVirtualList(propsFor()));
+  const { result, act } = await renderHook(() => useVirtualItemList(propsFor()));
   const { list, button } = listWithItem(4);
   await act(() => result.current.onFocus({ target: button }));
 
@@ -66,30 +64,30 @@ test("keeps the row while the focus moves inside the list, and drops it when it 
   expect(result.current.keptRow).toBeNull();
 });
 
-test("follows the focused card when cards before it go", async () => {
+test("follows the focused item when items before it go", async () => {
   const { result, act, rerender } = await renderHook(
-    (props?: LearningCardVirtualListProps) => useLearningCardVirtualList(props ?? propsFor()),
+    (props?: VirtualItemListProps<Item>) => useVirtualItemList(props ?? propsFor()),
     { initialProps: propsFor() },
   );
   const { button } = listWithItem(7);
   await act(() => result.current.onFocus({ target: button }));
   expect(result.current.keptRow).toBe(2);
 
-  await rerender(propsFor({ cards: cards.slice(3) }));
+  await rerender(propsFor({ items: items.slice(3) }));
 
-  // The seventh card is now the fourth: the second row.
+  // The seventh item is now the fourth: the second row.
   expect(result.current.keptRow).toBe(1);
 });
 
-test("keeps no row when the focused card is gone", async () => {
+test("keeps no row when the focused item is gone", async () => {
   const { result, act, rerender } = await renderHook(
-    (props?: LearningCardVirtualListProps) => useLearningCardVirtualList(props ?? propsFor()),
+    (props?: VirtualItemListProps<Item>) => useVirtualItemList(props ?? propsFor()),
     { initialProps: propsFor() },
   );
   const { button } = listWithItem(1);
   await act(() => result.current.onFocus({ target: button }));
 
-  await rerender(propsFor({ cards: cards.slice(1) }));
+  await rerender(propsFor({ items: items.slice(1) }));
 
   expect(result.current.keptRow).toBeNull();
 });

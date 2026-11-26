@@ -2,15 +2,15 @@ import { expect, test } from "vitest";
 import { page } from "vitest/browser";
 
 import { makeCard, makeCards } from "@/api/lcards/fake/factories";
+import type { CollectionView } from "@/shared/lib/collection-view";
 import { renderWithProviders } from "@/test/render";
 
-import type { LearningCardsView } from "../model/learning-cards-view";
 import { LearningCardsOverview } from "./learning-cards-overview";
 
 const cards = makeCards(3, (index) => ({ title: `Card ${index + 1}` }));
 
 // The overview in a router, for the cards' links.
-function renderOverview(view: LearningCardsView, overviewCards = cards, now = Date.now()) {
+function renderOverview(view: CollectionView, overviewCards = cards, now = Date.now()) {
   return renderWithProviders(
     <LearningCardsOverview cards={overviewCards} view={view} now={now} initialScrollOffset={0} />,
     { url: "/" },

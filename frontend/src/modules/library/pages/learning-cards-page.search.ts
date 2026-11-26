@@ -1,6 +1,6 @@
 import type { SearchSchemaInput } from "@tanstack/react-router";
 
-import { parseLearningCardsView, type LearningCardsView } from "../model/learning-cards-view";
+import { parseCollectionView, type CollectionView } from "@/shared/lib/collection-view";
 
 // The overview's search params: its display state, which lives in the URL
 // so a reload, Back or a link keeps it. Its route's validateSearch is this
@@ -8,9 +8,9 @@ import { parseLearningCardsView, type LearningCardsView } from "../model/learnin
 // initial bundle. A link may leave view out, so the input marks it optional
 // (SearchSchemaInput), while the page always reads one.
 export function validateLearningCardsPageSearch(
-  search: { view?: LearningCardsView } & SearchSchemaInput,
+  search: { view?: CollectionView } & SearchSchemaInput,
 ): {
-  view: LearningCardsView;
+  view: CollectionView;
 } {
-  return { view: parseLearningCardsView(search.view) };
+  return { view: parseCollectionView(search.view) };
 }

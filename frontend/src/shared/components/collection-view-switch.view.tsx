@@ -3,15 +3,12 @@ import { SquaresFourIcon } from "@phosphor-icons/react/dist/csr/SquaresFour";
 
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/toggle-group";
 
-import type { LearningCardsViewSwitchState } from "./learning-cards-view-switch.state";
+import type { CollectionViewSwitchState } from "./collection-view-switch.state";
 
-// The overview's views as a group named "View", from what
-// useLearningCardsViewSwitch returns. Each button is an icon with its name as
-// hidden text, like the cards' actions; the one that is on is pressed.
-export function LearningCardsViewSwitchView({
-  value,
-  onValueChange,
-}: LearningCardsViewSwitchState) {
+// A collection's views as a group named "View", from what
+// useCollectionViewSwitch returns. Each button is an icon with its name as
+// hidden text; the one that is on is pressed.
+export function CollectionViewSwitchView({ value, onValueChange }: CollectionViewSwitchState) {
   return (
     <ToggleGroup
       aria-label="View"

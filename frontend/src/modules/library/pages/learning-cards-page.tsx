@@ -2,11 +2,11 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useElementScrollRestoration, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { lcardQueries } from "@/api/lcards";
+import { CollectionViewSwitch } from "@/shared/components/collection-view-switch";
+import type { CollectionView } from "@/shared/lib/collection-view";
 import { useNow } from "@/shared/lib/use-now";
 
 import { LearningCardsOverview } from "../components/learning-cards-overview";
-import { LearningCardsViewSwitch } from "../components/learning-cards-view-switch";
-import type { LearningCardsView } from "../model/learning-cards-view";
 
 // The learning cards' overview, in the view its URL names (?view=list or
 // ?view=grid). Reads what loadLearningCardsPage, in
@@ -28,7 +28,7 @@ export function LearningCardsPage() {
 
   // The view is display state: switching it replaces the history entry, so
   // Back leaves the page instead of stepping through the switches.
-  function handleViewChange(next: LearningCardsView) {
+  function handleViewChange(next: CollectionView) {
     void navigate({ search: (prev) => ({ ...prev, view: next }), replace: true });
   }
 
@@ -37,7 +37,7 @@ export function LearningCardsPage() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Learning cards</h1>
         <div className="flex items-center gap-4">
-          <LearningCardsViewSwitch view={view} onChange={handleViewChange} />
+          <CollectionViewSwitch view={view} onChange={handleViewChange} />
           <Link
             to="/library/cards/new"
             className="text-sm text-primary underline underline-offset-4"
