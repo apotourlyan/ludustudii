@@ -53,6 +53,22 @@ jobs:
           PLAYWRIGHT_WORKERS: "4"
         run: make check
 
+      # Temporary: the app tests at 2, 3 and 4 workers on one runner.
+      - name: Compare app test workers
+        working-directory: frontend
+        env:
+          MOCK_BUILD: "1"
+        run: |
+          for round in 1 2 3; do
+            for workers in 2 3 4; do
+              start=$(date +%s%N)
+              status=0
+              PLAYWRIGHT_WORKERS=$workers npx --no-install playwright test -c playwright.mock.config.ts --reporter=dot > "/tmp/app-tests-$workers.log" 2>&1 || status=$?
+              end=$(date +%s%N)
+              echo "round=$round workers=$workers exit=$status wall=$(( (end - start) / 1000000 ))ms $(grep -E '[0-9]+ (passed|failed|flaky)' "/tmp/app-tests-$workers.log" | tr -s ' ' | tr '\n' ' ')"
+            done
+          done
+
       # The app tests' report, with the traces and screenshots of failed
       # tests. It exists only when make check got as far as frontend-test.
       - name: Upload the app tests' report
