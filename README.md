@@ -1584,9 +1584,9 @@ To report a vulnerability, follow [SECURITY.md](SECURITY.md).
 #### Test summaries
 
 Each `ci.yml` job's summary, on the run's page, shows its test suites: in the
-`check` job **Vitest**, **Playwright app tests**, **Go unit tests** (and **Go
-unit tests with the apidocs tag**) and **Go integration tests**, and in the `e2e`
-job **Playwright end-to-end tests**. Each section has the numbers of passed,
+`check` job **Vitest**, **Playwright tests (mock back-end)**, **Go unit
+tests**, **Go apidocs tests** and **Go integration tests**, and in the `e2e` job
+**Playwright end-to-end tests**. Each section has the numbers of passed,
 failed and skipped tests and the time, as the suite's report records it (for
 Vitest, the sum of its tests' durations rather than the run's), and names the
 failed tests. A suite that didn't run, because an earlier step
