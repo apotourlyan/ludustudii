@@ -67,7 +67,7 @@ test("a reload keeps the view", async ({ page }) => {
   await expect(viewButtons(page).grid).toHaveAttribute("aria-pressed", "true");
 });
 
-// Which values fall back is learning-cards-view.test.ts's; here, that the
+// Which values fall back is collection-view.test.ts's; here, that the
 // URL says so.
 test("an invalid view falls back to the list, in the URL too", async ({ page }) => {
   await page.goto("/library/cards?view=table");

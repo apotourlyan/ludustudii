@@ -1,12 +1,13 @@
 import { expect, test, vi } from "vitest";
 import { renderHook } from "vitest-browser-react";
 
-import type { LearningCardsView } from "../model/learning-cards-view";
-import { useLearningCardsViewSwitch } from "./learning-cards-view-switch.state";
+import type { CollectionView } from "@/shared/lib/collection-view";
 
-async function renderSwitch(view: LearningCardsView) {
+import { useCollectionViewSwitch } from "./collection-view-switch.state";
+
+async function renderSwitch(view: CollectionView) {
   const onChange = vi.fn();
-  const { result } = await renderHook(() => useLearningCardsViewSwitch({ view, onChange }));
+  const { result } = await renderHook(() => useCollectionViewSwitch({ view, onChange }));
   return { switch: result.current, onChange };
 }
 
