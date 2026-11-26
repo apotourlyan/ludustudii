@@ -35,9 +35,13 @@ export function baseConfig(kind: "mock" | "e2e") {
     workers: WORKERS,
     // A test that passes only on a retry is flaky, and that must show.
     retries: 0,
+    // On CI, also a JUnit report for the job summary (make test-summary).
     reporter: [
       [process.env.CI ? "line" : "list"],
       ["html", { open: "never", outputFolder: `playwright-report/${kind}` }],
+      ...(process.env.CI
+        ? [["junit", { outputFile: `test-results/junit/playwright-${kind}.xml` }] as const]
+        : []),
     ],
     use: {
       headless: true,
