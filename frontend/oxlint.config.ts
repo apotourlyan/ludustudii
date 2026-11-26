@@ -344,6 +344,9 @@ export default defineConfig({
     // Markup reads named values; a choice between more than two goes into a
     // named value or the state hook (ADR 0042).
     "no-nested-ternary": "error",
+    // Braces around every body of if, else, for, while and do, even a
+    // one-line return.
+    curly: ["error", "all"],
     "no-restricted-imports": restrictImports(
       phosphorMainEntry,
       moduleIndexOnly,
@@ -360,6 +363,14 @@ export default defineConfig({
       files: ["src/routes/**"],
       rules: {
         "react/only-export-components": "off",
+      },
+    },
+    {
+      // shadcn's components keep their upstream style, so updates from
+      // shadcn apply without edits.
+      files: ["src/shared/ui/**"],
+      rules: {
+        curly: "off",
       },
     },
     {

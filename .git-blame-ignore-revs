@@ -3,3 +3,6 @@ b4d88877f358d10583e2dd67737705c261c821b8
 
 # build: sort imports with oxfmt (#29)
 fcea16c163bc431f927c06eb30d95444891dd42f
+
+# refactor: braces around every if body (#79)
+cd5dfabdbd9ce9c808a954828809136c5f7f28a4

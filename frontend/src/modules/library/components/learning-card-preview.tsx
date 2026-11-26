@@ -53,7 +53,9 @@ export function LearningCardPreview({
 }
 
 function PreviewTitle({ title }: { title: string }) {
-  if (isBlank(title)) return <Placeholder>Untitled</Placeholder>;
+  if (isBlank(title)) {
+    return <Placeholder>Untitled</Placeholder>;
+  }
   return (
     <CardTitle className="min-w-0 wrap-break-word">
       <LearningCardTitleMarkdown>{title}</LearningCardTitleMarkdown>
@@ -62,7 +64,9 @@ function PreviewTitle({ title }: { title: string }) {
 }
 
 function PreviewDescription({ description }: { description: string }) {
-  if (isBlank(description)) return <Placeholder>Nothing to preview yet</Placeholder>;
+  if (isBlank(description)) {
+    return <Placeholder>Nothing to preview yet</Placeholder>;
+  }
   return <LearningCardDescriptionMarkdown>{description}</LearningCardDescriptionMarkdown>;
 }
 
