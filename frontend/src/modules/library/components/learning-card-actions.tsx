@@ -23,15 +23,15 @@ const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
 export function LearningCardActions({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <div className="flex gap-2">
-      <OpenLearningCardLink card={card} />
-      <UpdateLearningCardLink card={card} />
-      <DeleteLearningCardButton card={card} />
+      <LearningCardOpenLink card={card} />
+      <LearningCardUpdateLink card={card} />
+      <LearningCardDeleteButton card={card} />
     </div>
   );
 }
 
 // Opens the card's own page.
-export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {
+export function LearningCardOpenLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId" params={{ cardId: card.id }} className={ACTION}>
       <ArrowSquareOutIcon />
@@ -41,7 +41,7 @@ export function OpenLearningCardLink({ card }: { card: Pick<LearningCard, "id"> 
 }
 
 // Opens the card's editor.
-export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"> }) {
+export function LearningCardUpdateLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId/edit" params={{ cardId: card.id }} className={ACTION}>
       <PencilSimpleIcon />
@@ -53,7 +53,7 @@ export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"
 // Deletes the card after the user confirms. onDeleted is called after the
 // card is deleted; the page decides what follows, such as leaving the
 // card's page (ADR 0036).
-export function DeleteLearningCardButton({
+export function LearningCardDeleteButton({
   card,
   onDeleted,
 }: {
