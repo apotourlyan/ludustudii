@@ -2,12 +2,12 @@ import { useSyncExternalStore } from "react";
 
 import type { LearningCard } from "@/api/lcards";
 import { RecentChangeMark } from "@/shared/components/recent-change-mark";
+import { VirtualItemList } from "@/shared/components/virtual-item-list";
 import { recentChange } from "@/shared/lib/recent-change";
 import { Card, CardTitle } from "@/shared/ui/card";
 
 import { LearningCardActions } from "./learning-card-actions";
 import { LearningCardTitleMarkdown } from "./learning-card-markdown";
-import { LearningCardVirtualList } from "./learning-card-virtual-list";
 
 // Cards per row by the window's width, widest first: Tailwind's lg, md and
 // sm breakpoints, and one below sm.
@@ -43,7 +43,7 @@ function currentColumns(): number {
 // The cards as a grid of titles, each card the same size, the title cut to
 // three lines, with the card's mark in the top right corner if it was
 // created or updated recently, as of `now`, and its actions at the bottom
-// right. Virtualized by LearningCardVirtualList, which takes the same
+// right. Virtualized by VirtualItemList, which takes the same
 // initialScrollOffset.
 export function LearningCardGrid({
   cards,
@@ -59,15 +59,16 @@ export function LearningCardGrid({
   const columns = useSyncExternalStore(subscribeToColumns, currentColumns);
 
   return (
-    <LearningCardVirtualList
-      cards={cards}
+    <VirtualItemList
+      items={cards}
+      label="Learning cards"
       columns={columns}
       rowHeight={144}
       gap={16}
       // About a screen's worth of rows.
       overscan={4}
       initialScrollOffset={initialScrollOffset}
-      renderCard={(card) => <GridCard card={card} now={now} />}
+      renderItem={(card) => <GridCard card={card} now={now} />}
     />
   );
 }

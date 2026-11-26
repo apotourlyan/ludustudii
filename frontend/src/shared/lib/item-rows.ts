@@ -1,5 +1,5 @@
-// How a virtualized list lays its items out, such as the overview's
-// (components/learning-card-virtual-list.view.tsx): rows of `columns` items
+// How a virtualized list lays its items out, such as VirtualItemList's
+// (src/shared/components/virtual-item-list.view.tsx): rows of `columns` items
 // of one size, `gap` pixels apart, of which only the rows near the window
 // are rendered. An item's position counts from 1, as aria-posinset does.
 
