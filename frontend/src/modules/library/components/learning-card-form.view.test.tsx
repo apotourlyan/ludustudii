@@ -12,6 +12,7 @@ type FieldState = LearningCardFormState["title"];
 function field(name: "title" | "description", overrides: Partial<FieldState> = {}): FieldState {
   return {
     name,
+    value: "",
     label: name === "title" ? "Title" : "Description",
     meta: name === "title" ? "0/200" : "0/2000",
     progress: 0,
@@ -38,6 +39,7 @@ function View(props: Partial<Omit<LearningCardFormState, "form" | "formRef">>) {
       onSubmit={vi.fn()}
       title={field("title")}
       description={field("description")}
+      preview={{ title: "", description: "" }}
       cancelLink={{ to: "/library/cards" }}
       submitLabel="Create card"
       submitDisabled={false}
@@ -122,13 +124,10 @@ test("tells the state which field has the focus", async () => {
   expect(title.onBlur).toHaveBeenCalledOnce();
 });
 
-test("shows the preview of the form's values", async () => {
-  await render();
+test("shows the preview it is given", async () => {
+  await render({ preview: { title: "Photosynthesis", description: "How plants make sugar." } });
 
-  await expect.element(page.getByRole("region", { name: "Preview" })).toBeVisible();
-  await expect.element(page.getByText("Untitled")).toBeVisible();
-  await page.getByLabelText("Title").fill("Photosynthesis");
-  await expect
-    .element(page.getByRole("region", { name: "Preview" }).getByText("Photosynthesis"))
-    .toBeVisible();
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect.element(preview.getByText("Photosynthesis")).toBeVisible();
+  await expect.element(preview.getByText("How plants make sugar.")).toBeVisible();
 });
