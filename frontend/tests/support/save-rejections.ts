@@ -28,8 +28,12 @@ export async function rejectSaves(page: Page): Promise<void> {
     window.saveRejection = null;
     window.fetchInterceptors!.push(({ url, method }) => {
       const errors = window.saveRejection;
-      if (!errors || (method !== "POST" && method !== "PUT")) return undefined;
-      if (!url.pathname.startsWith("/api/lcards")) return undefined;
+      if (!errors || (method !== "POST" && method !== "PUT")) {
+        return undefined;
+      }
+      if (!url.pathname.startsWith("/api/lcards")) {
+        return undefined;
+      }
       return Promise.resolve(
         new Response(JSON.stringify({ code: "validation_error", errors }), {
           status: 400,

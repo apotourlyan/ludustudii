@@ -83,7 +83,9 @@ interface TreeNode {
 
 // Whether the tree has text to show. Raw HTML counts: it renders as text.
 function hasText(node: TreeNode): boolean {
-  if (node.type === "text" || node.type === "raw") return Boolean(node.value?.trim());
+  if (node.type === "text" || node.type === "raw") {
+    return Boolean(node.value?.trim());
+  }
   return node.children?.some(hasText) ?? false;
 }
 

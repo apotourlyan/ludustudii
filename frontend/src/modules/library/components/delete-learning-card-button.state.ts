@@ -42,7 +42,9 @@ export function useDeleteLearningCardButton({ card, onDeleted }: DeleteLearningC
 
   // Keeps the dialog open until the request settles.
   function handleOpenChange(nextOpen: boolean) {
-    if (!deleting) setOpen(nextOpen);
+    if (!deleting) {
+      setOpen(nextOpen);
+    }
   }
 
   return {

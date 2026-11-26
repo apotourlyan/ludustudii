@@ -12,7 +12,9 @@ export interface LearningCardsViewSwitchProps {
 export function useLearningCardsViewSwitch({ view, onChange }: LearningCardsViewSwitchProps) {
   function handleValueChange(pressed: readonly unknown[]) {
     const next = toggledLearningCardsView(pressed, view);
-    if (next) onChange(next);
+    if (next) {
+      onChange(next);
+    }
   }
 
   return {

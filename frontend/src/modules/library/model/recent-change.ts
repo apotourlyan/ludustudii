@@ -21,8 +21,12 @@ export function recentChange(
   card: Pick<LearningCard, "created_at" | "updated_at">,
   now: number,
 ): RecentChange | undefined {
-  if (isWithinWindow(card.created_at, now)) return "new";
-  if (isWithinWindow(card.updated_at, now)) return "updated";
+  if (isWithinWindow(card.created_at, now)) {
+    return "new";
+  }
+  if (isWithinWindow(card.updated_at, now)) {
+    return "updated";
+  }
   return undefined;
 }
 

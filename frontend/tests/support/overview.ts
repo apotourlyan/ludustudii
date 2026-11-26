@@ -91,7 +91,9 @@ export async function watchListRequests(page: Page): Promise<void> {
     const state = { count: 0, fail: false };
     window.listRequestsWatch = state;
     window.fetchInterceptors!.push(({ url, method }) => {
-      if (method !== "GET" || url.pathname !== "/api/lcards") return undefined;
+      if (method !== "GET" || url.pathname !== "/api/lcards") {
+        return undefined;
+      }
       state.count += 1;
       return state.fail ? Promise.reject(new TypeError("Failed to fetch")) : undefined;
     });

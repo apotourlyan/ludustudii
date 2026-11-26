@@ -92,7 +92,9 @@ for (const mode of ["create", "update"] as const) {
       const submit = await openForm(page, mode);
       const errors: string[] = [];
       page.on("console", (message) => {
-        if (message.type() === "error") errors.push(message.text());
+        if (message.type() === "error") {
+          errors.push(message.text());
+        }
       });
       await setRejection(page, [
         { field: "tags", code: "required" },
@@ -125,7 +127,9 @@ test("a validation error without field errors shows as a toast and in the consol
   const submit = await openForm(page, "create");
   const errors: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "error") {
+      errors.push(message.text());
+    }
   });
   await setRejection(page, []);
 

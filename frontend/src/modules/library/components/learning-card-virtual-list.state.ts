@@ -33,7 +33,9 @@ export function useLearningCardVirtualList(props: LearningCardVirtualListProps) 
 
   // The focus left an element in the list, for one outside it or none.
   function handleBlur(event: { currentTarget: Element; relatedTarget: Element | null }) {
-    if (!event.currentTarget.contains(event.relatedTarget)) setFocusedId(null);
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setFocusedId(null);
+    }
   }
 
   return {

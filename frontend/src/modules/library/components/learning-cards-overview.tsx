@@ -18,7 +18,9 @@ export function LearningCardsOverview({
   now: number;
   initialScrollOffset: number;
 }) {
-  if (cards.length === 0) return <LearningCardsEmptyState />;
+  if (cards.length === 0) {
+    return <LearningCardsEmptyState />;
+  }
 
   const CardsViewComponent = view === "list" ? LearningCardList : LearningCardGrid;
 
