@@ -15,7 +15,7 @@ type LearningCardTextFieldProps = Pick<
 // holding the field's value. Leaving it marks the field blurred, then calls
 // onBlur.
 export function LearningCardTextField({ onBlur, ...props }: LearningCardTextFieldProps) {
-  const field = useLearningCardFieldContext<string>();
+  const field = useLearningCardFieldContext();
 
   function handleBlur(event: FocusEvent<HTMLTextAreaElement>) {
     field.handleBlur();
