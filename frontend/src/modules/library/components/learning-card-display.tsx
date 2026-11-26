@@ -10,29 +10,21 @@ import {
 } from "./learning-card-markdown";
 
 // A card's title and description as Markdown, in the frame every mode of
-// a card shares, with no strip and no bars. On a page that shows this one
-// card, pageHeading makes the title the page's <h1>; the heading inherits
-// the title's look.
+// a card shares, with no strip and no bars.
 export function LearningCardDisplay({
   card,
   actions,
-  pageHeading = false,
+  titleIsPageHeading = false,
 }: {
   card: Pick<LearningCard, "title" | "description">;
   actions?: ReactNode;
-  pageHeading?: boolean;
+  titleIsPageHeading?: boolean;
 }) {
-  const title = <LearningCardTitleMarkdown>{card.title}</LearningCardTitleMarkdown>;
-
   return (
     <LearningCardFrame
       actions={actions}
       title={{
-        content: (
-          <CardTitle className="min-w-0 wrap-break-word">
-            {pageHeading ? <h1>{title}</h1> : title}
-          </CardTitle>
-        ),
+        content: <DisplayTitle title={card.title} isPageHeading={titleIsPageHeading} />,
       }}
       description={{
         content: (
@@ -40,5 +32,25 @@ export function LearningCardDisplay({
         ),
       }}
     />
+  );
+}
+
+// On a page that shows this one card, isPageHeading makes the title the
+// page's <h1>; the heading inherits the title's look.
+function DisplayTitle({ title, isPageHeading }: { title: string; isPageHeading: boolean }) {
+  if (isPageHeading) {
+    return (
+      <CardTitle className="min-w-0 wrap-break-word">
+        <h1>
+          <LearningCardTitleMarkdown>{title}</LearningCardTitleMarkdown>
+        </h1>
+      </CardTitle>
+    );
+  }
+
+  return (
+    <CardTitle className="min-w-0 wrap-break-word">
+      <LearningCardTitleMarkdown>{title}</LearningCardTitleMarkdown>
+    </CardTitle>
   );
 }

@@ -39,7 +39,7 @@ export function LearningCardPage({ cardId }: { cardId: string }) {
           </div>
           <LearningCardDisplay
             card={card}
-            pageHeading
+            titleIsPageHeading
             actions={
               <div className="flex gap-2">
                 <UpdateLearningCardLink card={card} />

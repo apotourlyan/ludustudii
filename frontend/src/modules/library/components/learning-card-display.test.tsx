@@ -23,7 +23,7 @@ test("a title renders inline as the page's heading, and description headings sta
         title: "# Photosynthesis **basics**",
         description: "# Light\n\nThe **light-dependent** reactions come first.",
       }}
-      pageHeading
+      titleIsPageHeading
     />,
   );
 
@@ -36,7 +36,7 @@ test("a title renders inline as the page's heading, and description headings sta
 
 // "Ser vs. estar": two "##" headings, one level down as <h3>s, and bold text.
 test("a description's headings and bold text render", async () => {
-  await render(<LearningCardDisplay card={sample("Ser vs. estar")} pageHeading />);
+  await render(<LearningCardDisplay card={sample("Ser vs. estar")} titleIsPageHeading />);
 
   await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Ser vs. estar");
   expect(
@@ -55,7 +55,7 @@ test("a description's headings and bold text render", async () => {
 
 // "Binary search": a numbered list, bold text and inline code.
 test("a description's list, bold text and inline code render", async () => {
-  await render(<LearningCardDisplay card={sample("Binary search")} pageHeading />);
+  await render(<LearningCardDisplay card={sample("Binary search")} titleIsPageHeading />);
 
   await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Binary search");
   expect(page.getByRole("listitem").elements()).toHaveLength(3);
