@@ -28,8 +28,9 @@ PKG ?= ./...
 E2E_DB_URL_PATTERN := ^(postgres(ql)?://[^/?\#]+)(/[^?\#]*)?(\?.*)?$$
 RUN ?=
 RUN_FLAG = $(if $(RUN),-run '$(RUN)')
-# The suites' JUnit reports for the CI job summaries, written on CI. The
-# frontend's go to frontend/$(JUNIT_DIR), the backend's to $(JUNIT_DIR).
+# The suites' JUnit reports for the CI job summaries (test-summary),
+# written on CI. The frontend's go to frontend/$(JUNIT_DIR), the backend's
+# to $(JUNIT_DIR).
 JUNIT_DIR := test-results/junit
 # The backend test command, run from backend/: go test, or with GO_JUNIT=1
 # (CI) gotestsum, which runs go test with the same flags, prints its output
@@ -273,6 +274,25 @@ test-e2e:
 		$(GO_TOOL) goose -dir $(MIGRATIONS_DIR) postgres "$$url" up; \
 		echo "==> Running end-to-end tests..."; \
 		cd $(FRONTEND_DIR) && E2E_DB_CONNECTION="$$url" npm run --silent test:e2e -- --forbid-only $(ARGS)
+
+.PHONY: test-summary
+
+## test-summary: Renders the test suites' JUnit reports as Markdown, into GITHUB_STEP_SUMMARY on CI, else to stdout
+## ---- The reports are written only on CI: CI=true for Vitest and Playwright, GO_JUNIT=1 for the Go tests
+# One section per suite, in make check's order, then the end-to-end tests.
+# A missing report (its suite didn't run) is skipped; one that can't be read
+# gets a section that says so and fails the target.
+test-summary:
+	@[ -d $(FRONTEND_TOOLS_DIR)/node_modules ] || \
+		{ echo "test-summary: $(FRONTEND_TOOLS_DIR) dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	@node $(FRONTEND_TOOLS_DIR)/junit-summary.ts \
+		'Vitest=$(FRONTEND_DIR)/$(JUNIT_DIR)/vitest.xml' \
+		'Playwright app tests=$(FRONTEND_DIR)/$(JUNIT_DIR)/playwright-mock.xml' \
+		'Go unit tests=$(JUNIT_DIR)/go-unit.xml' \
+		'Go unit tests with the apidocs tag=$(JUNIT_DIR)/go-unit-apidocs.xml' \
+		'Go integration tests=$(JUNIT_DIR)/go-integration.xml' \
+		'Playwright end-to-end tests=$(FRONTEND_DIR)/$(JUNIT_DIR)/playwright-e2e.xml' \
+		>> "$${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
 .PHONY: build build-frontend build-backend clean
 
