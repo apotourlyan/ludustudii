@@ -50,7 +50,7 @@ jobs:
         env:
           DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
           MOCK_BUILD: "1"
-          PLAYWRIGHT_WORKERS: "4"
+          PLAYWRIGHT_WORKERS: "3"
         run: make check
 
       # The app tests' report, with the traces and screenshots of failed

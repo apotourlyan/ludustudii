@@ -1273,8 +1273,8 @@ so a flaky test fails instead of passing on its second try. Workers are
 Playwright's default of half the CPU cores, or `PLAYWRIGHT_WORKERS` when it
 is set, capped at one per GB of free memory: each worker's Chromium takes up
 to about 650 MB, and a renderer that runs out of memory crashes its page. CI
-sets `PLAYWRIGHT_WORKERS=4` for the app tests, one per core of its runner,
-which runs them faster than 2 or 3 workers. A failed test keeps its trace and
+sets `PLAYWRIGHT_WORKERS=3` for the app tests: on its 4-core runner, 3
+workers ran them faster than 2 or 4. A failed test keeps its trace and
 screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
 `npx playwright show-report playwright-report/<kind> --host 0.0.0.0` in
 `frontend/` serves it on port 9323.
