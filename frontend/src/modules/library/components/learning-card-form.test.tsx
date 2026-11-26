@@ -22,7 +22,7 @@ const TITLE_REQUIRED = "Title is required";
 const DESCRIPTION_REQUIRED = "Description is required";
 const DESCRIPTION_TOO_LONG = "Description must be at most 2000 characters";
 const SAVE_FAILED = /^Something went wrong while trying to /;
-const UPDATE_FAILED = "Something went wrong while trying to save your edits.";
+const EDIT_FAILED = "Something went wrong while trying to save your edits.";
 const NETWORK = "Can't reach the server. Check your connection and try again.";
 
 // The request ID of every rejection, to find it in the console.
@@ -100,7 +100,7 @@ function failUpdates(times = Infinity): { failed: number } {
   return count;
 }
 
-// The form, creating a card or updating the given one.
+// The form, creating a card or editing the given one.
 async function renderForm(card?: LearningCard) {
   const onSaved = vi.fn<LearningCardFormProps["onSaved"]>();
   await renderWithProviders(
@@ -112,7 +112,7 @@ async function renderForm(card?: LearningCard) {
 
 // The form in this mode, with values its own checks accept, ready for the
 // API to reject them. Returns its submit button.
-async function openForm(mode: "create" | "update") {
+async function openForm(mode: "create" | "edit") {
   if (mode === "create") {
     const rendered = await renderForm();
     await title.fill("Photosynthesis");
@@ -124,10 +124,10 @@ async function openForm(mode: "create" | "update") {
   const rendered = await renderForm(card);
   await expect.element(title).toHaveValue("Mitochondria");
   await title.fill("Mitochondrion");
-  return { ...rendered, submit: page.getByRole("button", { name: "Update card" }) };
+  return { ...rendered, submit: page.getByRole("button", { name: "Save card" }) };
 }
 
-for (const mode of ["create", "update"] as const) {
+for (const mode of ["create", "edit"] as const) {
   describe(mode, () => {
     test("the API's errors show on their fields", async () => {
       const { submit } = await openForm(mode);
@@ -250,7 +250,7 @@ describe("focus after a failed submit", () => {
   });
 
   test("API errors on both fields focus the title", async () => {
-    const { submit } = await openForm("update");
+    const { submit } = await openForm("edit");
     rejectSaves(BOTH);
 
     await submit.click();
@@ -263,47 +263,47 @@ describe("focus after a failed submit", () => {
 // Failures that aren't about a field are toasts (ADR 0041).
 describe("a save that fails", () => {
   test("shows one toast, keeps the input and adds nothing to the form", async () => {
-    const { submit, onSaved } = await openForm("update");
+    const { submit, onSaved } = await openForm("edit");
     const updates = failUpdates();
 
     await submit.click();
 
-    await expect.poll(notified).toEqual([UPDATE_FAILED]);
+    await expect.poll(notified).toEqual([EDIT_FAILED]);
     await expect.element(title).toHaveValue("Mitochondrion");
     expect(onSaved).not.toHaveBeenCalled();
     // Nothing next to the buttons: the form itself shows no error.
-    expect(page.getByText(UPDATE_FAILED).elements()).toHaveLength(0);
+    expect(page.getByText(EDIT_FAILED).elements()).toHaveLength(0);
     expect(page.getByRole("alert").elements()).toHaveLength(0);
 
     // The same failure again, while its toast is open: the form closes the
     // toast and reports again, which leaves one toast, announced again.
-    // The button reads "Update card" again once the save has settled.
+    // The button reads "Save card" again once the save has settled.
     await submit.click();
     await expect.poll(() => updates.failed).toBe(2);
     await expect.element(submit).toBeEnabled();
 
-    expect(notified()).toEqual([UPDATE_FAILED, UPDATE_FAILED]);
+    expect(notified()).toEqual([EDIT_FAILED, EDIT_FAILED]);
     expect(toasts.closed).toBe(1);
   });
 
   test("again, then succeeding, closes its toast and reports nothing", async () => {
-    const { submit, onSaved } = await openForm("update");
+    const { submit, onSaved } = await openForm("edit");
     failUpdates(1);
     await submit.click();
-    await expect.poll(notified).toEqual([UPDATE_FAILED]);
+    await expect.poll(notified).toEqual([EDIT_FAILED]);
 
     await submit.click();
 
     await expect.poll(() => onSaved.mock.calls.length).toBe(1);
     expect(toasts.closed).toBe(1);
-    expect(notified()).toEqual([UPDATE_FAILED]);
+    expect(notified()).toEqual([EDIT_FAILED]);
   });
 
   // TanStack Query pauses requests while the browser is offline unless
   // told otherwise (src/app/query-client.ts); the app sends them anyway, so
   // a save offline fails as any network failure does, at once.
   test("while offline reports the network failure", async () => {
-    const { submit } = await openForm("update");
+    const { submit } = await openForm("edit");
     fakeBackend.use(http.put("/api/lcards/:id", () => HttpResponse.error()));
     goOffline();
 
@@ -326,7 +326,7 @@ test("saving a card changed elsewhere replaces the other change", async () => {
   });
 
   await title.fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update card" }).click();
+  await page.getByRole("button", { name: "Save card" }).click();
 
   await expect.poll(() => onSaved.mock.calls.length).toBe(1);
   expect(cardStore.get(card.id)).toMatchObject({

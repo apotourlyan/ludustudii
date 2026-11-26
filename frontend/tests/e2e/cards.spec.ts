@@ -38,10 +38,10 @@ test("a card is created, edited and deleted through the UI", async ({ page }) =>
 
   await page.getByRole("link", { name: "Learning cards", exact: true }).click();
   const item = await findCard(page, title);
-  await item.getByRole("link", { name: "Update" }).click();
+  await item.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await page.getByLabel("Title").fill(edited);
-  await page.getByRole("button", { name: "Update card" }).click();
+  await page.getByRole("button", { name: "Save card" }).click();
 
   // Editing ends on the card's page too, with the change.
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
@@ -84,7 +84,7 @@ test("a card's URL opens its page, and its editor's URL the form", async ({ page
   await page.goto(`/library/cards/${id}/edit`);
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await expect(page.getByLabel("Description")).toHaveValue(description);
-  await expect(page.getByRole("button", { name: "Update card" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Save card" })).toBeEnabled();
 
   // Keeps the list short for the other tests; the database goes when the
   // run ends either way.

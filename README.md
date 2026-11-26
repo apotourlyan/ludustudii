@@ -362,10 +362,10 @@ frontend/
 
 | URL | Page | Shows |
 | --- | --- | --- |
-| `/library/cards?view=list` | `LearningCardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
+| `/library/cards?view=list` | `LearningCardsPage` | The cards' titles, newest first, one row each, each with Open, Edit and Delete, and a mark on a card created or updated in the last 5 minutes |
 | `/library/cards?view=grid` | `LearningCardsPage` | The same, as a grid of cards of one size |
 | `/library/cards/new` | `LearningCardNewPage` | The form for a new card, with its preview |
-| `/library/cards/$cardId` | `LearningCardPage` | One card, its title the page's `<h1>`, with Update and Delete |
+| `/library/cards/$cardId` | `LearningCardPage` | One card, its title the page's `<h1>`, with Edit and Delete |
 | `/library/cards/$cardId/edit` | `LearningCardEditPage` | The form for that card, its preview where `LearningCardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,

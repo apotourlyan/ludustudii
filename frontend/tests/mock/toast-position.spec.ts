@@ -64,7 +64,7 @@ test("on a card's page, the toast leaves the card's actions free", async ({ page
   await deleteCard(page, page.getByRole("main"));
 
   await expectClearOf(page, DELETE_FAILED, {
-    Update: page.getByRole("main").getByRole("link", { name: "Update" }),
+    Edit: page.getByRole("main").getByRole("link", { name: "Edit" }),
     Delete: page.getByRole("main").getByRole("button", { name: "Delete" }),
   });
 
@@ -76,13 +76,13 @@ test("on a card's page, the toast leaves the card's actions free", async ({ page
 test("on the card form, the toast leaves the buttons free", async ({ page }) => {
   await failRequests(page, ["PUT"], { times: 1 });
   await page.goto("/library/cards");
-  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
+  await cardAt(page, 1).getByRole("link", { name: "Edit" }).click();
   await page.getByLabel("Title").fill("Mitochondrion");
-  const submit = page.getByRole("button", { name: "Update card" });
+  const submit = page.getByRole("button", { name: "Save card" });
   await submit.click();
 
   await expectClearOf(page, SAVE_FAILED, {
-    "Update card": submit,
+    "Save card": submit,
     Cancel: page.getByRole("link", { name: "Cancel" }),
   });
 

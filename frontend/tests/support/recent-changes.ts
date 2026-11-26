@@ -48,10 +48,10 @@ export async function createCardThroughUi(page: Page, title: string): Promise<vo
 // Changes the description of the card an overview's item shows, through
 // its editor, and returns to the overview through the navigation.
 export async function editCardThroughUi(page: Page, item: Locator, title: string): Promise<void> {
-  await item.getByRole("link", { name: "Update" }).click();
+  await item.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByLabel("Title")).toHaveValue(title);
   await page.getByLabel("Description").fill("Edited by a test.");
-  await page.getByRole("button", { name: "Update card" }).click();
+  await page.getByRole("button", { name: "Save card" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
   await page.getByRole("link", { name: "Learning cards", exact: true }).click();
 }

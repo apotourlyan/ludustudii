@@ -31,7 +31,7 @@ test("Open in the list shows the card on its own page", async ({ page }) => {
   await expect(
     card.getByText("The site of aerobic respiration; produces most of the cell’s ATP."),
   ).toBeVisible();
-  await expect(card.getByRole("link", { name: "Update" })).toBeVisible();
+  await expect(card.getByRole("link", { name: "Edit" })).toBeVisible();
   await expect(card.getByRole("button", { name: "Delete" })).toBeVisible();
   await expect(card.getByRole("link", { name: "Open" })).toHaveCount(0);
 
@@ -51,10 +51,10 @@ test("the card's page links to a new card", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Add card");
 });
 
-test("Update on the card's page opens its editor", async ({ page }) => {
+test("Edit on the card's page opens its editor", async ({ page }) => {
   const id = await openNewestCard(page);
 
-  await cardOnPage(page).getByRole("link", { name: "Update" }).click();
+  await cardOnPage(page).getByRole("link", { name: "Edit" }).click();
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}/edit$`));
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
 });
@@ -66,7 +66,7 @@ test.describe("at 1280 px", () => {
     await openNewestCard(page);
     const card = await cardOnPage(page).boundingBox();
 
-    await cardOnPage(page).getByRole("link", { name: "Update" }).click();
+    await cardOnPage(page).getByRole("link", { name: "Edit" }).click();
     const preview = page.getByRole("region", { name: "Preview" });
     await expect(preview).toBeVisible();
     const previewBox = await preview.boundingBox();
@@ -94,9 +94,9 @@ test.describe("at 1280 px", () => {
     ).toBeLessThanOrEqual(1);
 
     const title = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
-    const update = (await cardOnPage(page).getByRole("link", { name: "Update" }).boundingBox())!;
+    const edit = (await cardOnPage(page).getByRole("link", { name: "Edit" }).boundingBox())!;
     expect(
-      Math.abs(title.y + title.height / 2 - (update.y + update.height / 2)),
+      Math.abs(title.y + title.height / 2 - (edit.y + edit.height / 2)),
       "vertical centers",
     ).toBeLessThanOrEqual(1);
   });

@@ -5,7 +5,7 @@ import { lcardQueries } from "@/api/lcards";
 
 import {
   LearningCardDeleteButton,
-  LearningCardUpdateLink,
+  LearningCardEditLink,
 } from "../components/learning-card-actions";
 import { LearningCardDisplay } from "../components/learning-card-display";
 
@@ -44,7 +44,7 @@ export function LearningCardPage({ cardId }: { cardId: string }) {
             titleIsPageHeading
             actions={
               <div className="flex gap-2">
-                <LearningCardUpdateLink card={card} />
+                <LearningCardEditLink card={card} />
                 <LearningCardDeleteButton card={card} onDeleted={handleDeleted} />
               </div>
             }
