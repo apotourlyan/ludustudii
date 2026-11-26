@@ -318,7 +318,7 @@ frontend/
 │   │       └── model/      # plain TypeScript logic: rules, checks, wording, such as the overview's views and the card messages
 │   ├── shared/             # used by every module, knows none of them; only these three folders
 │   │   ├── lib/            # helpers, hooks and rules, such as the wording for the failures every module shares and notifyError
-│   │   ├── components/     # the app's own components every module can use, such as the recent-change mark
+│   │   ├── components/     # the app's own components every module can use, such as the recent-change mark, and ConfirmDeleteButton, how a module deletes something after a confirmation
 │   │   └── ui/             # shadcn's components (see UI components)
 │   ├── api/                # one folder per backend service, its fake in <service>/fake/ (ADR 0030, 0032)
 │   ├── mock/               # the mock mode's start-up and scenarios
@@ -650,10 +650,11 @@ on its own and its markup with given state, without a backend
   | `<name>.tsx` | `<Name>`, the component other code uses: `<NameView {...useName(props)} />` | Through the other two |
 
   A component without behavior stays one file. Today the card form, the
-  delete button, the view switch and the virtualized card list are split;
-  the frame, the preview, the card display, the overview, the list and the
-  grid (whose columns follow the window's width, which is layout), the
-  actions' links, the Markdown and the recent-change mark are not.
+  shared `ConfirmDeleteButton`, the view switch and the virtualized card
+  list are split; the frame, the preview, the card display, the overview,
+  the list and the grid (whose columns follow the window's width, which is
+  layout), the card's actions (whose delete binds `ConfirmDeleteButton` to
+  the card), the Markdown and the recent-change mark are not.
 - **The markup reads named values.** JSX may test a named value
   (`{saveError && …}`), choose between two elements or strings on one named
   value, map a list to one component per item, and call one function in a

@@ -2,14 +2,17 @@ import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOu
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { Link } from "@tanstack/react-router";
 
-import type { LearningCard } from "@/api/lcards";
+import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
+import { ConfirmDeleteButton } from "@/shared/components/confirm-delete-button";
 import { buttonVariants } from "@/shared/ui/button";
 
-import { DeleteLearningCardButton } from "./delete-learning-card-button";
+import { learningCardErrorMessage } from "../model/learning-card-error-message";
 
 // What can be done with a saved card, for the places that show one to
 // compose in their actions slot. The links let the router preload the
-// card's page while the pointer hovers them.
+// card's page while the pointer hovers them. The delete binds the card to
+// the shared ConfirmDeleteButton, whose dialog and delete behave the same
+// for every module.
 //
 // Each action is an icon. Its name is hidden text, so assistive technology
 // and tests find it by name.
@@ -44,5 +47,27 @@ export function UpdateLearningCardLink({ card }: { card: Pick<LearningCard, "id"
       <PencilSimpleIcon />
       <span className="sr-only">Update</span>
     </Link>
+  );
+}
+
+// Deletes the card after the user confirms. onDeleted is called after the
+// card is deleted; the page decides what follows, such as leaving the
+// card's page (ADR 0036).
+export function DeleteLearningCardButton({
+  card,
+  onDeleted,
+}: {
+  card: Pick<LearningCard, "id">;
+  onDeleted?: () => void;
+}) {
+  const deleteCard = useDeleteLearningCard();
+  return (
+    <ConfirmDeleteButton
+      title="Delete this learning card?"
+      description="This action cannot be undone. The card will be permanently removed."
+      onConfirm={() => deleteCard.mutateAsync({ id: card.id })}
+      failureMessage={(error) => learningCardErrorMessage(error, "delete the card")}
+      onDeleted={onDeleted}
+    />
   );
 }

@@ -13,19 +13,21 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { Button } from "@/shared/ui/button";
 
-import type { DeleteLearningCardButtonState } from "./delete-learning-card-button.state";
+import type { ConfirmDeleteButtonState } from "./confirm-delete-button.state";
 
 // The delete button, an icon named "Delete" in hidden text like the other
 // actions, and the dialog that asks to confirm, from what
-// useDeleteLearningCardButton returns. While deleting, both of the
-// dialog's buttons are disabled.
-export function DeleteLearningCardButtonView({
+// useConfirmDeleteButton returns. While deleting, both of the dialog's
+// buttons are disabled.
+export function ConfirmDeleteButtonView({
+  title,
+  description,
   open,
   onOpenChange,
   onConfirm,
   deleting,
   confirmLabel,
-}: DeleteLearningCardButtonState) {
+}: ConfirmDeleteButtonState) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogTrigger render={<Button variant="destructive" size="icon-sm" />}>
@@ -34,10 +36,8 @@ export function DeleteLearningCardButtonView({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete this learning card?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. The card will be permanently removed.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
