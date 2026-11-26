@@ -364,9 +364,9 @@ frontend/
 | --- | --- | --- |
 | `/library/cards?view=list` | `LearningCardsPage` | The cards' titles, newest first, one row each, each with Open, Update and Delete, and a mark on a card created or updated in the last 5 minutes |
 | `/library/cards?view=grid` | `LearningCardsPage` | The same, as a grid of cards of one size |
-| `/library/cards/new` | `NewLearningCardPage` | The form for a new card, with its preview |
+| `/library/cards/new` | `LearningCardNewPage` | The form for a new card, with its preview |
 | `/library/cards/$cardId` | `LearningCardPage` | One card, its title the page's `<h1>`, with Update and Delete |
-| `/library/cards/$cardId/edit` | `EditLearningCardPage` | The form for that card, its preview where `LearningCardPage` shows the card, so opening the editor doesn't move it |
+| `/library/cards/$cardId/edit` | `LearningCardEditPage` | The form for that card, its preview where `LearningCardPage` shows the card, so opening the editor doesn't move it |
 
 The overview, `/library/cards`, shows the cards as a list or a grid,
 switched by the two icon buttons next to its "Add card" link ("List view"
@@ -439,12 +439,12 @@ decides what each kind of file in a module may do:
 
 - **A page** (`pages/<page>.tsx`) exports only its component, and its load
   function lives beside it in `pages/<page>.load.ts`, such as
-  `loadEditLearningCardPage(queryClient, cardId)` in
-  `edit-learning-card-page.load.ts`. The load function fills every query
+  `loadLearningCardEditPage(queryClient, cardId)` in
+  `learning-card-edit-page.load.ts`. The load function fills every query
   the page reads and nothing else, returns no data, and turns a missing
   resource into the router's `notFound()`. A page that reads exactly what
   another reads may call that page's load function from its own
-  (`loadEditLearningCardPage` calls `loadLearningCardPage`). A load file
+  (`loadLearningCardEditPage` calls `loadLearningCardPage`). A load file
   imports only the API layer and the router, never UI, since it is in the
   initial bundle. The page owns the
   screen: its `<h1>`, its width and placement, and what follows a
@@ -829,6 +829,15 @@ disabled states and errors from given props. The pages still import
 | Shared component | The app's own, for every module: `src/shared/components/`. A shadcn component: `src/shared/ui/`, with `npx shadcn@latest add` ([UI components](#ui-components)) | `@/shared/components/<name>` or `@/shared/ui/<name>` |
 | Wording | A failure every module shares: `src/shared/lib/error-message.ts`. Anything about one module's resources: that module's `model/` | `@/shared/lib/error-message`, or a relative path |
 | Module | `src/modules/<module>/` with `index.ts`, `pages/` and `components/` | `@/modules/<module>` |
+
+#### Naming
+
+A file or component name puts its subject first, then the variant, so a
+subject's files sort together: `learning-card-edit-page`,
+`learning-card-form-preview`, and `LearningCardEditPage`,
+`LearningCardDeleteButton`, not `edit-learning-card-page` or
+`DeleteLearningCardButton`. A function keeps its verb in front of the whole
+name (`loadLearningCardEditPage`, `useLearningCardForm`).
 
 ## Development
 

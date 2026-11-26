@@ -6,7 +6,7 @@ import { LearningCardForm } from "../components/learning-card-form";
 
 // Adds a learning card, then shows it on its page. Cancel goes back to the
 // list.
-export function NewLearningCardPage() {
+export function LearningCardNewPage() {
   const navigate = useNavigate();
   const cancelLink = linkOptions({ to: "/library/cards" });
 

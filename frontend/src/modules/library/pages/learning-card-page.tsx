@@ -4,8 +4,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { lcardQueries } from "@/api/lcards";
 
 import {
-  DeleteLearningCardButton,
-  UpdateLearningCardLink,
+  LearningCardDeleteButton,
+  LearningCardUpdateLink,
 } from "../components/learning-card-actions";
 import { LearningCardDisplay } from "../components/learning-card-display";
 
@@ -44,8 +44,8 @@ export function LearningCardPage({ cardId }: { cardId: string }) {
             titleIsPageHeading
             actions={
               <div className="flex gap-2">
-                <UpdateLearningCardLink card={card} />
-                <DeleteLearningCardButton card={card} onDeleted={handleDeleted} />
+                <LearningCardUpdateLink card={card} />
+                <LearningCardDeleteButton card={card} onDeleted={handleDeleted} />
               </div>
             }
           />
