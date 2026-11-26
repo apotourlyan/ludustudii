@@ -1443,7 +1443,8 @@ tooling is kept out of `go.mod`.
 | `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
 | `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
-| `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `frontend-vuln` ([Vulnerability scan](#vulnerability-scan)). |
+| `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `go-tools-vuln` and `frontend-vuln` ([Vulnerability scan](#vulnerability-scan)). |
+| `make go-tools-vuln` | Check each Go tool in `backend/tools/go.mod` for known vulnerabilities with govulncheck ([Vulnerability scan](#vulnerability-scan)). |
 | `make frontend-vuln` | Audit the npm dependencies of `frontend/` and `frontend/tools/` from their lockfiles ([Vulnerability scan](#vulnerability-scan)). |
 | `make test-summary` | Render the test suites' JUnit reports, written only on CI, as Markdown into the job summary ([Test summaries](#test-summaries)). |
 
@@ -1528,12 +1529,22 @@ directive that no longer suppresses anything.
 
 ### Vulnerability scan
 
-`make vuln` runs govulncheck on the backend, then `make frontend-vuln`, which
-runs `npm audit` on the lockfiles of `frontend/` and `frontend/tools/`. Both
-depend on an external vulnerability database, so they stay out of
-`make check` and run on a schedule instead
+`make vuln` runs govulncheck on the backend, then `make go-tools-vuln`, which
+runs govulncheck on each tool in `backend/tools/go.mod`, then
+`make frontend-vuln`, which runs `npm audit` on the lockfiles of `frontend/`
+and `frontend/tools/`. They depend on an external vulnerability database, so
+they stay out of `make check` and run on a schedule instead
 ([ADR 0020](docs/adr/0020-pinned-tooling-and-single-quality-gate.md)).
 `npm audit` reads only the lockfiles, so it doesn't need `node_modules`.
+
+`go-tools-vuln` scans the packages named by the module's `tool` directives, so
+a new tool is scanned without changing the target. It runs govulncheck once per
+tool, because a single run over all of them runs out of memory in the
+devcontainer. It scans every tool and then fails if any scan failed. As for the
+backend, govulncheck fails only when a tool reaches vulnerable code. To fix a
+finding, update the tool, or the module that carries the vulnerable code, with
+`go -C backend/tools get <module>@<fixed version>` and
+`go -C backend/tools mod tidy`, and run the targets that use that tool.
 
 The thresholds follow where the code runs. The client app's production
 dependencies (`npm audit --omit=dev`) ship to every user's browser, so a
@@ -1559,7 +1570,7 @@ GitHub Actions runs the same gate as a developer
 | --- | --- | --- |
 | [`ci.yml`](.github/workflows/ci.yml) | Every push to `main` and every pull request; a newer push to a pull request cancels its older run, while runs on `main` always finish | `make check`, and `make test-e2e` in a second job beside it |
 | [`pr-title.yml`](.github/workflows/pr-title.yml) | Every pull request when it is opened, reopened, pushed to or edited, so fixing the title re-runs it | `make pr-title-check` with the pull request title, which must be `type: summary` within 64 characters |
-| [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln`: govulncheck and `npm audit`, with Go from `backend/go.mod` and Node from `engines.node` (no npm install) |
+| [`vuln.yml`](.github/workflows/vuln.yml) | Daily at 03:17 UTC, or on demand | `make vuln`: govulncheck on the backend and on each Go tool, and `npm audit`, with Go from `backend/go.mod` and Node from `engines.node` (no npm install) |
 
 Both `ci.yml` jobs set up their tools with the same steps, in
 [`.github/actions/setup`](.github/actions/setup/action.yml): Go from

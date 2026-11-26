@@ -469,13 +469,29 @@ fmt-check:
 lint-verify:
 	cd $(BACKEND_DIR) && golangci-lint config verify
 
-.PHONY: vuln frontend-vuln
+.PHONY: vuln go-tools-vuln frontend-vuln
 
-## vuln: Checks backend packages and the client app's npm dependencies for known vulnerabilities
-# Outside check: both depend on an external vulnerability database (ADR 0020).
+## vuln: Checks backend packages, the Go tools and the client app's npm dependencies for known vulnerabilities
+# Outside check: they depend on an external vulnerability database (ADR 0020).
 vuln: $(SPA_EMBED_DIR)/index.html
 	$(GO_TOOL) govulncheck ./...
+	$(MAKE) --no-print-directory go-tools-vuln
 	$(MAKE) --no-print-directory frontend-vuln
+
+## go-tools-vuln: Checks each Go tool in backend/tools/go.mod for known vulnerabilities
+# The tools are the module's tool directives, so a new one is scanned
+# without changing this target. One govulncheck run per tool: a single run
+# over all of them runs out of memory in the devcontainer. Every tool is
+# scanned, and the target fails afterwards if any scan failed.
+go-tools-vuln:
+	@cd $(BACKEND_DIR)/tools && tools=$$(go list tool) && [ -n "$$tools" ] || \
+		{ echo "go-tools-vuln: no tools listed in $(BACKEND_DIR)/tools/go.mod" >&2; exit 1; }; \
+	status=0; \
+	for tool in $$tools; do \
+		echo "==> govulncheck $$tool"; \
+		go tool govulncheck "$$tool" || status=1; \
+	done; \
+	exit $$status
 
 ## frontend-vuln: Audits the npm dependencies of the client app and its generators
 ## ---- Fails on a moderate advisory in what ships to the browser, and on a high one anywhere
