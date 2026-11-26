@@ -47,7 +47,9 @@ test("seeded cards have no mark, in either view", async ({ page }) => {
     await showView(page, view);
     await expect(cardItems(page)).toHaveCount(8);
     await expect(markIcon(cardItems(page))).toHaveCount(0);
-    for (const item of await cardItems(page).all()) await expectNoMark(item);
+    for (const item of await cardItems(page).all()) {
+      await expectNoMark(item);
+    }
   }
 });
 

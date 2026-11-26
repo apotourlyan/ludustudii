@@ -14,7 +14,9 @@ export function NavigationProgress() {
   const [delayed, setDelayed] = useState(false);
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading) {
+      return;
+    }
     const timer = setTimeout(() => setDelayed(true), NAVIGATION_PROGRESS_DELAY_MS);
     return () => {
       clearTimeout(timer);
@@ -22,7 +24,9 @@ export function NavigationProgress() {
     };
   }, [loading]);
 
-  if (!loading || !delayed) return null;
+  if (!loading || !delayed) {
+    return null;
+  }
 
   return (
     <div

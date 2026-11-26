@@ -9,7 +9,9 @@ export function useDocumentTop(ref: RefObject<Element | null>): number {
 
   useLayoutEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const update = () => setTop(element.getBoundingClientRect().top + window.scrollY);
     update();

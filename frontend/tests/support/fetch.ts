@@ -28,7 +28,9 @@ declare global {
 // scripts or page.evaluate.
 export async function interceptFetch(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    if (window.fetchInterceptors) return;
+    if (window.fetchInterceptors) {
+      return;
+    }
     const interceptors: FetchInterceptor[] = [];
     window.fetchInterceptors = interceptors;
     const original = window.fetch.bind(window);
@@ -39,7 +41,9 @@ export async function interceptFetch(page: Page): Promise<void> {
       };
       for (const interceptor of interceptors) {
         const outcome = interceptor(request);
-        if (outcome) return outcome;
+        if (outcome) {
+          return outcome;
+        }
       }
       return original(input, init);
     };

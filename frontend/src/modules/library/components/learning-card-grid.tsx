@@ -25,9 +25,13 @@ function columnQueries(): MediaQueryList[] {
 }
 
 function subscribeToColumns(onChange: () => void): () => void {
-  for (const query of columnQueries()) query.addEventListener("change", onChange);
+  for (const query of columnQueries()) {
+    query.addEventListener("change", onChange);
+  }
   return () => {
-    for (const query of columnQueries()) query.removeEventListener("change", onChange);
+    for (const query of columnQueries()) {
+      query.removeEventListener("change", onChange);
+    }
   };
 }
 

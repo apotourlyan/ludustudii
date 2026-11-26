@@ -22,7 +22,9 @@ export function rowOfItem(
 // The rows to render: `rows`, and `kept` among them in order if it isn't
 // already, so the item that holds the focus stays rendered.
 export function withRow(rows: readonly number[], kept: number | null): number[] {
-  if (kept === null || rows.includes(kept)) return [...rows];
+  if (kept === null || rows.includes(kept)) {
+    return [...rows];
+  }
   return [...rows, kept].toSorted((a, b) => a - b);
 }
 

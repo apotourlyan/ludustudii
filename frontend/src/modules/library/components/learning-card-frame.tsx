@@ -114,7 +114,9 @@ export function LearningCardFrame({
 }
 
 function LabelBar({ section }: { section: LearningCardFrameSection }) {
-  if (section.label === undefined && section.meta === undefined) return null;
+  if (section.label === undefined && section.meta === undefined) {
+    return null;
+  }
   const hasMeta = section.meta !== undefined;
   // The progress bar's width, the count's share of its limit, at most the
   // whole bar; no bar without a progress.
@@ -149,7 +151,9 @@ function LabelBar({ section }: { section: LearningCardFrameSection }) {
 }
 
 function StatusBar({ section }: { section: LearningCardFrameSection }) {
-  if (section.status === undefined) return null;
+  if (section.status === undefined) {
+    return null;
+  }
   const hasMessage = section.status !== null;
 
   return (
