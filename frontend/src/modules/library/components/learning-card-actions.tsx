@@ -19,12 +19,12 @@ import { learningCardErrorMessage } from "../model/learning-card-error-message";
 
 const ACTION = buttonVariants({ variant: "outline", size: "icon-sm" });
 
-// All three, in a row: open, update, delete.
+// All three, in a row: open, edit, delete.
 export function LearningCardActions({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <div className="flex gap-2">
       <LearningCardOpenLink card={card} />
-      <LearningCardUpdateLink card={card} />
+      <LearningCardEditLink card={card} />
       <LearningCardDeleteButton card={card} />
     </div>
   );
@@ -41,11 +41,11 @@ export function LearningCardOpenLink({ card }: { card: Pick<LearningCard, "id"> 
 }
 
 // Opens the card's editor.
-export function LearningCardUpdateLink({ card }: { card: Pick<LearningCard, "id"> }) {
+export function LearningCardEditLink({ card }: { card: Pick<LearningCard, "id"> }) {
   return (
     <Link to="/library/cards/$cardId/edit" params={{ cardId: card.id }} className={ACTION}>
       <PencilSimpleIcon />
-      <span className="sr-only">Update</span>
+      <span className="sr-only">Edit</span>
     </Link>
   );
 }

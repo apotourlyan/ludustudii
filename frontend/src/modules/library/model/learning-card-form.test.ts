@@ -22,7 +22,7 @@ const validationError = (fieldErrors: ApiFieldError[]) =>
 test("words each mode", () => {
   expect(LEARNING_CARD_FORM_TEXT).toEqual({
     create: { action: "create the card", submit: "Create card", submitting: "Creating..." },
-    update: { action: "save your edits", submit: "Update card", submitting: "Updating..." },
+    edit: { action: "save your edits", submit: "Save card", submitting: "Saving..." },
   });
 });
 
@@ -98,7 +98,7 @@ describe("learningCardSaveFailure", () => {
         { field: "title", code: "required" },
         { field: "tags", code: "required" },
       ]),
-      "update",
+      "edit",
     );
 
     expect(failure.fields).toEqual({ title: ["required"] });
@@ -125,7 +125,7 @@ describe("learningCardSaveFailure", () => {
       requestId: "req-1",
     });
 
-    expect(learningCardSaveFailure(missing, "update")).toEqual({
+    expect(learningCardSaveFailure(missing, "edit")).toEqual({
       fields: {},
       notice: "This card doesn't exist. It may have been deleted.",
       log: [],
@@ -134,7 +134,7 @@ describe("learningCardSaveFailure", () => {
 
   test.each([
     { mode: "create", action: "create the card" },
-    { mode: "update", action: "save your edits" },
+    { mode: "edit", action: "save your edits" },
   ] as const)("toasts a server error with the $mode action", ({ mode, action }) => {
     const serverError = new ApiError({
       kind: "http",

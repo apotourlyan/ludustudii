@@ -71,9 +71,9 @@ test("shows the submit label, enabled, and Cancel going where it was told", asyn
 });
 
 test("shows the saving label on a disabled button", async () => {
-  await render({ submitLabel: "Updating...", submitDisabled: true });
+  await render({ submitLabel: "Saving...", submitDisabled: true });
 
-  await expect.element(page.getByRole("button", { name: "Updating..." })).toBeDisabled();
+  await expect.element(page.getByRole("button", { name: "Saving..." })).toBeDisabled();
 });
 
 test("shows a field's errors in its status bar, with the invalid look", async () => {

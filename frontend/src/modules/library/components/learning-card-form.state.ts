@@ -114,7 +114,7 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
   const updateLearningCard = useUpdateLearningCard();
   const target: LearningCardSaveTarget = card
     ? {
-        mode: "update",
+        mode: "edit",
         saving: updateLearningCard.isPending,
         save: async (input) => {
           await updateLearningCard.mutateAsync({ id: card.id, ...input });

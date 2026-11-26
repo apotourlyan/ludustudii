@@ -87,7 +87,7 @@ for (const view of VIEWS) {
       const target = 30;
 
       await cardAt(page, 1).getByRole("link", { name: "Open" }).focus();
-      // Open, Update and Delete on each card before the target.
+      // Open, Edit and Delete on each card before the target.
       for (let step = 0; step < (target - 1) * 3; step++) {
         await page.keyboard.press("Tab");
       }
@@ -99,27 +99,27 @@ for (const view of VIEWS) {
 
     test("a focused card stays focused when the window scrolls away from it", async ({ page }) => {
       await openOverview(page, view, "many");
-      const update = cardAt(page, 3).getByRole("link", { name: "Update" });
-      await update.focus();
+      const edit = cardAt(page, 3).getByRole("link", { name: "Edit" });
+      await edit.focus();
 
       await scrollWindow(page, "bottom");
 
       await expect(cardAt(page, LOADED)).toBeInViewport();
-      await expect(update).toBeFocused();
-      await expect(update).not.toBeInViewport();
+      await expect(edit).toBeFocused();
+      await expect(edit).not.toBeInViewport();
       // The next Tab goes on from it, to its Delete button.
       await page.keyboard.press("Tab");
       await expect(cardAt(page, 3).getByRole("button", { name: "Delete" })).toBeFocused();
     });
 
-    test("Open, Update and Delete work from it", async ({ page }) => {
+    test("Open, Edit and Delete work from it", async ({ page }) => {
       await openOverview(page, view);
 
       await openCardFromList(page, cardAt(page, 1));
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondria");
       await page.goBack();
 
-      await cardAt(page, 2).getByRole("link", { name: "Update" }).click();
+      await cardAt(page, 2).getByRole("link", { name: "Edit" }).click();
       await expect(page.getByLabel("Title")).toHaveValue("日本語: は vs. が");
       await page.goBack();
       await expect(page).toHaveURL(new RegExp(`[?&]view=${view}$`));

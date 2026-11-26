@@ -23,8 +23,8 @@ import {
 
 type FieldCode = ApiFieldError["code"];
 
-// The form creates a card, or updates the one it was given.
-export type LearningCardFormMode = "create" | "update";
+// The form creates a card, or edits the one it was given.
+export type LearningCardFormMode = "create" | "edit";
 
 // The form's wording in each mode: the action, phrased to follow "trying
 // to" in a failure's message, and the submit button's label at rest and
@@ -35,10 +35,10 @@ export const LEARNING_CARD_FORM_TEXT = {
     submit: "Create card",
     submitting: "Creating...",
   },
-  update: {
+  edit: {
     action: "save your edits",
-    submit: "Update card",
-    submitting: "Updating...",
+    submit: "Save card",
+    submitting: "Saving...",
   },
 } as const satisfies Record<
   LearningCardFormMode,

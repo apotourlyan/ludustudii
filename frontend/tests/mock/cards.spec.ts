@@ -58,13 +58,13 @@ test("a created card opens on its page, and Back returns to the list", async ({ 
 
 test("an edited card shows its changes on its page", async ({ page }) => {
   const id = await openNewestCard(page);
-  await page.getByRole("main").getByRole("link", { name: "Update" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Edit" }).click();
 
   const title = page.getByLabel("Title");
   await expect(title).toHaveValue("Mitochondria");
   await title.fill("Mitochondrion");
   await page.getByLabel("Description").fill("The *powerhouse* of the cell.");
-  await page.getByRole("button", { name: "Update card" }).click();
+  await page.getByRole("button", { name: "Save card" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/library/cards/${id}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mitochondrion");
@@ -139,12 +139,12 @@ test("deleting a card deleted elsewhere on its page shows the error", async ({ p
 
 test("saving a card deleted elsewhere keeps the input and shows the error", async ({ page }) => {
   const id = await openNewestCard(page);
-  await page.getByRole("main").getByRole("link", { name: "Update" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Edit" }).click();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
   await deleteCardElsewhere(page, id);
 
   await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update card" }).click();
+  await page.getByRole("button", { name: "Save card" }).click();
 
   await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
   await expect(page.getByLabel("Title")).toHaveValue("Mitochondrion");
@@ -154,7 +154,7 @@ test("saving a card deleted elsewhere keeps the input and shows the error", asyn
 
 test("Cancel on the edit page returns to the card's page, unchanged", async ({ page }) => {
   const id = await openNewestCard(page);
-  await page.getByRole("main").getByRole("link", { name: "Update" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Edit" }).click();
   await page.getByLabel("Title").fill("Not saved");
 
   await page.getByRole("link", { name: "Cancel" }).click();

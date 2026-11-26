@@ -44,17 +44,17 @@ const pages: { name: string; heading: string; open: (page: Page) => Promise<void
       await page.goto("/library/cards");
       await openCardFromList(page, cardAt(page, 1));
       // The URL changes before the card's page replaces the list, whose
-      // items have an Update link each.
-      await expect(page.getByRole("link", { name: "Update" })).toHaveCount(1);
+      // items have an Edit link each.
+      await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(1);
     },
   },
   {
     name: "the edit page",
-    heading: "Update card",
+    heading: "Edit card",
     open: async (page) => {
       await page.goto("/library/cards");
-      await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
-      await expect(page.getByRole("button", { name: "Update card" })).toBeEnabled();
+      await cardAt(page, 1).getByRole("link", { name: "Edit" }).click();
+      await expect(page.getByRole("button", { name: "Save card" })).toBeEnabled();
     },
   },
   ...["", "/edit"].map((suffix) => ({
