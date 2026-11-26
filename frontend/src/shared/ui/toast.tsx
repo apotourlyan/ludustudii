@@ -11,7 +11,7 @@ import * as React from "react";
 import { Button } from "@/shared/ui/button";
 
 // The app's one toast manager: Toaster shows its toasts, and
-// src/shared/notify.ts adds them. Nothing else uses it.
+// src/shared/lib/notify.ts adds them. Nothing else uses it.
 const toast = ToastPrimitive.createToastManager();
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {

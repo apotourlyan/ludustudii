@@ -2,7 +2,7 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { errorMessage } from "@/shared/error-message";
+import { errorMessage } from "@/shared/lib/error-message";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { FieldError } from "@/shared/ui/field";

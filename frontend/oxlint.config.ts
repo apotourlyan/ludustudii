@@ -177,10 +177,10 @@ const sharedKnowsNoModule: RestrictedPattern = {
 // ---- Feedback (ADR 0041)
 
 // Base UI's Toast, through its subpath or its main entry, and the shadcn
-// component built on it. src/shared/notify.ts adds the toasts and src/app/
+// component built on it. src/shared/lib/notify.ts adds the toasts and src/app/
 // mounts the toaster; everything else reports through notifyError.
 const toastMessage =
-  "Report a failure with notifyError from @/shared/notify; only src/shared/ and src/app/ use the toast component (ADR 0041).";
+  "Report a failure with notifyError from @/shared/lib/notify; only src/shared/ and src/app/ use the toast component (ADR 0041).";
 
 const toastEntryOutsideShell: RestrictedPath = {
   name: "@base-ui/react",
@@ -256,8 +256,9 @@ const tanstackInModel: RestrictedPattern = {
   message: modelMessage,
 };
 
+// shadcn's components and the app's own, both under src/shared/.
 const sharedUiInModel: RestrictedPattern = {
-  regex: "^(@|\\.{1,2}(/\\.{1,2})*)/shared/ui(/|$)",
+  regex: "^(@|\\.{1,2}(/\\.{1,2})*)/shared/(ui|components)(/|$)",
   message: modelMessage,
 };
 
@@ -447,7 +448,9 @@ export default defineConfig({
     {
       // src/shared/ is used by every module and knows none of them (ADR
       // 0035): nothing from the shell, the routes or the modules, and from
-      // the API layer only the shared HTTP client's types and errors.
+      // the API layer only the shared HTTP client's types and errors. The
+      // same applies to all three of its folders: lib/ (helpers and hooks),
+      // components/ (the app's own components) and ui/ (shadcn's).
       files: ["src/shared/**"],
       rules: {
         "no-restricted-imports": restrictImports(

@@ -3,8 +3,8 @@ import type { LinkOptions } from "@tanstack/react-router";
 import { useRef, useState, type Dispatch, type SetStateAction, type SubmitEvent } from "react";
 
 import { useCreateLearningCard, useUpdateLearningCard, type LearningCard } from "@/api/lcards";
-import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
-import { useFormFailure } from "@/shared/use-form-failure";
+import { keepServerErrorsOnBlur } from "@/shared/lib/keep-server-errors-on-blur";
+import { useFormFailure } from "@/shared/lib/use-form-failure";
 
 import {
   canonicalize,

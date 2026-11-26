@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { useDeleteLearningCard, type LearningCard } from "@/api/lcards";
-import { useErrorToast } from "@/shared/use-error-toast";
+import { useErrorToast } from "@/shared/lib/use-error-toast";
 
 import { learningCardErrorMessage } from "../model/learning-card-error-message";
 

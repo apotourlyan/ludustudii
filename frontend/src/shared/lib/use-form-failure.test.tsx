@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { render, renderHook } from "vitest-browser-react";
 import { page } from "vitest/browser";
 
-import { keepServerErrorsOnBlur } from "@/shared/keep-server-errors-on-blur";
+import { keepServerErrorsOnBlur } from "@/shared/lib/keep-server-errors-on-blur";
 import { Toaster } from "@/shared/ui/toast";
 
 import { useFormFailure, type FormFailure } from "./use-form-failure";

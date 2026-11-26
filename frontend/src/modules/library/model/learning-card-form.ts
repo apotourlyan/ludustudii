@@ -6,8 +6,8 @@
 // useFormFailure's FormFailure is a type import.
 
 import type { ApiFieldError } from "@/api/http";
-import { placeFieldErrors } from "@/shared/field-errors";
-import type { FormFailure } from "@/shared/use-form-failure";
+import { placeFieldErrors } from "@/shared/lib/field-errors";
+import type { FormFailure } from "@/shared/lib/use-form-failure";
 
 import { learningCardErrorMessage } from "./learning-card-error-message";
 import {

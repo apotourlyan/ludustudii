@@ -1,11 +1,11 @@
 import type { LearningCard } from "@/api/lcards";
+import { RecentChangeMark } from "@/shared/components/recent-change-mark";
+import { recentChange } from "@/shared/lib/recent-change";
 import { Card, CardTitle } from "@/shared/ui/card";
 
-import { recentChange } from "../model/recent-change";
 import { LearningCardActions } from "./learning-card-actions";
 import { LearningCardTitleMarkdown } from "./learning-card-markdown";
 import { LearningCardVirtualList } from "./learning-card-virtual-list";
-import { RecentChangeMark } from "./recent-change-mark";
 
 // The cards as a list of titles, one row each, the title cut to one line,
 // led by the card's mark if it was created or updated recently, as of
