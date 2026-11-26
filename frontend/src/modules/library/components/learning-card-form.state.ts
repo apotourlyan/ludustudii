@@ -20,7 +20,10 @@ import {
   learningCardSaveFailure,
   type LearningCardFormMode,
 } from "../model/learning-card-form";
-import { useLearningCardFormInstance } from "./learning-card-form-hook";
+import {
+  useLearningCardFormInstance,
+  type LearningCardFormInstance,
+} from "./learning-card-form-hook";
 
 export interface LearningCardFormProps {
   card?: LearningCard;
@@ -78,27 +81,21 @@ const FIELD_BINDINGS = {
 // returns it returns the same value each time.
 const NO_CODES: CardFieldCodes = [];
 
-// What useFieldProps reads from the form's state: each field's value and,
-// once the field is mounted, its meta.
-interface CardFieldsSnapshot {
-  values: Readonly<Record<LearningCardField, string>>;
-  fieldMeta: Readonly<Partial<Record<LearningCardField, { errors: CardFieldCodes }>>>;
-}
-
 // The field being edited, if any, as useState holds it.
 type FieldFocus = [LearningCardField | null, Dispatch<SetStateAction<LearningCardField | null>>];
 
-// A field's props for the view: what its bands show, from its value and
-// errors, which it reads from the form's store, and what the view binds it
-// with.
+// A field's props for the view: its value, what its bands show, from its
+// value and errors, which it reads from the form's store, and what the view
+// binds it with.
 function useFieldProps(
-  form: { store: Parameters<typeof useSelector<CardFieldsSnapshot>>[0] },
+  form: LearningCardFormInstance,
   name: LearningCardField,
   [focused, setFocused]: FieldFocus,
 ) {
   const value = useSelector(form.store, (state) => state.values[name]);
   const codes = useSelector(form.store, (state) => state.fieldMeta[name]?.errors ?? NO_CODES);
   return {
+    value,
     ...learningCardFieldDisplay(name, value, codes),
     ...FIELD_BINDINGS[name],
     active: focused === name,
@@ -188,6 +185,9 @@ export function useLearningCardForm({ card, cancelLink, onSaved }: LearningCardF
     onSubmit: handleSubmit,
     title,
     description,
+    // The card as the form's values would save it, following every
+    // keystroke in either field.
+    preview: { title: title.value, description: description.value },
     cancelLink,
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,

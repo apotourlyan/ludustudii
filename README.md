@@ -709,9 +709,8 @@ on its own and its markup with given state, without a backend
   `GridCard`. Form fields are components bound to the form with TanStack
   Form's composition API: `learning-card-form-hook.ts` sets up the card
   form with `createFormHook`. `useLearningCardFormInstance` creates the
-  form, its fields render `LearningCardTextField` through `form.AppField`,
-  and `withLearningCardFormInstance` makes components that take the form,
-  such as `LearningCardFormPreview`. The contexts that bind them are in
+  form, and its fields render `LearningCardTextField` through
+  `form.AppField`. The contexts that bind them are in
   `learning-card-form-context.ts`: the setup imports the field components,
   which read the contexts, so with the contexts in the setup the two would
   import each other.
@@ -763,17 +762,18 @@ export function useLearningCardForm({ card, cancel, onSaved }: LearningCardFormP
   const form = useLearningCardFormInstance({ /* … */ onSubmit: ({ value }) => save(value) });
   // save(): canonicalize, create or update, then onSaved, or reportFailure()
   // with what learningCardSaveFailure(error, mode) decides
-  const title = useFieldProps(form, "title", focus); // label, counter, errors, invalid, active, handlers
+  const title = useFieldProps(form, "title", focus); // value, label, counter, errors, invalid, active, handlers
   const description = useFieldProps(form, "description", focus);
   return {
     form, formRef, onSubmit, cancel, title, description,
+    preview: { title: title.value, description: description.value },
     submitLabel: saving ? text.submitting : text.submit,
     submitDisabled: !canSubmit || saving,
   };
 }
 
 // learning-card-form.view.tsx
-export function LearningCardFormView({ form, title, submitLabel, /* … */ }: LearningCardFormState) {
+export function LearningCardFormView({ form, title, preview, submitLabel, /* … */ }: LearningCardFormState) {
   return (
     <form ref={formRef} className={GRID} onSubmit={onSubmit}>
       <LearningCardFrame
@@ -786,7 +786,7 @@ export function LearningCardFormView({ form, title, submitLabel, /* … */ }: Le
         /* … */
       />
       <Button type="submit" disabled={submitDisabled}>{submitLabel}</Button>
-      <LearningCardFormPreview form={form} className={PREVIEW} />
+      <LearningCardPreview card={preview} className={PREVIEW} />
     </form>
   );
 }

@@ -219,3 +219,16 @@ test("a field is active while it has the focus", async () => {
   await form.act(() => form.result.current.title.onBlur());
   expect(form.result.current.title.active).toBe(false);
 });
+
+test("previews the card as the form's values would save it", async () => {
+  const form = await renderForm();
+  expect(form.result.current.preview).toEqual({ title: "", description: "" });
+
+  await fill(form, "Photosynthesis", "How plants make sugar.");
+
+  expect(form.result.current.preview).toEqual({
+    title: "Photosynthesis",
+    description: "How plants make sugar.",
+  });
+  expect(form.result.current.title.value).toBe("Photosynthesis");
+});

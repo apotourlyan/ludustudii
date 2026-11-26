@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { FieldError, FieldLabel } from "@/shared/ui/field";
 
-import { LearningCardFormPreview } from "./learning-card-form-preview";
 import type { LearningCardFormState } from "./learning-card-form.state";
 import { LearningCardFrame, type LearningCardFrameSection } from "./learning-card-frame";
+import { LearningCardPreview } from "./learning-card-preview";
 
 // From md up, the preview on the left, the editor on the right, and the
 // buttons under the editor. Both frames span the seven band rows as
@@ -50,6 +50,7 @@ export function LearningCardFormView({
   onSubmit,
   title,
   description,
+  preview,
   cancelLink,
   submitLabel,
   submitDisabled,
@@ -102,7 +103,7 @@ export function LearningCardFormView({
         </Button>
       </div>
 
-      <LearningCardFormPreview form={form} className={PREVIEW} />
+      <LearningCardPreview card={preview} className={PREVIEW} />
     </form>
   );
 }
