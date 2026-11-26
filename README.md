@@ -882,7 +882,9 @@ keeps tool dependencies separate from the app's dependency graph. The devcontain
 installs those pinned versions for editor and PATH access. Make targets use
 `go -C backend tool -modfile=tools/go.mod` to select them while running from
 `backend`. From that directory, run `go tool -modfile=tools/go.mod <tool>`, where
-`<tool>` is `air`, `dlv`, `goose`, `stringer` or `govulncheck`.
+`<tool>` is `air`, `dlv`, `goose`, `stringer` or `govulncheck`. The module also
+pins gotestsum, which the backend test targets run on CI only
+([Test summaries](#test-summaries)), so the devcontainer doesn't install it.
 
 To update a tool, run `go -C backend/tools get -tool <package>@<version>`, then
 `go -C backend/tools mod tidy`, and commit both tool module files. Keep the goose
@@ -920,6 +922,8 @@ The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
 `frontend/tools/`, with exact pins and its own lockfile
 ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
+The XML parser of the CI test summary script (`frontend/tools/junit-summary.ts`,
+[Test summaries](#test-summaries)) is pinned there too.
 `make frontend-deps` installs the locked dependencies of both packages.
 
 ### Running without the backend
@@ -1441,6 +1445,7 @@ tooling is kept out of `go.mod`.
 | `make lint-verify` | Validate `backend/.golangci.yml`. |
 | `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `frontend-vuln` ([Vulnerability scan](#vulnerability-scan)). |
 | `make frontend-vuln` | Audit the npm dependencies of `frontend/` and `frontend/tools/` from their lockfiles ([Vulnerability scan](#vulnerability-scan)). |
+| `make test-summary` | Render the test suites' JUnit reports, written only on CI, as Markdown into the job summary ([Test summaries](#test-summaries)). |
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
 `test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
@@ -1575,3 +1580,40 @@ scan by hand, open **Actions → Vulnerability scan → Run workflow**, or run
 `gh workflow run vuln.yml`.
 
 To report a vulnerability, follow [SECURITY.md](SECURITY.md).
+
+#### Test summaries
+
+Each `ci.yml` job's summary, on the run's page, shows its test suites: in the
+`check` job **Vitest**, **Playwright app tests**, **Go unit tests** (and **Go
+unit tests with the apidocs tag**) and **Go integration tests**, and in the `e2e`
+job **Playwright end-to-end tests**. Each section has the numbers of passed,
+failed and skipped tests and the time, as the suite's report records it (for
+Vitest, the sum of its tests' durations rather than the run's), and names the
+failed tests. A suite that didn't run, because an earlier step
+failed, has no section.
+
+The sections come from JUnit XML reports, which the suites write only on CI,
+so local output and files don't change:
+
+| Suite | Written when | Report |
+| --- | --- | --- |
+| Vitest | `CI` is set (GitHub sets it) | `frontend/test-results/junit/vitest.xml` |
+| Playwright | `CI` is set | `frontend/test-results/junit/playwright-<kind>.xml` (`mock` or `e2e`) |
+| Go tests | `GO_JUNIT=1` (the `check` job sets it) | `test-results/junit/go-<target>.xml` (`unit`, `unit-apidocs`, `integration`) |
+
+With `GO_JUNIT=1`, `make test-unit` and `make test-integration` run the tests
+through gotestsum (pinned in `backend/tools/go.mod`), which runs `go test` with
+the same flags and exit code and lists the failed tests' output after the
+package lines. Both folders are ignored by git.
+
+After the tests, even when they failed, each job runs `make test-summary`.
+It renders the reports with `frontend/tools/junit-summary.ts`, which parses
+them with `@xmldom/xmldom` (pinned in `frontend/tools/`, audited by
+`make frontend-vuln`), and appends them to `GITHUB_STEP_SUMMARY`. It skips a
+missing report; a report it can't read gets a section that says so and fails
+the step. Run locally after a run with the reports on, it prints the summary,
+for example:
+
+```sh
+GO_JUNIT=1 make test-unit && make test-summary
+```
