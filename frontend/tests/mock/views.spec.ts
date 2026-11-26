@@ -67,16 +67,16 @@ test("a reload keeps the view", async ({ page }) => {
   await expect(viewButtons(page).grid).toHaveAttribute("aria-pressed", "true");
 });
 
-for (const search of ["?view=table", "?view=", "?view=GRID"]) {
-  test(`an invalid view, ${search}, falls back to the list`, async ({ page }) => {
-    await page.goto(`/library/cards${search}`);
-    await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
+// Which values fall back is learning-cards-view.test.ts's; here, that the
+// URL says so.
+test("an invalid view falls back to the list, in the URL too", async ({ page }) => {
+  await page.goto("/library/cards?view=table");
+  await expect(page).toHaveURL(/\/library\/cards\?view=list$/);
 
-    const { list, grid } = viewButtons(page);
-    await expect(list).toHaveAttribute("aria-pressed", "true");
-    await expect(grid).toHaveAttribute("aria-pressed", "false");
-  });
-}
+  const { list, grid } = viewButtons(page);
+  await expect(list).toHaveAttribute("aria-pressed", "true");
+  await expect(grid).toHaveAttribute("aria-pressed", "false");
+});
 
 test("the redirects from / and /library keep the view", async ({ page }) => {
   for (const path of ["/", "/library"]) {

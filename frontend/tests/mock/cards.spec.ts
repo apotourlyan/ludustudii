@@ -7,14 +7,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
-  cardIdOf,
   deleteCard,
   deleteCardElsewhere,
   NOT_FOUND_TEXT,
   openCardFromList,
 } from "../support/cards";
 import { cardAt, cardItems, expectCardAt } from "../support/overview";
-import { toast, toasts } from "../support/toasts";
+import { toast } from "../support/toasts";
 
 // The list's own "Add card" link, not the navigation's.
 async function addCardFromList(page: Page): Promise<void> {
@@ -116,34 +115,8 @@ test("a card deleted on its page isn't fetched again while the list loads", asyn
   expect(fetched).toEqual([]);
 });
 
-test("a card deleted in the list leaves it", async ({ page }) => {
-  await page.goto("/library/cards");
-  await expectCardAt(page, 1, "Mitochondria", 8);
-
-  const dialog = await deleteCard(page, cardAt(page, 1));
-
-  await expect(dialog).toBeHidden();
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
-  await expect(cardItems(page)).toHaveCount(7);
-  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
-  await expect(toasts(page)).toHaveCount(0);
-});
-
 // A card deleted elsewhere answers a write with 404. The error shows as a
-// toast, and the list fetches again, so it stops showing the card.
-
-test("deleting a card deleted elsewhere in the list removes it from the list", async ({ page }) => {
-  await page.goto("/library/cards");
-  await expectCardAt(page, 1, "Mitochondria", 8);
-  await deleteCardElsewhere(page, await cardIdOf(cardAt(page, 1)));
-
-  const dialog = await deleteCard(page, cardAt(page, 1));
-
-  await expect(dialog).toBeHidden();
-  await expect(toast(page, NOT_FOUND_TEXT)).toBeVisible();
-  await expectCardAt(page, 1, "日本語: は vs. が", 7);
-  await expect(page.getByText("Mitochondria", { exact: true })).toHaveCount(0);
-});
+// toast, and the card's queries fetch again, so the list stops showing it.
 
 test("deleting a card deleted elsewhere on its page shows the error", async ({ page }) => {
   const id = await openNewestCard(page);

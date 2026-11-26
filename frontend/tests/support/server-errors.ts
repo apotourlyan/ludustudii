@@ -47,8 +47,3 @@ export async function failRequests(
     { failing: methods, limit: Number.isFinite(times) ? times : Number.MAX_SAFE_INTEGER },
   );
 }
-
-// How many requests failRequests has failed so far.
-export async function failedRequests(page: Page): Promise<number> {
-  return page.evaluate(() => window.failedRequests ?? 0);
-}

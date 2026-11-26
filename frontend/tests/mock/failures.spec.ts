@@ -1,9 +1,9 @@
-// Failing, slow and unreachable servers.
+// Failing and slow servers. A failure the browser reports offline is a
+// toast, which learning-card-form.test.tsx checks.
 
 import { expect, test } from "@playwright/test";
 
-import { cardAt, cardItems } from "../support/overview";
-import { toast } from "../support/toasts";
+import { cardItems } from "../support/overview";
 
 test("a failing server shows the error page", async ({ page }) => {
   await page.goto("/library/cards?scenario=failing");
@@ -29,18 +29,4 @@ test("a slow server shows the pending page first", async ({ page }) => {
   await expect(pending).toBeVisible();
   await expect(cardItems(page)).toHaveCount(8);
   await expect(pending).toBeHidden();
-});
-
-test("going offline shows the network message on the next request", async ({ page, context }) => {
-  await page.goto("/library/cards");
-  await cardAt(page, 1).getByRole("link", { name: "Update" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Mitochondria");
-
-  await context.setOffline(true);
-  await page.getByLabel("Title").fill("Mitochondrion");
-  await page.getByRole("button", { name: "Update card" }).click();
-
-  await expect(
-    toast(page, "Can't reach the server. Check your connection and try again."),
-  ).toBeVisible();
 });
