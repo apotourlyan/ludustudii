@@ -946,7 +946,7 @@ under its heading, in the order of the table.
 | `make/logs.mk` | `logs-` | The queries on the backend's log |
 | `make/ci.mk` | `ci-` | What only CI runs: `ci-lint-install` (the devcontainer runs it too) and `ci-test-summary` |
 | `make/proj.mk` | none | What spans the areas: `help`, `check`, `build`, `clean`, `dev`, `dev-mock`, `vuln`, `test-e2e` and `versions-check` |
-| `make/etc.mk` | none | The repository's own checks: `pr-title-check`, `pr-title-check-test` and `scripts-lint` |
+| `make/misc.mk` | none | The repository's own checks: `pr-title-check`, `pr-title-check-test` and `scripts-lint` |
 
 A target is named `<area>-<action>[-<variant>]`, such as `be-test-unit` or
 `db-migrate-up`; `logs` is the only target that is its area's name alone.

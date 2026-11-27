@@ -4,7 +4,7 @@ SHELL := /bin/bash
 # The targets live in make/<area>.mk, one file per area, and recipes longer
 # than about five lines, or with control flow, in scripts/<name>.sh (README:
 # Development → Makefile and scripts). A target is named <area>-<action>, with
-# be-, fe-, db-, logs- or ci-; those in proj.mk and etc.mk have no prefix.
+# be-, fe-, db-, logs- or ci-; those in proj.mk and misc.mk have no prefix.
 # This file keeps the variables more than one area uses and the includes, in
 # the order make help lists the areas.
 
@@ -41,4 +41,4 @@ include make/db.mk
 include make/logs.mk
 include make/ci.mk
 include make/proj.mk
-include make/etc.mk
+include make/misc.mk
