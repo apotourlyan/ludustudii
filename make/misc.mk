@@ -1,4 +1,4 @@
-##@ Misc
+##@ Miscellaneous
 # The repository's own checks: pull request titles and the shell scripts.
 
 .PHONY: pr-title-check pr-title-check-test
