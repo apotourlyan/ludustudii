@@ -4,9 +4,9 @@ SHELL := /bin/bash
 # The targets live in make/<area>.mk, one file per area, and recipes longer
 # than about five lines, or with control flow, in scripts/<name>.sh (README:
 # Development → Makefile and scripts). A target is named <area>-<action>, with
-# be-, fe-, api-, db-, logs- or ci-; project-wide targets have no prefix. This
-# file keeps the variables more than one area uses and the includes, in the
-# order make help lists the areas.
+# be-, fe-, db-, logs- or ci-; those in proj.mk and etc.mk have no prefix.
+# This file keeps the variables more than one area uses and the includes, in
+# the order make help lists the areas.
 
 # Shared variables
 FRONTEND_DIR := frontend
@@ -35,10 +35,10 @@ GOLANGCI_LINT_VERSION := v2.15.0
 # Deletes a target whose recipe fails, such as a partly written Scalar bundle.
 .DELETE_ON_ERROR:
 
-include make/backend.mk
-include make/frontend.mk
-include make/api.mk
+include make/be.mk
+include make/fe.mk
 include make/db.mk
 include make/logs.mk
 include make/ci.mk
-include make/project.mk
+include make/proj.mk
+include make/etc.mk

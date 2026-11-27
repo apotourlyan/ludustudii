@@ -101,7 +101,7 @@ Follow the structure in `internal/services/lcards`, using `lcards/create` as
 the reference slice.
 
 1. Spec first: add or extend a file in `backend/apispec/paths/`, reusing
-   `components/` for schemas, parameters and responses. Run `make api-bundle`.
+   `components/` for schemas, parameters and responses. Run `make be-api-bundle`.
 2. Schema changes: `make db-migration-new NAME=<verb_noun>`. Write both `Up` and
    `Down`. Mirror input limits as `CHECK` constraints.
 3. Shared rules, limits and constants go in `<svc>/domain/`.
@@ -155,7 +155,7 @@ Surfaces and startup).
 - Errors reach clients only through the shared error shape in `README.md`
   (Backend → API, error response format and codes). Add any new error code to
   that table and to the spec.
-- Regenerate `internal/infra/apidocs/dist/openapi.json` with `make api-bundle`
+- Regenerate `internal/infra/apidocs/dist/openapi.json` with `make be-api-bundle`
   rather than editing it by hand.
 - Add a new migration when the schema changes. Squashing migrations belonging
   to one feature or editing existing migrations is permitted only after asking

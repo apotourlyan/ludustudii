@@ -940,13 +940,13 @@ under its heading, in the order of the table.
 | File | Prefix | Holds |
 | --- | --- | --- |
 | `Makefile` | | `SHELL`, the variables more than one area uses, among them the golangci-lint pin, and the `include` lines |
-| `make/backend.mk` | `be-` | The Go server: the embedded placeholders, its tests and coverage, `be-build`, lint and formatting, `be-test-tags-check`, `be-tidy-check`, `be-generate-check` and `be-tools-vuln` |
-| `make/frontend.mk` | `fe-` | The client app: `fe-deps`, `fe-api-types`, its checks and tests, `fe-build` and `fe-vuln` |
-| `make/api.mk` | `api-` | The OpenAPI spec: `api-bundle` |
+| `make/be.mk` | `be-` | The Go server: `be-api-bundle` (the OpenAPI spec's bundle), the embedded placeholders, its tests and coverage, `be-build`, lint and formatting, `be-test-tags-check`, `be-tidy-check`, `be-generate-check` and `be-tools-vuln` |
+| `make/fe.mk` | `fe-` | The client app: `fe-deps`, `fe-api-types`, its checks and tests, `fe-build` and `fe-vuln` |
 | `make/db.mk` | `db-` | Migrations and `db-shell` |
 | `make/logs.mk` | `logs-` | The queries on the backend's log |
 | `make/ci.mk` | `ci-` | What only CI runs: `ci-lint-install` (the devcontainer runs it too) and `ci-test-summary` |
-| `make/project.mk` | none | What spans the areas: `help`, `check`, `build`, `clean`, `dev`, `dev-mock`, `vuln`, `test-e2e`, `versions-check`, the pull request title check, `scripts-lint` and `git-diff` |
+| `make/proj.mk` | none | What spans the areas: `help`, `check`, `build`, `clean`, `dev`, `dev-mock`, `vuln`, `test-e2e` and `versions-check` |
+| `make/etc.mk` | none | The repository's own checks: `pr-title-check`, `pr-title-check-test` and `scripts-lint` |
 
 A target is named `<area>-<action>[-<variant>]`, such as `be-test-unit` or
 `db-migrate-up`; `logs` is the only target that is its area's name alone.
@@ -1435,7 +1435,7 @@ The spec is split across `backend/apispec/openapi.yml`, `paths/` and
 `components/`. The reference page serves a single bundled copy at
 `backend/internal/infra/apidocs/dist/openapi.json`, which is committed.
 
-- `make api-bundle` regenerates the bundle when a spec file changed. Air runs
+- `make be-api-bundle` regenerates the bundle when a spec file changed. Air runs
   it on every rebuild during `make dev`.
 - A unit test fails if the committed bundle is stale.
 - `make fe-api-types` generates the client app's types,

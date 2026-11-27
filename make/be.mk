@@ -1,9 +1,11 @@
 ##@ Backend
-# The Go server: its embedded placeholders, tests, build, lint, formatting,
-# repository checks and the Go tools' vulnerability scan.
+# The Go server: the OpenAPI spec's bundle, its embedded placeholders, tests,
+# build, lint, formatting, repository checks and the Go tools' vulnerability
+# scan.
 
 BINARY_NAME := ludustudii
 SCALAR_SRC := $(FRONTEND_DIR)/node_modules/@scalar/api-reference/dist/browser/standalone.js
+SPEC_SRC := $(shell find backend/apispec -name '*.yml')
 MAIN_REL_DIR := ./cmd/server/api
 # API_DOCS=1 builds the binary with the API reference; any other value omits it.
 API_DOCS_TAGS := $(if $(filter 1,$(API_DOCS)),-tags=apidocs)
@@ -20,6 +22,16 @@ $(SPA_EMBED_DIR)/index.html:
 # bytes and their ETag only change with the bundle itself.
 $(SCALAR_EMBED): $(wildcard $(SCALAR_SRC))
 	@if [ -f $(SCALAR_SRC) ]; then gzip -9nc $(SCALAR_SRC) > $@; fi
+
+.PHONY: be-api-bundle
+
+## be-api-bundle: Regenerates the bundled OpenAPI spec the API reference serves, if a spec file changed
+be-api-bundle: $(SPEC_BUNDLE)
+
+# bundlespec writes the file only once the spec bundles, so a failed run leaves
+# it unchanged and .DELETE_ON_ERROR keeps it.
+$(SPEC_BUNDLE): $(SPEC_SRC)
+	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
 be-test-unit be-test-integration: $(SPA_EMBED_DIR)/index.html
 be-test-unit: $(SCALAR_EMBED)
