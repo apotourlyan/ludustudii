@@ -1,7 +1,7 @@
 {
   // The browser tests and their configs (ADR 0034). They run in Node, and
   // their page.evaluate callbacks in the browser, so both Node's and the
-  // DOM's types apply. Checked by `make frontend-typecheck`.
+  // DOM's types apply. Checked by `make fe-typecheck`.
   "compilerOptions": {
     "target": "ES2025",
     "lib": ["ES2025", "DOM"],

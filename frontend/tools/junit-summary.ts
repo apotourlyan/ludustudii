@@ -1,6 +1,6 @@
 // Renders JUnit XML reports as Markdown for a CI job summary, one section
 // per suite: passed, failed, skipped and time, and the failed tests by name.
-// `make test-summary` runs it; Node runs it by stripping its types, so it
+// `make ci-test-summary` runs it; Node runs it by stripping its types, so it
 // may use only syntax that strips.
 //
 // Usage: node junit-summary.ts <title>=<report.xml>...

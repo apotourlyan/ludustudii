@@ -22,7 +22,7 @@
         // Format on save with the pinned oxfmt in frontend/node_modules
         // (ADR 0033), only for languages that occur nowhere but the client
         // app: JSON and HTML elsewhere in the repository aren't oxfmt's to
-        // format, so the client app's are left to 'make frontend-fmt'.
+        // format, so the client app's are left to 'make fe-fmt'.
         "[javascript][javascriptreact][typescript][typescriptreact][css]": {
           "editor.defaultFormatter": "oxc.oxc-vscode",
           "editor.formatOnSave": true
@@ -31,7 +31,7 @@
         // /workspace and would otherwise reject the file as a nested config
         // (`options.typeAware` is root-only) and fall back to the defaults.
         // The path resolves against the workspace folder; its override
-        // globs resolve against the file, as with 'make frontend-lint'.
+        // globs resolve against the file, as with 'make fe-lint'.
         "oxc.configPath": "frontend/oxlint.config.ts",
         // Oxlint looks for tsgolint from its working directory, /workspace
         // for the language server, so type-aware rules wouldn't start. The

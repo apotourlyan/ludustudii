@@ -19,7 +19,7 @@ var docsFS embed.FS
 
 // ErrBuiltWithoutDocs reports that the binary was built without the apidocs
 // tag, so it cannot serve the API reference.
-var ErrBuiltWithoutDocs = errors.New("api reference not built in: build with -tags=apidocs (make build-backend API_DOCS=1)")
+var ErrBuiltWithoutDocs = errors.New("api reference not built in: build with -tags=apidocs (make be-build API_DOCS=1)")
 
 // ErrScriptNotEmbedded reports that the binary was built with the apidocs tag
 // but before the frontend dependencies were installed, so it has no Scalar

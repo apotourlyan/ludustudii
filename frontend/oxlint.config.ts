@@ -1,4 +1,4 @@
-// ADR 0033, written in TypeScript by ADR 0037. `make frontend-lint` runs
+// ADR 0033, written in TypeScript by ADR 0037. `make fe-lint` runs
 // Oxlint with this file; the options below apply in the editor too.
 import { defineConfig, type DummyRuleMap } from "oxlint";
 

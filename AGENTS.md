@@ -14,8 +14,8 @@ backend source paths and `PKG` values below are relative to `backend/`.
 - CI runs `make check` on every push and pull request (`.github/workflows/ci.yml`).
   A failing CI run means the change isn't done.
 - While iterating, use focused tests, for example:
-  `make test-unit PKG=./internal/services/lcards/... RUN='TestHandler_Handle'`.
-  Use the same `PKG` and `RUN` options with `test-integration`.
+  `make be-test-unit PKG=./internal/services/lcards/... RUN='TestHandler_Handle'`.
+  Use the same `PKG` and `RUN` options with `be-test-integration`.
 - Keep the OpenAPI spec, code and tests together in the same change.
 
 ## Git workflow
@@ -101,8 +101,8 @@ Follow the structure in `internal/services/lcards`, using `lcards/create` as
 the reference slice.
 
 1. Spec first: add or extend a file in `backend/apispec/paths/`, reusing
-   `components/` for schemas, parameters and responses. Run `make spec-bundle`.
-2. Schema changes: `make migrate-create NAME=<verb_noun>`. Write both `Up` and
+   `components/` for schemas, parameters and responses. Run `make be-api-bundle`.
+2. Schema changes: `make db-migration-new NAME=<verb_noun>`. Write both `Up` and
    `Down`. Mirror input limits as `CHECK` constraints.
 3. Shared rules, limits and constants go in `<svc>/domain/`.
 4. One subpackage per endpoint with `handler.go` and `store.go`. The handler
@@ -125,12 +125,12 @@ the reference slice.
    - A package with integration tests needs `TestMain` calling `testkit.Run`.
    - When changing validation or normalization rules, extend the domain unit
      tests and sanitizer/validator fuzz contracts in `<svc>/contract/`.
-7. Client app: if it calls the endpoint, run `make api-types`, then add or
+7. Client app: if it calls the endpoint, run `make fe-api-types`, then add or
    update the handler and store rules in `frontend/src/api/<svc>/fake/`,
    with only what the client app's flows depend on
    ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md)). This can
    follow step 1, so UI work can start before the server side exists.
-   `make frontend-typecheck` fails when a fake handler no longer matches
+   `make fe-typecheck` fails when a fake handler no longer matches
    the spec; behavior mismatches need checking by hand.
 
 ## Composing the server
@@ -155,7 +155,7 @@ Surfaces and startup).
 - Errors reach clients only through the shared error shape in `README.md`
   (Backend → API, error response format and codes). Add any new error code to
   that table and to the spec.
-- Regenerate `internal/infra/apidocs/dist/openapi.json` with `make spec-bundle`
+- Regenerate `internal/infra/apidocs/dist/openapi.json` with `make be-api-bundle`
   rather than editing it by hand.
 - Add a new migration when the schema changes. Squashing migrations belonging
   to one feature or editing existing migrations is permitted only after asking

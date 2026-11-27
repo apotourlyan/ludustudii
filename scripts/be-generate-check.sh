@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fails if go generate changes tracked backend files (make generate-check). It
+# Fails if go generate changes tracked backend files (make be-generate-check). It
 # compares checksums of every tracked file under BACKEND_DIR before and after,
 # so edits made before the run don't count unless generation changes them. The
 # regenerated files stay on disk for review.
@@ -19,4 +19,4 @@ snap() {
 before=$(snap) || exit 1
 go generate ./... || exit 1
 [ "$before" = "$(snap)" ] ||
-	{ echo "generate-check: generated files are stale; commit the regenerated output"; exit 1; }
+	{ echo "be-generate-check: generated files are stale; commit the regenerated output"; exit 1; }

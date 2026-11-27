@@ -324,7 +324,7 @@ frontend/
 │   ├── mock/               # the mock mode's start-up and scenarios
 │   ├── test/               # what the unit and component tests share: the fake backend in the test page, render helpers
 │   └── styles/             # Tailwind theme and the ejected shadcn CSS
-├── tests/                  # Playwright's browser tests: mock/, e2e/ and shared support/
+├── tests/                  # Playwright's browser tests: integration/, e2e/ and shared support/
 └── tools/                  # the API type generator, with its own pinned TypeScript 5
 ```
 
@@ -466,7 +466,7 @@ decides what each kind of file in a module may do:
   router runs a page's loader again for a navigation that only changes its
   search params (a "stay") only when it goes to the very same URL, so
   switching views never waits for a refetch or fails on one
-  (`tests/mock/views.spec.ts` checks it). Entering the page runs the loader as on every route
+  (`tests/integration/views.spec.ts` checks it). Entering the page runs the loader as on every route
   ([ADR 0030](docs/adr/0030-server-state-owned-by-tanstack-query.md)).
 - **A component** takes data as props and owns only UI state. It may call
   a mutation hook for the interaction it owns (a delete button and its
@@ -550,7 +550,7 @@ decides how the client app reports outcomes and waits.
   toasts are Base UI's, through shadcn's `toast`, mounted once in
   `src/app/app.tsx`; nothing else uses them ([Boundaries](#boundaries)).
   They sit at the bottom left, clear of every page's controls at 1280×720
-  (`tests/mock/toast-position.spec.ts`), and across the bottom below `sm`.
+  (`tests/integration/toast-position.spec.ts`), and across the bottom below `sm`.
 - **A confirmation dialog closes when its request settles**; a failure
   becomes a toast, which outlives the dialog and its row.
 - **No success toasts while the result is visible**: a save opens the
@@ -570,7 +570,7 @@ decides how the client app reports outcomes and waits.
 
 ### Boundaries
 
-`make frontend-lint` enforces them with `no-restricted-imports` overrides in
+`make fe-lint` enforces them with `no-restricted-imports` overrides in
 `frontend/oxlint.config.ts` ([Linting](#linting)):
 
 - Modules don't import each other, `src/app/` or `src/routes/`. They connect
@@ -633,7 +633,7 @@ decides how the client app reports outcomes and waits.
 amended by [ADR 0044](docs/adr/0044-named-values-in-components.md),
 decides how a component is built inside, so that its logic can be tested
 on its own and its markup with given state, without a backend
-([Unit and component tests](#unit-and-component-tests)).
+([Frontend unit tests](#frontend-unit-tests)).
 
 - **Rules and decisions are plain functions in the module's `model/`**,
   or in `src/shared/lib/` when every module's:
@@ -861,8 +861,8 @@ it they would stay as zombies until the container stops.
 Open the repository in the devcontainer, then:
 
 ```sh
-make migrate-up   # create the schema (the server does not migrate on startup)
-make dev          # Go backend with Air live reload + Vite dev server
+make db-migrate-up   # create the schema (the server does not migrate on startup)
+make dev             # Go backend with Air live reload + Vite dev server
 ```
 
 | URL | What |
@@ -872,7 +872,7 @@ make dev          # Go backend with Air live reload + Vite dev server
 
 On a fresh checkout, `make dev` embeds a placeholder page in the backend; use
 port 5173 for the client app. To serve a real embedded client build on port
-8080, run `make build-frontend` and restart `make dev`.
+8080, run `make fe-build` and restart `make dev`.
 
 Run `make` or `make help` to list every target.
 
@@ -901,28 +901,28 @@ Each tool version has one source, which the devcontainer and CI both read:
 | Tool | Source | Kept in sync by |
 | --- | --- | --- |
 | Go | `go` line in `backend/go.mod` | `make versions-check` fails when the devcontainer's `golang:` image tag or `backend/tools/go.mod` disagrees |
-| golangci-lint | `GOLANGCI_LINT_VERSION` in `make/ci.mk` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
+| golangci-lint | `GOLANGCI_LINT_VERSION` in the root `Makefile` | `make ci-lint-install` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
 | Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
-| oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
+| oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make fe-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 | Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
-| Playwright (`@playwright/test`) and its Chromium | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; the browser build is the one that version expects | `make frontend-deps` and the devcontainer install both; CI caches the browser keyed by the locked version |
-| Vitest (`vitest`, `@vitest/browser-playwright`, `vitest-browser-react`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; browser mode drives the `playwright` that `@playwright/test` brings, so it uses the same Chromium | `make frontend-deps` installs them, as does the devcontainer |
+| Playwright (`@playwright/test`) and its Chromium | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; the browser build is the one that version expects | `make fe-deps` and the devcontainer install both; CI caches the browser keyed by the locked version |
+| Vitest (`vitest`, `@vitest/browser-playwright`, `vitest-browser-react`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json`; browser mode drives the `playwright` that `@playwright/test` brings, so it uses the same Chromium | `make fe-deps` installs them, as does the devcontainer |
 
 To upgrade Go, change all three places in one commit. To upgrade the linter,
-change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
+change `GOLANGCI_LINT_VERSION` and run `make ci-lint-install`. To upgrade
 Node, change `engines.node` and the devcontainer's node feature in one commit,
 then rebuild the devcontainer. To upgrade ShellCheck, which can add checks,
 update `github.com/wasilibs/go-shellcheck` like any other tool and fix what
 `make scripts-lint` reports in the same change. To upgrade oxfmt, which can change formatting,
-change its pin, run `npm install` in `frontend/` and `make frontend-fmt`, and
+change its pin, run `npm install` in `frontend/` and `make fe-fmt`, and
 commit the reformat on its own. To upgrade Oxlint, which can add rules, change
 the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
-`frontend/` and `make frontend-lint`, and fix or configure what it reports in
+`frontend/` and `make fe-lint`, and fix or configure what it reports in
 the same change. To upgrade Playwright, change its pin, run `npm install` and
-`make frontend-deps` (which downloads the new browser once), and run both kinds
-of [browser test](#browser-tests) and `make frontend-unit`. To upgrade Vitest,
+`make fe-deps` (which downloads the new browser once), and run both kinds
+of [browser test](#frontend-integration-and-end-to-end-tests) and `make fe-test-unit`. To upgrade Vitest,
 change the pins of `vitest` and `@vitest/browser-playwright` together (they
-release in lockstep), run `npm install` and `make frontend-unit`.
+release in lockstep), run `npm install` and `make fe-test-unit`.
 
 The API type generator (`openapi-typescript`) needs TypeScript 5's JavaScript
 API, while the client app uses TypeScript 7, so it lives in its own package,
@@ -930,21 +930,28 @@ API, while the client app uses TypeScript 7, so it lives in its own package,
 ([ADR 0031](docs/adr/0031-generated-api-types-and-typed-fetch-client.md)).
 The XML parser of the CI test summary script (`frontend/tools/junit-summary.ts`,
 [Test summaries](#test-summaries)) is pinned there too.
-`make frontend-deps` installs the locked dependencies of both packages.
+`make fe-deps` installs the locked dependencies of both packages.
 
 ### Makefile and scripts
 
 The Makefile is split by area. `make help` lists the targets of each file
-under its heading.
+under its heading, in the order of the table.
 
-| File | Holds |
-| --- | --- |
-| `Makefile` | `SHELL`, the variables more than one area uses, `help`, `check` and the `include` lines |
-| `make/backend.mk` | The Go server: the embedded placeholders, `spec-bundle`, the backend tests and `coverage`, `build`, `build-backend` and `clean`, lint and formatting, `test-tags-check`, `tidy-check` and `generate-check` |
-| `make/frontend.mk` | The client app: `frontend-deps`, `api-types`, its checks and tests, and `build-frontend` |
-| `make/db.mk` | Migrations and `psql` |
-| `make/dev.mk` | `dev`, `dev-mock`, the `logs` targets and `git-diff` |
-| `make/ci.mk` | `versions-check`, `install-golangci-lint` and its pin, the pull request title check, `scripts-lint`, the vulnerability scan, `test-e2e` and `test-summary` |
+| File | Prefix | Holds |
+| --- | --- | --- |
+| `Makefile` | | `SHELL`, the variables more than one area uses, among them the golangci-lint pin, and the `include` lines |
+| `make/be.mk` | `be-` | The Go server: `be-api-bundle` (the OpenAPI spec's bundle), the embedded placeholders, its tests and coverage, `be-build`, lint and formatting, `be-test-tags-check`, `be-tidy-check`, `be-generate-check` and `be-tools-vuln` |
+| `make/fe.mk` | `fe-` | The client app: `fe-deps`, `fe-api-types`, its checks and tests, `fe-build` and `fe-vuln` |
+| `make/db.mk` | `db-` | Migrations and `db-shell` |
+| `make/logs.mk` | `logs-` | The queries on the backend's log |
+| `make/ci.mk` | `ci-` | What only CI runs: `ci-lint-install` (the devcontainer runs it too) and `ci-test-summary` |
+| `make/proj.mk` | none | What spans the areas: `help`, `check`, `build`, `clean`, `dev`, `dev-mock`, `vuln`, `test-e2e` and `versions-check` |
+| `make/misc.mk` | none | The repository's own checks: `pr-title-check`, `pr-title-check-test` and `scripts-lint` |
+
+A target is named `<area>-<action>[-<variant>]`, such as `be-test-unit` or
+`db-migrate-up`; `logs` is the only target that is its area's name alone.
+A target that only verifies, and fails when something is wrong, ends in
+`-check`. `be-test` and `fe-test` run a side's unit and integration tests.
 
 A target goes in its area's file, under a `## name: description` line that
 `make help` prints, with `## ---- ` lines for usage notes. A variable that
@@ -957,14 +964,14 @@ one with control flow (`if`, `case`, loops, functions or traps), moves to
 `scripts/<target>.sh`, and the target calls it. A one-line guard such as
 `[ -d … ] || { echo …; exit 1; }` doesn't count, and neither does a recipe that
 only runs other targets in order, such as `check` or `build`. A script can
-serve targets that share its logic: `scripts/go-test.sh` runs both
-`test-unit` and `test-integration`. Each script:
+serve targets that share its logic: `scripts/be-test.sh` runs both
+`be-test-unit` and `be-test-integration`. Each script:
 
 - is bash, executable, and starts with `set -euo pipefail`;
 - opens with a comment that says what it does and which arguments and
   environment variables it reads;
 - gets every Make variable it needs on the line that calls it, for example
-  `@BACKEND_DIR='$(BACKEND_DIR)' scripts/test-tags-check.sh`, and doesn't
+  `@BACKEND_DIR='$(BACKEND_DIR)' scripts/be-test-tags-check.sh`, and doesn't
   re-derive one. Free-form options such as `ARGS` follow the script unquoted,
   so the shell splits them as it would in a recipe;
 - runs other targets through `$MAKE`, which the target sets to
@@ -1043,7 +1050,7 @@ npx shadcn@latest add <component>
 
 The components use [Phosphor](https://phosphoricons.com) icons. The CLI
 imports them from the package's main entry, `@phosphor-icons/react`, which
-`make frontend-lint` rejects. Import each icon from its own module instead,
+`make fe-lint` rejects. Import each icon from its own module instead,
 as Phosphor recommends:
 
 ```tsx
@@ -1077,7 +1084,7 @@ the same change. From `frontend/`:
    the `./shadcn.css` import.
 4. Run `git checkout package.json package-lock.json` and `npm ci`: the install
    in step 2 can also move unrelated locked versions.
-5. Run `make frontend-fmt`, then `make frontend-test`, and review the diff of
+5. Run `make fe-fmt`, then `make fe-test-integration`, and review the diff of
    `shadcn.css`.
 
 ### GitHub CLI in the devcontainer
@@ -1147,38 +1154,52 @@ root, with `DB_CONNECTION` set:
 
 | Command | Purpose |
 | --- | --- |
-| `make migrate-create NAME=add_users` | Create a new SQL migration |
-| `make migrate-up` | Apply all pending migrations |
-| `make migrate-down` | Roll back the latest migration |
-| `make migrate-status` | Show the status of all migrations |
-| `make psql` | Open a `psql` session on `DB_CONNECTION` |
+| `make db-migration-new NAME=add_users` | Create a new SQL migration |
+| `make db-migrate-up` | Apply all pending migrations |
+| `make db-migrate-down` | Roll back the latest migration |
+| `make db-migrate-status` | Show the status of all migrations |
+| `make db-shell` | Open a `psql` session on `DB_CONNECTION` |
 
 See `backend/migrations/goose.md` for the full goose command reference.
 
 ### Testing
 
+Both sides have unit and integration tests, and end-to-end tests run the two
+together:
+
+| Suite | Backend | Frontend |
+| --- | --- | --- |
+| Unit | `make be-test-unit`: Go tests with the `unit` tag, no database | `make fe-test-unit`: Vitest, functions in Node and components in Chromium ([Frontend unit tests](#frontend-unit-tests)) |
+| Integration | `make be-test-integration`: Go tests with the `integration` tag, against PostgreSQL | `make fe-test-integration`: Playwright, the client app against the fake backend ([Frontend integration and end-to-end tests](#frontend-integration-and-end-to-end-tests)) |
+| End-to-end | `make test-e2e`: Playwright, the built binary on a database made for the run ([Frontend integration and end-to-end tests](#frontend-integration-and-end-to-end-tests)) | |
+
+`make be-test` and `make fe-test` run a side's unit and integration tests.
+`make check` runs all four; CI runs `make test-e2e` in a job of its own.
+
+#### Backend tests
+
 Unit tests use `<name>_test.go`; integration tests use
 `<name>_integration_test.go`. Service API tests keep `api_test.go` as the
 exception. Filenames identify the scope; retain the `unit` and `integration`
-build tags to select which suite runs. `make test-tags-check` (part of
+build tags to select which suite runs. `make be-test-tags-check` (part of
 `make check`) fails when a test file's name and build tag disagree.
 
 Tests are split by build tag:
 
 | Command | Tag | Scope |
 | --- | --- | --- |
-| `make test-unit` | `unit` | Handlers, validation, kit, spec, fuzz contracts, with `-race`. No database. |
-| `make test-integration` | `integration` | Stores and API tests against real PostgreSQL, with `-race` |
-| `make test` | both | Everything |
-| `make coverage` | `unit,integration,apidocs` | All backend tests with `-race`; writes `backend/coverage/coverage.out` and `backend/coverage/coverage.html`. Requires `DB_TEST_CONNECTION`. |
+| `make be-test-unit` | `unit` | Handlers, validation, kit, spec, fuzz contracts, with `-race`. No database. |
+| `make be-test-integration` | `integration` | Stores and API tests against real PostgreSQL, with `-race` |
+| `make be-test` | both | Everything |
+| `make be-coverage` | `unit,integration,apidocs` | All backend tests with `-race`; writes `backend/coverage/coverage.out` and `backend/coverage/coverage.html`. Requires `DB_TEST_CONNECTION`. |
 
 Both test targets accept `PKG` (default `./...`, relative to `backend`) and
 `RUN` (a Go test name regex, default all tests). They use `-race`, `-count=1` and
 `-shuffle=on` to detect races and dependencies on test order.
 
 ```sh
-make test-integration PKG=./internal/services/lcards/... RUN=TestCreate
-make test-unit PKG=./internal/services/lcards/create RUN='Test.*'
+make be-test-integration PKG=./internal/services/lcards/... RUN=TestCreate
+make be-test-unit PKG=./internal/services/lcards/create RUN='Test.*'
 ```
 
 The extra unit-test run with the `apidocs` tag runs only when `PKG` includes
@@ -1220,7 +1241,7 @@ Every response received through `testkit.Do` is validated against the OpenAPI
 spec (status, headers and body schema), so the implementation and the spec
 can't drift apart unnoticed.
 
-#### Unit and component tests
+#### Frontend unit tests
 
 [Vitest](https://vitest.dev) runs the client app's unit and component tests
 ([ADR 0043](docs/adr/0043-unit-and-component-tests-with-vitest.md)).
@@ -1231,29 +1252,29 @@ file it tests, and its name decides where it runs:
 | File | Vitest project | Runs in | For |
 | --- | --- | --- | --- |
 | `<name>.test.ts` | `unit` | Node, without a DOM | Plain functions: a module's `model/`, the logic in `src/shared/lib/` |
-| `<name>.test.tsx` | `browser` | Chromium's headless shell, through Playwright, the one `make frontend-deps` installs | State hooks, rendered with `renderHook`, and views, rendered with `render`, both from `vitest-browser-react` |
+| `<name>.test.tsx` | `browser` | Chromium's headless shell, through Playwright, the one `make fe-deps` installs | State hooks, rendered with `renderHook`, and views, rendered with `render`, both from `vitest-browser-react` |
 
 The client app's test layers, lowest first:
 
-| Layer | Covers | Doesn't cover |
-| --- | --- | --- |
-| `model/` tests | Every rule and its edge cases | Rendering |
-| State hook tests | Workflows: what a submit or delete does on success and failure, the values the view gets | Markup |
-| View tests | Each state the view can show, from given props: labels, disabled controls, errors, empty states | Data, navigation |
-| Playwright mock ([Browser tests](#browser-tests)) | Flows across pages: navigation, history, scroll restoration, virtualization, layout | Single rules and states |
-| Playwright e2e | Success paths against the real backend | Edge cases |
+| Layer | Suite | Covers | Doesn't cover |
+| --- | --- | --- | --- |
+| `model/` tests | Unit (Vitest, Node) | Every rule and its edge cases | Rendering |
+| State hook tests | Unit (Vitest, Chromium) | Workflows: what a submit or delete does on success and failure, the values the view gets | Markup |
+| View tests | Unit (Vitest, Chromium) | Each state the view can show, from given props: labels, disabled controls, errors, empty states | Data, navigation |
+| Flow tests | Integration (Playwright, fake backend) | Flows across pages: navigation, history, scroll restoration, virtualization, layout | Single rules and states |
+| Success paths | End-to-end (Playwright, real backend) | Success paths against the real backend | Edge cases |
 
 A check belongs to the lowest layer that can make it: a field's message for
 one code is a `model/` test, not a page, a form and a submit in Playwright.
 
 ```sh
-make frontend-unit                                              # every test, as make check runs them
-make frontend-unit ARGS='src/shared/lib/field-errors.test.ts'   # one file (or a folder)
-make frontend-unit ARGS='--project unit -t canonicalize'        # Node tests whose name matches
+make fe-test-unit                                              # every test, as make check runs them
+make fe-test-unit ARGS='src/shared/lib/field-errors.test.ts'   # one file (or a folder)
+make fe-test-unit ARGS='--project unit -t canonicalize'        # Node tests whose name matches
 cd frontend && npx vitest                                       # watch mode: reruns what a change affects
 ```
 
-`make frontend-unit` fails on a `test.only` left behind. A failed browser
+`make fe-test-unit` fails on a `test.only` left behind. A failed browser
 test leaves a screenshot in `frontend/.vitest/attachments/`.
 
 **Browser tests run against the fake backend**
@@ -1291,7 +1312,7 @@ cards, takes about 0.8 s: React shows suspended content after 300 ms, as in
 the app, and the locator retries on a backoff. A view test with given props
 takes milliseconds.
 
-#### Browser tests
+#### Frontend integration and end-to-end tests
 
 [Playwright](https://playwright.dev) drives the client app in Chromium
 ([ADR 0034](docs/adr/0034-browser-tests-with-playwright.md)). There are two
@@ -1300,19 +1321,20 @@ project:
 
 | Command | Tests | Runs against | Covers | Runs in |
 | --- | --- | --- | --- | --- |
-| `make frontend-test` | `frontend/tests/mock/` | The client app in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database. On Vite's dev server, or on a build of the mock mode with `MOCK_BUILD=1`, as CI runs it | Flows across pages and what only the whole app shows: create, edit, delete and cancel and where each ends, Back after a create or a delete, a card deleted or changed elsewhere, the view in the URL and the history, the overview's virtualization (rendering only what is near the window, tabbing through the actions, Back to the same position), routing and not-found pages, the error and pending pages, the navigation's progress bar, one heading and one main landmark per page, and layout at a viewport size (the grid's columns, cut titles, the editor and its preview, where a toast sits) | `make check` |
+| `make fe-test-integration` | `frontend/tests/integration/` | The client app in the mock mode, port 5183, with the [fake backend](#running-without-the-backend); no Go server or database. On Vite's dev server, or on a build of the mock mode with `MOCK_BUILD=1`, as CI runs it | Flows across pages and what only the whole app shows: create, edit, delete and cancel and where each ends, Back after a create or a delete, a card deleted or changed elsewhere, the view in the URL and the history, the overview's virtualization (rendering only what is near the window, tabbing through the actions, Back to the same position), routing and not-found pages, the error and pending pages, the navigation's progress bar, one heading and one main landmark per page, and layout at a viewport size (the grid's columns, cut titles, the editor and its preview, where a toast sits) | `make check` |
 | `make test-e2e` | `frontend/tests/e2e/` | The built binary with the client app embedded, port 8183, on a database made for the run | Success paths through the real API and database: create a card and land on its page, find it in the list, edit it and land on its page, find it in the grid and open it, delete it on its page; open a card's page and its editor by URL; a nonexistent card | Its own CI job |
 
 Both targets pass `ARGS` on to Playwright, for example
-`make frontend-test ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
+`make fe-test-integration ARGS='--repeat-each=5'` or `make test-e2e ARGS='-g URL'`.
 Run a new or changed test with `--repeat-each=5` before opening a pull request;
 a test that fails only sometimes is a broken test.
 
 **The budget: `make check` runs in under 5 minutes on CI**, the `make check`
-job from checkout to its end. The app tests are its slowest step, a page
-load or more each, so **a new app test is only for a flow across pages**.
+job from checkout to its end. The integration tests are its slowest step, a
+page load or more each, so **a new integration test is only for a flow across
+pages**.
 A rule, or a state that one page or component can show, goes to the lowest
-[Vitest layer](#unit-and-component-tests) that can check it, where it takes
+[Vitest layer](#frontend-unit-tests) that can check it, where it takes
 milliseconds. A change that takes the job past the budget first moves
 checks down a layer or makes the slow tests faster.
 
@@ -1324,11 +1346,11 @@ gets that database's URL from `E2E_DB_CONNECTION`, so running the end-to-end
 config without the target fails with a hint. The database is dropped
 afterwards, also when a test fails or the run is interrupted with Ctrl+C.
 
-Each kind has its own config, `frontend/playwright.mock.config.ts` and
+Each kind has its own config, `frontend/playwright.integration.config.ts` and
 `frontend/playwright.e2e.config.ts`, with the shared settings in
 `frontend/tests/playwright.base.ts`. Playwright starts every web server a
 config declares, whichever project runs, so one config per kind is what keeps
-the app tests from building or starting the Go server, and the end-to-end
+the integration tests from building or starting the Go server, and the end-to-end
 tests from starting Vite. Each starts its own server on a port that
 `make dev` doesn't use, and never reuses one already running. Both run
 Chromium's headless shell only, with every test in parallel, and no retries,
@@ -1336,13 +1358,14 @@ so a flaky test fails instead of passing on its second try. Workers are
 Playwright's default of half the CPU cores, or `PLAYWRIGHT_WORKERS` when it
 is set, capped at one per GB of free memory: each worker's Chromium takes up
 to about 650 MB, and a renderer that runs out of memory crashes its page. CI
-sets `PLAYWRIGHT_WORKERS=3` for the app tests: on its 4-core runner, 3
+sets `PLAYWRIGHT_WORKERS=3` for the integration tests: on its 4-core runner, 3
 workers ran them faster than 2 or 4. A failed test keeps its trace and
-screenshot; the HTML report is in `frontend/playwright-report/<kind>/`, and
+screenshot; the HTML report is in `frontend/playwright-report/<kind>/`
+(`integration` or `e2e`), and
 `npx playwright show-report playwright-report/<kind> --host 0.0.0.0` in
 `frontend/` serves it on port 9323.
 
-**App tests** get a new page each, and with it a fresh fake, so they run in
+**Integration tests** get a new page each, and with it a fresh fake, so they run in
 parallel and can rely on the scenario's data, totals included. The fake's
 state lives in the page, so a test moves between pages with the app's links;
 `page.goto` reloads the page and starts the fake over. Scenarios come from
@@ -1385,17 +1408,17 @@ window, so a test reaches an item by its position among all the cards
 title (`cardItem`), and scrolls the window (`scrollWindow`) to bring others
 in.
 
-**A new feature adds its tests** in the same pull request: [unit and
-component tests](#unit-and-component-tests) for its rules, state hooks and
-views, error paths included, next to them; app tests only for its flows
-across pages, in `tests/mock/<feature>.spec.ts`, with the fake
+**A new feature adds its tests** in the same pull request: [unit
+tests](#frontend-unit-tests) for its rules, state hooks and views, error
+paths included, next to them; integration tests only for its flows across
+pages, in `tests/integration/<feature>.spec.ts`, with the fake
 extended for what they need ([ADR 0032](docs/adr/0032-stateful-fake-backend-with-msw.md));
 an end-to-end test for its main success path, with uniquely named data, in
 `tests/e2e/<feature>.spec.ts`; and steps both kinds share in `tests/support/`.
-Tests are TypeScript, type-checked by `make frontend-typecheck` (with
+Tests are TypeScript, type-checked by `make fe-typecheck` (with
 `frontend/tests/tsconfig.json`), and linted and formatted like the client app.
 
-`make frontend-deps` installs Chromium's headless shell in the version the
+`make fe-deps` installs Chromium's headless shell in the version the
 locked `@playwright/test` expects; it does nothing when that version is
 present. The devcontainer runs the same install in `post-create.sh`, into the
 `playwright-browsers` volume at `/ms-playwright` (`PLAYWRIGHT_BROWSERS_PATH`),
@@ -1403,7 +1426,7 @@ so a rebuild keeps the browser. Chromium's system libraries, which the
 `golang` image lacks, are packages in the container: `post-create.sh` installs
 them with `npx playwright install-deps chromium` on every rebuild, as CI does.
 A devcontainer created before these changes needs a rebuild; until then, run
-`make frontend-deps` and `npx playwright install-deps chromium` in `frontend/`,
+`make fe-deps` and `npx playwright install-deps chromium` in `frontend/`,
 and the browser goes to Playwright's default cache, `~/.cache/ms-playwright`.
 
 ### API spec and reference
@@ -1412,13 +1435,13 @@ The spec is split across `backend/apispec/openapi.yml`, `paths/` and
 `components/`. The reference page serves a single bundled copy at
 `backend/internal/infra/apidocs/dist/openapi.json`, which is committed.
 
-- `make spec-bundle` regenerates the bundle when a spec file changed. Air runs
+- `make be-api-bundle` regenerates the bundle when a spec file changed. Air runs
   it on every rebuild during `make dev`.
 - A unit test fails if the committed bundle is stale.
-- `make api-types` generates the client app's types,
+- `make fe-api-types` generates the client app's types,
   `frontend/src/api/schema.gen.ts`, from the bundle. The file is committed;
-  `make api-types-check` fails when it is stale. After a spec change, run
-  `make api-types` and commit the bundle and the types together. If the
+  `make fe-api-types-check` fails when it is stale. After a spec change, run
+  `make fe-api-types` and commit the bundle and the types together. If the
   client app calls the endpoint, update its fake as well
   ([Running without the backend](#running-without-the-backend)).
 
@@ -1457,54 +1480,55 @@ make clean              # remove build outputs and embedded assets
 ```
 
 The binary is built with `CGO_ENABLED=0` and embeds the client app and the
-OpenAPI spec. `make build-backend` refuses to build without a real frontend
+OpenAPI spec. `make be-build` refuses to build without a real frontend
 bundle. A binary built without `API_DOCS=1` fails to start if
 `APP_API_DOCS=true`, since that is a deployment mistake.
 
 ### Linting
 
 Run these commands from the repository root. The devcontainer and CI install the
-pinned standalone golangci-lint binary with `make install-golangci-lint`; lint
+pinned standalone golangci-lint binary with `make ci-lint-install`; lint
 tooling is kept out of `go.mod`.
 
 | Command | Purpose |
 | --- | --- |
 | `make check` | Run all required gates in order; agents and CI use this. Requires `DB_TEST_CONNECTION`. |
 | `make versions-check` | Fail if the devcontainer or tool module Go version, or the installed golangci-lint, differs from its single source. |
-| `make install-golangci-lint` | Install golangci-lint at `GOLANGCI_LINT_VERSION`. |
-| `make lint` | Check the backend and tagged tests. |
-| `make lint-fix` | Apply available automatic lint fixes. |
-| `make fmt` | Format Go source with gofumpt and goimports. |
-| `make fmt-check` | Fail if any Go file needs formatting. |
-| `make test-tags-check` | Fail if a backend test file's name and build tag disagree. |
+| `make ci-lint-install` | Install golangci-lint at `GOLANGCI_LINT_VERSION`. |
+| `make be-lint` | Check the backend and tagged tests. |
+| `make be-lint-fix` | Apply available automatic lint fixes. |
+| `make be-fmt` | Format Go source with gofumpt and goimports. |
+| `make be-fmt-check` | Fail if any Go file needs formatting. |
+| `make be-test-tags-check` | Fail if a backend test file's name and build tag disagree. |
 | `make pr-title-check` | Fail if `PR_TITLE` breaks the pull request title format (`type: summary`, at most 64 characters). |
 | `make pr-title-check-test` | Run `pr-title-check` against a table of valid and invalid titles and fail on an unexpected result. |
 | `make scripts-lint` | Lint the shell scripts in `scripts/` with ShellCheck ([Makefile and scripts](#makefile-and-scripts)). |
-| `make tidy-check` | Fail if the app or tool module's `go.mod` or `go.sum` needs tidying. |
-| `make generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
-| `make api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
-| `make frontend-typecheck` | Type-check the client app, its Vite config and the browser tests. |
-| `make frontend-fmt` | Format the client app with oxfmt. |
-| `make frontend-fmt-check` | Fail if any file of the client app needs formatting. |
-| `make frontend-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
-| `make frontend-unit` | Run the client app's unit tests in Node and its component tests in Chromium, with Vitest. |
-| `make frontend-test` | Run the app tests: the client app in Chromium against the fake backend ([Browser tests](#browser-tests)). |
-| `make frontend-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
-| `make lint-verify` | Validate `backend/.golangci.yml`. |
-| `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `go-tools-vuln` and `frontend-vuln` ([Vulnerability scan](#vulnerability-scan)). |
-| `make go-tools-vuln` | Check each Go tool in `backend/tools/go.mod` for known vulnerabilities with govulncheck ([Vulnerability scan](#vulnerability-scan)). |
-| `make frontend-vuln` | Audit the npm dependencies of `frontend/` and `frontend/tools/` from their lockfiles ([Vulnerability scan](#vulnerability-scan)). |
-| `make test-summary` | Render the test suites' JUnit reports, written only on CI, as Markdown into the job summary ([Test summaries](#test-summaries)). |
+| `make be-tidy-check` | Fail if the app or tool module's `go.mod` or `go.sum` needs tidying. |
+| `make be-generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
+| `make fe-api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
+| `make fe-typecheck` | Type-check the client app, its Vite config and the browser tests. |
+| `make fe-fmt` | Format the client app with oxfmt. |
+| `make fe-fmt-check` | Fail if any file of the client app needs formatting. |
+| `make fe-lint` | Lint the client app with Oxlint, type-aware; warnings and unused disable directives fail. |
+| `make fe-test-unit` | Run the client app's unit tests in Node and its component tests in Chromium, with Vitest. |
+| `make fe-test-integration` | Run the client app's integration tests: the app in Chromium against the fake backend ([Frontend integration and end-to-end tests](#frontend-integration-and-end-to-end-tests)). |
+| `make fe-deps` | Install the locked dependencies of `frontend/` and `frontend/tools/`, and Playwright's Chromium. |
+| `make be-lint-config-check` | Validate `backend/.golangci.yml`. |
+| `make vuln` | Check backend packages for known vulnerabilities with govulncheck, then run `be-tools-vuln` and `fe-vuln` ([Vulnerability scan](#vulnerability-scan)). |
+| `make be-tools-vuln` | Check each Go tool in `backend/tools/go.mod` for known vulnerabilities with govulncheck ([Vulnerability scan](#vulnerability-scan)). |
+| `make fe-vuln` | Audit the npm dependencies of `frontend/` and `frontend/tools/` from their lockfiles ([Vulnerability scan](#vulnerability-scan)). |
+| `make ci-test-summary` | Render the test suites' JUnit reports, written only on CI, as Markdown into the job summary ([Test summaries](#test-summaries)). |
 
-`make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
-`test-tags-check`, `pr-title-check-test`, `scripts-lint`, `lint`, `tidy-check`,
-`generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
-`frontend-unit`, `frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
+`make check` runs `versions-check`, `be-fmt-check`, `fe-fmt-check`,
+`be-test-tags-check`, `pr-title-check-test`, `scripts-lint`, `be-lint`,
+`be-tidy-check`, `be-generate-check`, `fe-api-types-check`, `fe-typecheck`,
+`fe-lint`, `fe-test-unit`, `fe-test-integration`, `be-test-unit` and
+`be-test-integration` sequentially, stopping at
 the first failure. It needs the frontend dependencies and Playwright's
-Chromium (`make frontend-deps`). The end-to-end tests (`make test-e2e`) aren't
+Chromium (`make fe-deps`). The end-to-end tests (`make test-e2e`) aren't
 part of it; CI runs them in their own job.
 
-`make generate-check` includes the committed OpenAPI bundle. It leaves regenerated
+`make be-generate-check` includes the committed OpenAPI bundle. It leaves regenerated
 files on disk for review and ignores pre-existing edits that generation leaves unchanged.
 
 Lint uses the `unit,integration,apidocs` build tags so tests are included.
@@ -1552,7 +1576,7 @@ rule's options instead of merging them, so each override lists, by name,
 every restriction that applies to its files, and `restrictImports` puts each
 in `paths` or `patterns`, keeping their order. A new boundary is one constant, added by name to
 each override that needs it. Keep the file a list of rules: plain constants
-and arrays, no loops or generated regexes. `make frontend-typecheck` checks it
+and arrays, no loops or generated regexes. `make fe-typecheck` checks it
 against Oxlint's `defineConfig` types, and Node runs it by stripping the
 types, so it uses only syntax that strips (`erasableSyntaxOnly`). In the
 devcontainer, the Oxc extension applies the same configuration through its
@@ -1572,20 +1596,20 @@ In the client app, a one-off exception is
 `// oxlint-disable-next-line <plugin>/<rule> -- <reason>`, only where the rule
 is wrong for that code. Never disable a promise rule: await or return the
 promise where the caller must wait for it, or mark it `void` with a comment
-saying why not waiting is right. `make frontend-lint` fails on a disable
+saying why not waiting is right. `make fe-lint` fails on a disable
 directive that no longer suppresses anything.
 
 ### Vulnerability scan
 
-`make vuln` runs govulncheck on the backend, then `make go-tools-vuln`, which
+`make vuln` runs govulncheck on the backend, then `make be-tools-vuln`, which
 runs govulncheck on each tool in `backend/tools/go.mod`, then
-`make frontend-vuln`, which runs `npm audit` on the lockfiles of `frontend/`
+`make fe-vuln`, which runs `npm audit` on the lockfiles of `frontend/`
 and `frontend/tools/`. They depend on an external vulnerability database, so
 they stay out of `make check` and run on a schedule instead
 ([ADR 0020](docs/adr/0020-pinned-tooling-and-single-quality-gate.md)).
 `npm audit` reads only the lockfiles, so it doesn't need `node_modules`.
 
-`go-tools-vuln` scans the packages named by the module's `tool` directives, so
+`be-tools-vuln` scans the packages named by the module's `tool` directives, so
 a new tool is scanned without changing the target. It runs govulncheck once per
 tool, because a single run over all of them runs out of memory in the
 devcontainer. It scans every tool and then fails if any scan failed. As for the
@@ -1623,16 +1647,16 @@ GitHub Actions runs the same gate as a developer
 Both `ci.yml` jobs set up their tools with the same steps, in
 [`.github/actions/setup`](.github/actions/setup/action.yml): Go from
 `backend/go.mod`, Node from `engines.node` in `frontend/package.json`, the
-frontend dependencies and Playwright's Chromium with `make frontend-deps`, and
+frontend dependencies and Playwright's Chromium with `make fe-deps`, and
 Chromium's system libraries with `npx playwright install-deps chromium`. The
 browser directory is cached, keyed by the Playwright version in
 `frontend/package-lock.json`, so only an upgrade downloads it. The `check` job
-also installs golangci-lint with `make install-golangci-lint`. Each job starts
+also installs golangci-lint with `make ci-lint-install`. Each job starts
 only `db_test` from `.devcontainer/docker-compose.yml`
 (`docker compose up -d --wait db_test`) and points `DB_TEST_CONNECTION` at
 `localhost:5433`. When a job fails, its Playwright report, with the traces and
 screenshots of the failed tests, is uploaded as an artifact
-(`playwright-report-mock` or `playwright-report-e2e`) on the run's page.
+(`playwright-report-integration` or `playwright-report-e2e`) on the run's page.
 
 A failing `ci.yml` run means the change isn't done. To run the vulnerability
 scan by hand, open **Actions → Vulnerability scan → Run workflow**, or run
@@ -1643,9 +1667,9 @@ To report a vulnerability, follow [SECURITY.md](SECURITY.md).
 #### Test summaries
 
 Each `ci.yml` job's summary, on the run's page, shows its test suites: in the
-`check` job **Vitest**, **Playwright tests (mock back-end)**, **Go unit
-tests**, **Go apidocs tests** and **Go integration tests**, and in the `e2e` job
-**Playwright end-to-end tests**. Each section has the numbers of passed,
+`check` job **Frontend unit tests**, **Frontend integration tests**,
+**Backend unit tests**, **Backend unit tests (apidocs)** and **Backend
+integration tests**, and in the `e2e` job **End-to-end tests**. Each section has the numbers of passed,
 failed and skipped tests and the time, as the suite's report records it (for
 Vitest, the sum of its tests' durations rather than the run's), and names the
 failed tests. A suite that didn't run, because an earlier step
@@ -1657,22 +1681,22 @@ so local output and files don't change:
 | Suite | Written when | Report |
 | --- | --- | --- |
 | Vitest | `CI` is set (GitHub sets it) | `frontend/test-results/junit/vitest.xml` |
-| Playwright | `CI` is set | `frontend/test-results/junit/playwright-<kind>.xml` (`mock` or `e2e`) |
+| Playwright | `CI` is set | `frontend/test-results/junit/playwright-<kind>.xml` (`integration` or `e2e`) |
 | Go tests | `GO_JUNIT=1` (the `check` job sets it) | `test-results/junit/go-<target>.xml` (`unit`, `unit-apidocs`, `integration`) |
 
-With `GO_JUNIT=1`, `make test-unit` and `make test-integration` run the tests
+With `GO_JUNIT=1`, `make be-test-unit` and `make be-test-integration` run the tests
 through gotestsum (pinned in `backend/tools/go.mod`), which runs `go test` with
 the same flags and exit code and lists the failed tests' output after the
 package lines. Both folders are ignored by git.
 
-After the tests, even when they failed, each job runs `make test-summary`.
+After the tests, even when they failed, each job runs `make ci-test-summary`.
 It renders the reports with `frontend/tools/junit-summary.ts`, which parses
 them with `@xmldom/xmldom` (pinned in `frontend/tools/`, audited by
-`make frontend-vuln`), and appends them to `GITHUB_STEP_SUMMARY`. It skips a
+`make fe-vuln`), and appends them to `GITHUB_STEP_SUMMARY`. It skips a
 missing report; a report it can't read gets a section that says so and fails
 the step. Run locally after a run with the reports on, it prints the summary,
 for example:
 
 ```sh
-GO_JUNIT=1 make test-unit && make test-summary
+GO_JUNIT=1 make be-test-unit && make ci-test-summary
 ```

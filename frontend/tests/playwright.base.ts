@@ -1,8 +1,9 @@
 // Settings both kinds of browser test share (ADR 0034). Each kind has its
-// own config file, playwright.mock.config.ts and playwright.e2e.config.ts,
-// because Playwright starts every web server a config declares, whichever
-// project runs: one file per kind keeps the app tests from building or
-// starting the Go server, and the end-to-end tests from starting Vite.
+// own config file, playwright.integration.config.ts and
+// playwright.e2e.config.ts, because Playwright starts every web server a
+// config declares, whichever project runs: one file per kind keeps the
+// integration tests from building or starting the Go server, and the
+// end-to-end tests from starting Vite.
 
 import { availableParallelism } from "node:os";
 
@@ -26,7 +27,7 @@ const WORKERS = Math.max(
 );
 
 // The kind of test: names the project and its output folders.
-export function baseConfig(kind: "mock" | "e2e") {
+export function baseConfig(kind: "integration" | "e2e") {
   return defineConfig({
     // Paths resolve against the config file, in frontend/.
     testDir: `tests/${kind}`,
@@ -35,7 +36,7 @@ export function baseConfig(kind: "mock" | "e2e") {
     workers: WORKERS,
     // A test that passes only on a retry is flaky, and that must show.
     retries: 0,
-    // On CI, also a JUnit report for the job summary (make test-summary).
+    // On CI, also a JUnit report for the job summary (make ci-test-summary).
     reporter: [
       [process.env.CI ? "line" : "list"],
       ["html", { open: "never", outputFolder: `playwright-report/${kind}` }],

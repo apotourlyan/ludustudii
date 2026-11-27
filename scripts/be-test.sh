@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs one suite of the backend's Go tests (make test-unit, make
-# test-integration) with -race, -count=1 and -shuffle=on, leaving out go test's
-# lines for packages without tests:
+# Runs one suite of the backend's Go tests (make be-test-unit, make
+# be-test-integration) with -race, -count=1 and -shuffle=on, leaving out go
+# test's lines for packages without tests:
 #   unit         -tags=unit, then again with -tags=unit,apidocs when PKG
 #                selects the apidocs package
 #   integration  -tags=integration

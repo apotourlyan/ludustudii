@@ -23,7 +23,7 @@ set -euo pipefail
 db_url_pattern='^(postgres(ql)?://[^/?#]+)(/[^?#]*)?(\?.*)?$'
 
 [ -x "$FRONTEND_DIR/node_modules/.bin/playwright" ] ||
-	{ echo "test-e2e: $FRONTEND_DIR dependencies missing; run 'make frontend-deps'" >&2; exit 1; }
+	{ echo "test-e2e: $FRONTEND_DIR dependencies missing; run 'make fe-deps'" >&2; exit 1; }
 [[ ${DB_TEST_CONNECTION-} =~ $db_url_pattern ]] ||
 	{ echo "test-e2e: DB_TEST_CONNECTION must be a postgres:// or postgresql:// URL" >&2; exit 1; }
 server=${BASH_REMATCH[1]}
@@ -31,7 +31,7 @@ query=${BASH_REMATCH[4]}
 
 echo "==> Building the client app..."
 (cd "$FRONTEND_DIR" && npm run --silent build)
-"${MAKE:-make}" --no-print-directory build-backend
+"${MAKE:-make}" --no-print-directory be-build
 
 read -ra tool_cmd <<<"$GO_TOOL"
 name="ludustudii_e2e_$(date -u +%Y%m%d%H%M%S)_$RANDOM"

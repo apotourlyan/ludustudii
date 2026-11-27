@@ -1,4 +1,4 @@
-// The unit and component tests (ADR 0043), run with `make frontend-unit`.
+// The unit and component tests (ADR 0043), run with `make fe-test-unit`.
 // They build with the app's Vite config, so imports, aliases and plugins
 // behave as in the app, minus what only the dev server and the build use.
 
@@ -30,7 +30,7 @@ export default defineConfig((env) => {
 
   return mergeConfig(app, {
     test: {
-      // On CI, also a JUnit report for the job summary (make test-summary).
+      // On CI, also a JUnit report for the job summary (make ci-test-summary).
       // Listing reporters replaces Vitest's defaults, so they are listed
       // too; the github-actions reporter keeps its failure annotations, and
       // its own job summary is off, since the JUnit one replaces it.
@@ -70,8 +70,8 @@ export default defineConfig((env) => {
             setupFiles: ["src/test/setup.browser.ts"],
             browser: {
               enabled: true,
-              // The Chromium headless shell `make frontend-deps` installs
-              // for the Playwright tests.
+              // The Chromium headless shell `make fe-deps` installs for
+              // the Playwright tests.
               provider: playwright(),
               headless: true,
               instances: [{ browser: "chromium" }],

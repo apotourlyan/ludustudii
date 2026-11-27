@@ -35,7 +35,7 @@ runs:
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
     # Playwright's default browser directory on Linux. A hit makes the
-    # install in make frontend-deps a no-op.
+    # install in make fe-deps a no-op.
     - name: Cache Playwright's browser
       uses: actions/cache@v6.1.0
       with:
@@ -45,7 +45,7 @@ runs:
     # Installs the browser too, unless the cache restored it.
     - name: Install frontend dependencies
       shell: bash
-      run: make frontend-deps
+      run: make fe-deps
 
     # The runner image lacks some of the libraries Chromium needs; they are
     # system packages, so they aren't cached.

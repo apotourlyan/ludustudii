@@ -1,8 +1,9 @@
 ##@ Backend
-# The Go server: its generated files, tests, build, lint and formatting.
+# The Go server: the OpenAPI spec's bundle, its embedded placeholders, tests,
+# build, lint, formatting, repository checks and the Go tools' vulnerability
+# scan.
 
 BINARY_NAME := ludustudii
-BUILD_DIR := backend/bin
 SCALAR_SRC := $(FRONTEND_DIR)/node_modules/@scalar/api-reference/dist/browser/standalone.js
 SPEC_SRC := $(shell find backend/apispec -name '*.yml')
 MAIN_REL_DIR := ./cmd/server/api
@@ -22,114 +23,106 @@ $(SPA_EMBED_DIR)/index.html:
 $(SCALAR_EMBED): $(wildcard $(SCALAR_SRC))
 	@if [ -f $(SCALAR_SRC) ]; then gzip -9nc $(SCALAR_SRC) > $@; fi
 
-test-unit test-integration: $(SPA_EMBED_DIR)/index.html
-test-unit: $(SCALAR_EMBED)
+.PHONY: be-api-bundle
 
-.PHONY: spec-bundle
-
-## spec-bundle: Regenerates the bundled OpenAPI spec the API reference serves, if a spec file changed
-spec-bundle: $(SPEC_BUNDLE)
+## be-api-bundle: Regenerates the bundled OpenAPI spec the API reference serves, if a spec file changed
+be-api-bundle: $(SPEC_BUNDLE)
 
 # bundlespec writes the file only once the spec bundles, so a failed run leaves
 # it unchanged and .DELETE_ON_ERROR keeps it.
 $(SPEC_BUNDLE): $(SPEC_SRC)
 	cd $(BACKEND_DIR) && go generate ./internal/infra/apidocs
 
-.PHONY: test test-unit test-integration coverage
+be-test-unit be-test-integration: $(SPA_EMBED_DIR)/index.html
+be-test-unit: $(SCALAR_EMBED)
 
-## test: Runs both unit and integration tests
-test: test-unit test-integration
+.PHONY: be-test be-test-unit be-test-integration be-coverage
 
-## test-unit: Runs unit tests with the 'unit' build tag
+## be-test: Runs the backend's unit and integration tests
+be-test: be-test-unit be-test-integration
+
+## be-test-unit: Runs the backend's unit tests, with the 'unit' build tag
 ## ---- PKG selects packages; RUN selects test names (defaults: all packages and tests)
 ## ---- If selected, the apidocs package runs again with the 'apidocs' tag
 ## ---- GO_JUNIT=1 (CI) also writes JUnit reports to test-results/junit/ (go-unit.xml, go-unit-apidocs.xml)
-test-unit:
+be-test-unit:
 	@echo "==> Running unit tests..."
 	@BACKEND_DIR='$(BACKEND_DIR)' PKG='$(PKG)' RUN='$(RUN)' GO_JUNIT='$(GO_JUNIT)' JUNIT_DIR='$(JUNIT_DIR)' \
-		scripts/go-test.sh unit
+		scripts/be-test.sh unit
 
-## test-integration: Runs integration tests with the 'integration' build tag
+## be-test-integration: Runs the backend's integration tests, with the 'integration' build tag (requires DB_TEST_CONNECTION)
 ## ---- PKG selects packages; RUN selects test names (defaults: all packages and tests)
 ## ---- GO_JUNIT=1 (CI) also writes a JUnit report to test-results/junit/go-integration.xml
-test-integration:
+be-test-integration:
 	@echo "==> Running integration tests..."
 	@BACKEND_DIR='$(BACKEND_DIR)' PKG='$(PKG)' RUN='$(RUN)' GO_JUNIT='$(GO_JUNIT)' JUNIT_DIR='$(JUNIT_DIR)' \
-		scripts/go-test.sh integration
+		scripts/be-test.sh integration
 
-## coverage: Runs all backend tests and writes coverage profile and HTML report to backend/coverage/ (requires DB_TEST_CONNECTION)
-coverage: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
+## be-coverage: Runs all backend tests and writes coverage profile and HTML report to backend/coverage/ (requires DB_TEST_CONNECTION)
+be-coverage: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
 	@mkdir -p $(BACKEND_DIR)/coverage
 	go -C $(BACKEND_DIR) test -tags=unit,integration,apidocs -race -count=1 -coverpkg=./... -coverprofile=coverage/coverage.out ./...
 	go -C $(BACKEND_DIR) tool cover -html=coverage/coverage.out -o coverage/coverage.html
 	@echo "Serve from the repository root: python3 -m http.server 8000 --directory backend/coverage"
 
-.PHONY: build build-backend clean
+.PHONY: be-build
 
-## build: Compiles frontend, outputs assets, and compiles Go binary
-build:
-	$(MAKE) build-frontend
-	$(MAKE) build-backend
-
-## build-backend: Compiles static Go binary with embedded SPA
+## be-build: Compiles static Go binary with embedded SPA
 ## ---- API_DOCS=1 also embeds the API reference (for dev, test and staging builds)
 ifeq ($(API_DOCS),1)
-build-backend: $(SCALAR_EMBED)
+be-build: $(SCALAR_EMBED)
 endif
-build-backend:
+be-build:
 	@! grep -qs 'ludustudii (placeholder)' $(SPA_EMBED_DIR)/index.html || \
-		{ echo "SPA not built: run 'make build-frontend' first"; exit 1; }
+		{ echo "SPA not built: run 'make fe-build' first"; exit 1; }
 ifeq ($(API_DOCS),1)
 	@[ -s $(SCALAR_EMBED) ] || \
-		{ echo "Scalar bundle missing: run 'make build-frontend' first"; exit 1; }
+		{ echo "Scalar bundle missing: run 'make fe-build' first"; exit 1; }
 endif
 	@echo "==> Building Go binary..."
 	mkdir -p $(BUILD_DIR)
 	cd $(BACKEND_DIR) && CGO_ENABLED=0 go build $(API_DOCS_TAGS) -ldflags="-w -s" -o ../$(BUILD_DIR)/$(BINARY_NAME) $(MAIN_REL_DIR)
 	@echo "==> Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
-## clean: Deletes build outputs and temporary embed files
-clean:
-	@echo "==> Cleaning artifacts..."
-	rm -rf $(BUILD_DIR)
-	rm -rf $(BACKEND_DIR)/tmp
-	rm -rf $(SPA_EMBED_DIR)
-	rm -f $(SCALAR_EMBED)
-	@echo "==> Clean complete."
+.PHONY: be-lint be-lint-fix be-lint-config-check be-fmt be-fmt-check
 
-.PHONY: lint lint-fix fmt fmt-check lint-verify
-
-## lint: Lints the backend and tagged tests with API docs enabled
-lint: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
+## be-lint: Lints the backend and tagged tests with API docs enabled
+be-lint: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
 	cd $(BACKEND_DIR) && golangci-lint run
 
-## lint-fix: Applies backend lint fixes with API docs enabled
-lint-fix: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
+## be-lint-fix: Applies backend lint fixes with API docs enabled
+be-lint-fix: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
 	cd $(BACKEND_DIR) && golangci-lint run --fix
 
-## fmt: Formats the backend with gofumpt and goimports
-fmt:
-	cd $(BACKEND_DIR) && golangci-lint fmt
-
-## fmt-check: Fails if any file needs formatting
-fmt-check:
-	cd $(BACKEND_DIR) && golangci-lint fmt --diff
-
-## lint-verify: Validates the backend golangci-lint configuration
-lint-verify:
+## be-lint-config-check: Validates the backend golangci-lint configuration
+be-lint-config-check:
 	cd $(BACKEND_DIR) && golangci-lint config verify
 
-.PHONY: test-tags-check tidy-check generate-check
+## be-fmt: Formats the backend with gofumpt and goimports
+be-fmt:
+	cd $(BACKEND_DIR) && golangci-lint fmt
 
-## test-tags-check: Fails if a backend test file's name and build tag disagree
-test-tags-check:
-	@BACKEND_DIR='$(BACKEND_DIR)' scripts/test-tags-check.sh
+## be-fmt-check: Fails if any backend file needs formatting
+be-fmt-check:
+	cd $(BACKEND_DIR) && golangci-lint fmt --diff
 
-## tidy-check: Fails if app or tool go.mod/go.sum files are not tidy
-tidy-check:
+.PHONY: be-test-tags-check be-tidy-check be-generate-check
+
+## be-test-tags-check: Fails if a backend test file's name and build tag disagree
+be-test-tags-check:
+	@BACKEND_DIR='$(BACKEND_DIR)' scripts/be-test-tags-check.sh
+
+## be-tidy-check: Fails if app or tool go.mod/go.sum files are not tidy
+be-tidy-check:
 	go -C $(BACKEND_DIR) mod tidy -diff
 	go -C $(BACKEND_DIR)/tools mod tidy -diff
 
-## generate-check: Fails if generation changes tracked backend files
-generate-check: $(SPA_EMBED_DIR)/index.html
-	@BACKEND_DIR='$(BACKEND_DIR)' scripts/generate-check.sh
+## be-generate-check: Fails if generation changes tracked backend files
+be-generate-check: $(SPA_EMBED_DIR)/index.html
+	@BACKEND_DIR='$(BACKEND_DIR)' scripts/be-generate-check.sh
+
+.PHONY: be-tools-vuln
+
+## be-tools-vuln: Checks each Go tool in backend/tools/go.mod for known vulnerabilities
+be-tools-vuln:
+	@BACKEND_DIR='$(BACKEND_DIR)' scripts/be-tools-vuln.sh
