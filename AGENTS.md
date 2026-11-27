@@ -176,6 +176,7 @@ an archived record.
 ## Checks handled by tooling
 
 Package boundaries (depguard), env access only in `internal/infra/env`, `slog`
-only for logging, formatting, tidy modules, a fresh spec bundle and test file
-names matching their build tags are all checked by `make check`. Resolve
-findings in the code while preserving these checks.
+only for logging, formatting, tidy modules, a fresh spec bundle, test file
+names matching their build tags and shell scripts passing ShellCheck are all
+checked by `make check`. Resolve findings in the code while preserving these
+checks.

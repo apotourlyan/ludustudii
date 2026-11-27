@@ -884,7 +884,11 @@ installs those pinned versions for editor and PATH access. Make targets use
 `backend`. From that directory, run `go tool -modfile=tools/go.mod <tool>`, where
 `<tool>` is `air`, `dlv`, `goose`, `stringer` or `govulncheck`. The module also
 pins gotestsum, which the backend test targets run on CI only
-([Test summaries](#test-summaries)), so the devcontainer doesn't install it.
+([Test summaries](#test-summaries)), and ShellCheck, which `make scripts-lint`
+runs ([Makefile and scripts](#makefile-and-scripts)). ShellCheck comes as a
+WebAssembly build (`github.com/wasilibs/go-shellcheck`, whose version matches
+ShellCheck's), so `go tool` runs it without a system package. The devcontainer
+installs neither.
 
 To update a tool, run `go -C backend/tools get -tool <package>@<version>`, then
 `go -C backend/tools mod tidy`, and commit both tool module files. Keep the goose
@@ -897,7 +901,7 @@ Each tool version has one source, which the devcontainer and CI both read:
 | Tool | Source | Kept in sync by |
 | --- | --- | --- |
 | Go | `go` line in `backend/go.mod` | `make versions-check` fails when the devcontainer's `golang:` image tag or `backend/tools/go.mod` disagrees |
-| golangci-lint | `GOLANGCI_LINT_VERSION` in the `Makefile` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
+| golangci-lint | `GOLANGCI_LINT_VERSION` in `make/ci.mk` | `make install-golangci-lint` installs it (devcontainer and CI); `make versions-check` fails when the installed binary differs |
 | Node | `engines.node` (a major version, `26.x`) in `frontend/package.json` | CI's `setup-node` reads it; `make versions-check` fails when the devcontainer's node feature or the installed `node` has another major version |
 | oxfmt | Exact version in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | `make frontend-deps` installs it (CI), as does the devcontainer; Make targets and the editor run that installed copy |
 | Oxlint and its type-aware backend (`oxlint-tsgolint`) | Exact versions in `devDependencies` of `frontend/package.json`, locked in `frontend/package-lock.json` | Same as oxfmt |
@@ -907,7 +911,9 @@ Each tool version has one source, which the devcontainer and CI both read:
 To upgrade Go, change all three places in one commit. To upgrade the linter,
 change `GOLANGCI_LINT_VERSION` and run `make install-golangci-lint`. To upgrade
 Node, change `engines.node` and the devcontainer's node feature in one commit,
-then rebuild the devcontainer. To upgrade oxfmt, which can change formatting,
+then rebuild the devcontainer. To upgrade ShellCheck, which can add checks,
+update `github.com/wasilibs/go-shellcheck` like any other tool and fix what
+`make scripts-lint` reports in the same change. To upgrade oxfmt, which can change formatting,
 change its pin, run `npm install` in `frontend/` and `make frontend-fmt`, and
 commit the reformat on its own. To upgrade Oxlint, which can add rules, change
 the pins of `oxlint` and `oxlint-tsgolint` together, run `npm install` in
@@ -925,6 +931,47 @@ API, while the client app uses TypeScript 7, so it lives in its own package,
 The XML parser of the CI test summary script (`frontend/tools/junit-summary.ts`,
 [Test summaries](#test-summaries)) is pinned there too.
 `make frontend-deps` installs the locked dependencies of both packages.
+
+### Makefile and scripts
+
+The Makefile is split by area. `make help` lists the targets of each file
+under its heading.
+
+| File | Holds |
+| --- | --- |
+| `Makefile` | `SHELL`, the variables more than one area uses, `help`, `check` and the `include` lines |
+| `make/backend.mk` | The Go server: the embedded placeholders, `spec-bundle`, the backend tests and `coverage`, `build`, `build-backend` and `clean`, lint and formatting, `test-tags-check`, `tidy-check` and `generate-check` |
+| `make/frontend.mk` | The client app: `frontend-deps`, `api-types`, its checks and tests, and `build-frontend` |
+| `make/db.mk` | Migrations and `psql` |
+| `make/dev.mk` | `dev`, `dev-mock`, the `logs` targets and `git-diff` |
+| `make/ci.mk` | `versions-check`, `install-golangci-lint` and its pin, the pull request title check, `scripts-lint`, the vulnerability scan, `test-e2e` and `test-summary` |
+
+A target goes in its area's file, under a `## name: description` line that
+`make help` prints, with `## ---- ` lines for usage notes. A variable that
+only one area uses lives in that area's file; one that several use lives in
+the root `Makefile`. A new area file starts with a `##@ <Area>` heading and
+gets an `include` line in the root `Makefile`.
+
+Recipes follow the five-line rule: a recipe longer than about five lines, or
+one with control flow (`if`, `case`, loops, functions or traps), moves to
+`scripts/<target>.sh`, and the target calls it. A one-line guard such as
+`[ -d … ] || { echo …; exit 1; }` doesn't count, and neither does a recipe that
+only runs other targets in order, such as `check` or `build`. A script can
+serve targets that share its logic: `scripts/go-test.sh` runs both
+`test-unit` and `test-integration`. Each script:
+
+- is bash, executable, and starts with `set -euo pipefail`;
+- opens with a comment that says what it does and which arguments and
+  environment variables it reads;
+- gets every Make variable it needs on the line that calls it, for example
+  `@BACKEND_DIR='$(BACKEND_DIR)' scripts/test-tags-check.sh`, and doesn't
+  re-derive one. Free-form options such as `ARGS` follow the script unquoted,
+  so the shell splits them as it would in a recipe;
+- runs other targets through `$MAKE`, which the target sets to
+  `$(MAKE_COMMAND)`. Make runs any recipe line that names `$(MAKE)` even
+  under `make -n`, so with `$(MAKE)` a dry run would run the script.
+
+`make scripts-lint`, part of `make check`, runs ShellCheck over `scripts/`.
 
 ### Running without the backend
 
@@ -1432,6 +1479,7 @@ tooling is kept out of `go.mod`.
 | `make test-tags-check` | Fail if a backend test file's name and build tag disagree. |
 | `make pr-title-check` | Fail if `PR_TITLE` breaks the pull request title format (`type: summary`, at most 64 characters). |
 | `make pr-title-check-test` | Run `pr-title-check` against a table of valid and invalid titles and fail on an unexpected result. |
+| `make scripts-lint` | Lint the shell scripts in `scripts/` with ShellCheck ([Makefile and scripts](#makefile-and-scripts)). |
 | `make tidy-check` | Fail if the app or tool module's `go.mod` or `go.sum` needs tidying. |
 | `make generate-check` | Regenerate backend files and fail if generation changes tracked backend files. |
 | `make api-types-check` | Regenerate the client app's API types and fail if they differ from the committed file. |
@@ -1449,7 +1497,7 @@ tooling is kept out of `go.mod`.
 | `make test-summary` | Render the test suites' JUnit reports, written only on CI, as Markdown into the job summary ([Test summaries](#test-summaries)). |
 
 `make check` runs `versions-check`, `fmt-check`, `frontend-fmt-check`,
-`test-tags-check`, `pr-title-check-test`, `lint`, `tidy-check`,
+`test-tags-check`, `pr-title-check-test`, `scripts-lint`, `lint`, `tidy-check`,
 `generate-check`, `api-types-check`, `frontend-typecheck`, `frontend-lint`,
 `frontend-unit`, `frontend-test`, `test-unit` and `test-integration` sequentially, stopping at
 the first failure. It needs the frontend dependencies and Playwright's

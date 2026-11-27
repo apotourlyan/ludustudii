@@ -82,8 +82,10 @@ require (
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tdewolff/parse/v2 v2.8.12 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60 // indirect
 	github.com/vertica/vertica-sql-go v1.3.8 // indirect
+	github.com/wasilibs/go-shellcheck v0.11.1 // indirect
 	github.com/yandex-cloud/go-genproto v0.126.0 // indirect
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260810123728-f0c151ab31b9 // indirect
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.3 // indirect
@@ -124,6 +126,7 @@ tool (
 	github.com/air-verse/air
 	github.com/go-delve/delve/cmd/dlv
 	github.com/pressly/goose/v3/cmd/goose
+	github.com/wasilibs/go-shellcheck/cmd/shellcheck
 	golang.org/x/tools/cmd/stringer
 	golang.org/x/vuln/cmd/govulncheck
 	gotest.tools/gotestsum

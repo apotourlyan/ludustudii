@@ -9,7 +9,7 @@ go -C backend/tools install \
   golang.org/x/tools/cmd/stringer \
   golang.org/x/vuln/cmd/govulncheck \
   github.com/pressly/goose/v3/cmd/goose
-# The Makefile holds the golangci-lint pin; CI installs it the same way.
+# make/ci.mk holds the golangci-lint pin; CI installs it the same way.
 make install-golangci-lint
 echo "Go tools installed successfully!"
 
