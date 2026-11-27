@@ -63,7 +63,7 @@ const ACTIVE_LINE = "border-t-primary";
 // title label bar, title content, title status bar, description label bar,
 // description content, description status bar. LearningCardForm's grid has
 // a row for each, so a band added, removed or moved here needs the same
-// change there (tests/mock/editor-layout.spec.ts checks the two agree).
+// change there (tests/integration/editor-layout.spec.ts checks the two agree).
 export function LearningCardFrame({
   strip,
   actions,

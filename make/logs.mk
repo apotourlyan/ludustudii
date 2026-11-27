@@ -1,25 +1,6 @@
-##@ Development
-# Local servers, the backend's logs and other conveniences.
-
-LOG_FILE ?= $(BACKEND_DIR)/tmp/app.log
-
-dev: $(SPA_EMBED_DIR)/index.html $(SCALAR_EMBED)
-
-.PHONY: dev
-
-## dev: Runs Vite dev server and Go backend (with Air live-reload) concurrently
-## ---- Backend output is also appended to LOG_FILE (default: backend/tmp/app.log)
-dev: export LOG_FORMAT := json
-dev: export APP_API_DOCS ?= true
-dev:
-	@LOG_FILE='$(LOG_FILE)' FRONTEND_DIR='$(FRONTEND_DIR)' GO_TOOL='$(GO_TOOL)' scripts/dev.sh
-
-.PHONY: dev-mock
-
-## dev-mock: Runs the Vite dev server with a fake backend in the browser (no Go backend or database)
-## ---- Choose seeded data with ?scenario=default|empty|many|failing and add latency with ?delay=<ms>
-dev-mock:
-	cd $(FRONTEND_DIR) && npm run dev:mock
+##@ Logs
+# Queries on the backend's JSON log, LOG_FILE (default: backend/tmp/app.log),
+# which make dev appends to.
 
 .PHONY: logs logs-errors logs-req logs-slow logs-stats
 
@@ -50,9 +31,3 @@ logs-slow:
 ## logs-stats: Counts "request" records by status, method and route, most frequent first
 logs-stats:
 	@jq -nrR '[inputs | fromjson? | select(.msg == "request") | {status, method, route}] | group_by(.) | map({count: length} + .[0]) | sort_by(-.count) | .[] | "\(.count)\t\(.status)\t\(.method)\t\(.route)"' $(LOG_FILE)
-
-.PHONY: git-diff
-
-## git-diff: Copies the git diff to the system clipboard in a terminal-friendly format
-git-diff:
-	git diff HEAD | base64 | tr -d '\n' | awk '{print "\033]52;c;" $$0 "\007"}'

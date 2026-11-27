@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fails if a backend test file's name and build tag disagree (make
-# test-tags-check). *_integration_test.go and api_test.go need exactly
+# be-test-tags-check). *_integration_test.go and api_test.go need exactly
 # //go:build integration; every other test file needs exactly //go:build unit.
 # Untracked files count. Every mismatch is reported before the script fails.
 #

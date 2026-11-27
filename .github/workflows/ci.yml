@@ -35,20 +35,20 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Install golangci-lint
-        run: make install-golangci-lint
+        run: make ci-lint-install
 
       # Only db_test starts; its healthcheck makes --wait block until
       # Postgres accepts connections.
       - name: Start test database
         run: docker compose -f .devcontainer/docker-compose.yml up -d --wait db_test
 
-      # MOCK_BUILD=1 runs the app tests on a build of the mock mode rather
-      # than on Vite's dev server, which transforms every module on every
-      # page load (playwright.mock.config.ts). PLAYWRIGHT_WORKERS runs them
-      # with more workers than half of the runner's 4 cores, still capped by
-      # memory (tests/playwright.base.ts). GO_JUNIT=1 runs the Go tests
-      # through gotestsum for their JUnit reports; Vitest and Playwright
-      # write theirs because GitHub sets CI.
+      # MOCK_BUILD=1 runs the frontend integration tests on a build of the
+      # mock mode rather than on Vite's dev server, which transforms every
+      # module on every page load (playwright.integration.config.ts).
+      # PLAYWRIGHT_WORKERS runs them with more workers than half of the
+      # runner's 4 cores, still capped by memory (tests/playwright.base.ts).
+      # GO_JUNIT=1 runs the Go tests through gotestsum for their JUnit
+      # reports; Vitest and Playwright write theirs because GitHub sets CI.
       - name: make check
         env:
           DB_TEST_CONNECTION: postgres://tester:tester@localhost:5433/ludustudii_db_test?sslmode=disable
@@ -61,16 +61,17 @@ jobs:
       # A suite that didn't run, because an earlier step failed, is left out.
       - name: Summarize the tests
         if: always() && steps.setup.outcome == 'success'
-        run: make test-summary
+        run: make ci-test-summary
 
-      # The app tests' report, with the traces and screenshots of failed
-      # tests. It exists only when make check got as far as frontend-test.
-      - name: Upload the app tests' report
+      # The frontend integration tests' report, with the traces and
+      # screenshots of failed tests. It exists only when make check got as
+      # far as fe-test-integration.
+      - name: Upload the frontend integration tests' report
         if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: playwright-report-mock
-          path: frontend/playwright-report/mock
+          name: playwright-report-integration
+          path: frontend/playwright-report/integration
           if-no-files-found: ignore
           retention-days: 14
 
@@ -102,7 +103,7 @@ jobs:
       # The end-to-end tests' results in the job summary, as in check.
       - name: Summarize the tests
         if: always() && steps.setup.outcome == 'success'
-        run: make test-summary
+        run: make ci-test-summary
 
       # The report, with the traces and screenshots of failed tests.
       - name: Upload the end-to-end tests' report

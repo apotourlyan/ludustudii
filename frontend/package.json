@@ -15,7 +15,7 @@
     "fmt:check": "oxfmt --list-different",
     "lint": "oxlint",
     "test:unit": "vitest run",
-    "test:mock": "playwright test -c playwright.mock.config.ts",
+    "test:integration": "playwright test -c playwright.integration.config.ts",
     "test:e2e": "playwright test -c playwright.e2e.config.ts",
     "preview": "vite preview"
   },

@@ -1,9 +1,8 @@
 {
   // vite.config.ts, vitest.config.ts, oxlint.config.ts and the CI test
-  // summary script, which run in Node only. Checked by `make
-  // frontend-typecheck`. Node runs oxlint.config.ts and the script by
-  // stripping their types, so they may use only syntax that strips
-  // (ADR 0037).
+  // summary script, which run in Node only. Checked by `make fe-typecheck`.
+  // Node runs oxlint.config.ts and the script by stripping their types, so
+  // they may use only syntax that strips (ADR 0037).
   "compilerOptions": {
     "target": "ES2025",
     "lib": ["ES2025"],

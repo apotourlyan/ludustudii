@@ -1,6 +1,7 @@
-// The app tests (ADR 0034): the client app in the mock mode, where the fake
-// backend answers its API requests in the browser (ADR 0032). No Go server
-// or database. Run them with `make frontend-test`.
+// The frontend integration tests (ADR 0034): the client app in the mock
+// mode, where the fake backend answers its API requests in the browser
+// (ADR 0032). No Go server or database. Run them with
+// `make fe-test-integration`.
 
 import { defineConfig } from "@playwright/test";
 
@@ -24,7 +25,7 @@ const command =
       `npx --no-install vite preview --mode mock --outDir ${OUT_DIR} --port ${PORT} --strictPort`
     : `npx --no-install vite --mode mock --port ${PORT} --strictPort`;
 
-export default defineConfig(baseConfig("mock"), {
+export default defineConfig(baseConfig("integration"), {
   use: { baseURL },
   webServer: {
     command,

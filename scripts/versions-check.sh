@@ -29,7 +29,7 @@ fi
 pin=$GOLANGCI_LINT_VERSION
 lint=$(golangci-lint version --short 2>/dev/null) || true
 if [ "${lint#v}" != "${pin#v}" ]; then
-	echo "golangci-lint: installed '${lint:-none}', want '${pin#v}' (GOLANGCI_LINT_VERSION); run 'make install-golangci-lint'"
+	echo "golangci-lint: installed '${lint:-none}', want '${pin#v}' (GOLANGCI_LINT_VERSION); run 'make ci-lint-install'"
 	status=1
 fi
 
