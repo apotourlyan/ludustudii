@@ -50,6 +50,7 @@ func (e *StatusError) Unwrap() error { return e.Err }
 // Shared errors carry their HTTP statuses and response bodies.
 var (
 	ErrCrossOriginRequest   = &StatusError{Code: http.StatusForbidden, Response: erresp.CrossOriginRequest()}
+	ErrInvalidCredentials   = &StatusError{Code: http.StatusUnauthorized, Response: erresp.InvalidCredentials()}
 	ErrNotFound             = &StatusError{Code: http.StatusNotFound, Response: erresp.NotFound()}
 	ErrMethodNotAllowed     = &StatusError{Code: http.StatusMethodNotAllowed, Response: erresp.MethodNotAllowed()}
 	ErrPayloadTooLarge      = &StatusError{Code: http.StatusRequestEntityTooLarge, Response: erresp.PayloadTooLarge()}

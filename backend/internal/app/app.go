@@ -114,5 +114,9 @@ func identityConfig(ev *env.Vars) identity.Config {
 	return identity.Config{
 		Password:        ev.PasswordParams(),
 		HashConcurrency: ev.AuthHashConcurrency,
+		Session: identity.SessionPolicy{
+			IdleTimeout:     ev.AuthSessionIdleTimeout,
+			AbsoluteTimeout: ev.AuthSessionAbsoluteTimeout,
+		},
 	}
 }

@@ -47,6 +47,13 @@ func FuzzValidateCanonicalEmail(f *testing.F) {
 			wantCode = domain.CodeInvalidFormat
 		}
 		checkCode(t, "email", domain.ValidateEmail(out), wantCode, in, out)
+
+		// A canonical email that passes registration passes login too.
+		if wantCode == "" {
+			if err := domain.ValidateLoginEmail(out); err != nil {
+				t.Errorf("login rejects registrable email %q: %v", out, err)
+			}
+		}
 	})
 }
 
@@ -80,6 +87,13 @@ func FuzzValidateCanonicalPassword(f *testing.F) {
 			wantCode = validator.CodeMaxLength
 		}
 		checkCode(t, "password", domain.ValidatePassword(out), wantCode, in, out)
+
+		// A password valid at registration always passes the login check.
+		if wantCode == "" {
+			if err := domain.ValidateLoginPassword(out); err != nil {
+				t.Errorf("login rejects a valid password %q: %v", out, err)
+			}
+		}
 	})
 }
 

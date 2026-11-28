@@ -107,3 +107,23 @@ func ValidatePassword(val string) error {
 func disallowedInPassword(r rune) bool {
 	return unicode.Is(unicode.Cc, r) || r == unicode.ReplacementChar
 }
+
+// ValidateLoginEmail checks the email of a login only for being present and
+// at most EmailMaxLength code points. An email that couldn't belong to an
+// account fails as invalid credentials instead.
+func ValidateLoginEmail(val string) error {
+	if err := validator.Required("email", val); err != nil {
+		return err
+	}
+	return validator.MaxLength("email", val, EmailMaxLength)
+}
+
+// ValidateLoginPassword checks the password of a login only for being present
+// and at most PasswordMaxLength code points, so rules tightened later never
+// lock out an account with an older password.
+func ValidateLoginPassword(val string) error {
+	if err := validator.Required("password", val); err != nil {
+		return err
+	}
+	return validator.MaxLength("password", val, PasswordMaxLength)
+}

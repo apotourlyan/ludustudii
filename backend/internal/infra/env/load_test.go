@@ -321,6 +321,7 @@ func TestLoad_ShutdownDrainDelayErrorsCollected(t *testing.T) {
 var authNames = []string{
 	EnvAuthArgon2Memory, EnvAuthArgon2Iterations, EnvAuthArgon2Parallelism,
 	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength, EnvAuthHashConcurrency,
+	EnvAuthSessionIdleTimeout, EnvAuthSessionAbsoluteTimeout,
 }
 
 // clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
@@ -348,18 +349,28 @@ func TestLoad_AuthDefaults(t *testing.T) {
 	if v.AuthHashConcurrency != runtime.NumCPU() {
 		t.Errorf("hash concurrency: got %d, want %d", v.AuthHashConcurrency, runtime.NumCPU())
 	}
+	for name, tt := range map[string]struct{ got, want time.Duration }{
+		"idle timeout":     {v.AuthSessionIdleTimeout, 7 * 24 * time.Hour},
+		"absolute timeout": {v.AuthSessionAbsoluteTimeout, 30 * 24 * time.Hour},
+	} {
+		if tt.got != tt.want {
+			t.Errorf("%s: got %v, want %v", name, tt.got, tt.want)
+		}
+	}
 }
 
 func TestLoad_Auth(t *testing.T) {
 	setRequired(t)
 	clearAuth(t)
 	for name, value := range map[string]string{
-		EnvAuthArgon2Memory:      "64",
-		EnvAuthArgon2Iterations:  "1",
-		EnvAuthArgon2Parallelism: "2",
-		EnvAuthArgon2SaltLength:  "32",
-		EnvAuthArgon2KeyLength:   "64",
-		EnvAuthHashConcurrency:   "3",
+		EnvAuthArgon2Memory:           "64",
+		EnvAuthArgon2Iterations:       "1",
+		EnvAuthArgon2Parallelism:      "2",
+		EnvAuthArgon2SaltLength:       "32",
+		EnvAuthArgon2KeyLength:        "64",
+		EnvAuthHashConcurrency:        "3",
+		EnvAuthSessionIdleTimeout:     "1h",
+		EnvAuthSessionAbsoluteTimeout: "2h",
 	} {
 		t.Setenv(name, value)
 	}
@@ -371,15 +382,15 @@ func TestLoad_Auth(t *testing.T) {
 	if got, want := v.PasswordParams(), (password.Params{Memory: 64, Iterations: 1, Parallelism: 2, SaltLength: 32, KeyLength: 64}); got != want {
 		t.Errorf("argon2id: got %v, want %v", got, want)
 	}
-	if v.AuthHashConcurrency != 3 {
-		t.Errorf("hash concurrency: got %d, want 3", v.AuthHashConcurrency)
+	if v.AuthHashConcurrency != 3 || v.AuthSessionIdleTimeout != time.Hour || v.AuthSessionAbsoluteTimeout != 2*time.Hour {
+		t.Errorf("sessions: got %+v", v)
 	}
 
 	attrs := map[string]string{}
 	for _, a := range v.LogAttrs() {
 		attrs[a.Key] = a.Value.String()
 	}
-	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthHashConcurrency: "3"} {
+	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthSessionIdleTimeout: "1h0m0s"} {
 		if attrs[name] != want {
 			t.Errorf("log attr %s: got %q, want %q", name, attrs[name], want)
 		}
@@ -399,6 +410,8 @@ func TestLoad_AuthErrors(t *testing.T) {
 		{EnvAuthArgon2KeyLength, "8", "key length"},
 		{EnvAuthHashConcurrency, "0", EnvAuthHashConcurrency},
 		{EnvAuthHashConcurrency, "many", EnvAuthHashConcurrency},
+		{EnvAuthSessionIdleTimeout, "7d", EnvAuthSessionIdleTimeout},
+		{EnvAuthSessionAbsoluteTimeout, "0s", EnvAuthSessionAbsoluteTimeout},
 	} {
 		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
 			setRequired(t)

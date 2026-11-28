@@ -176,6 +176,45 @@ InvalidRegistrationInput:
                 code: invalid_format
               - field: password
                 code: min_length
+InvalidLoginInput:
+  description: |
+    Malformed JSON, incompatible JSON types and unknown fields return
+    bind_error. A missing or overlong email or password returns
+    validation_error with required or max_length.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      examples:
+        binding:
+          value:
+            code: bind_error
+        validation:
+          value:
+            code: validation_error
+            errors:
+              - field: password
+                code: required
+InvalidCredentials:
+  description: |
+    The email has no account or the password is wrong; the response doesn't
+    say which. No WWW-Authenticate header is sent.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: invalid_credentials
 CrossOriginRequest:
   description: |
     A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from

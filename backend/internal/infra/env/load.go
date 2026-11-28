@@ -32,12 +32,14 @@ const (
 	EnvLogLevel              = "LOG_LEVEL"
 	EnvLogFormat             = "LOG_FORMAT"
 
-	EnvAuthArgon2Memory      = "AUTH_ARGON2_MEMORY"
-	EnvAuthArgon2Iterations  = "AUTH_ARGON2_ITERATIONS"
-	EnvAuthArgon2Parallelism = "AUTH_ARGON2_PARALLELISM"
-	EnvAuthArgon2SaltLength  = "AUTH_ARGON2_SALT_LENGTH"
-	EnvAuthArgon2KeyLength   = "AUTH_ARGON2_KEY_LENGTH"
-	EnvAuthHashConcurrency   = "AUTH_HASH_CONCURRENCY"
+	EnvAuthArgon2Memory           = "AUTH_ARGON2_MEMORY"
+	EnvAuthArgon2Iterations       = "AUTH_ARGON2_ITERATIONS"
+	EnvAuthArgon2Parallelism      = "AUTH_ARGON2_PARALLELISM"
+	EnvAuthArgon2SaltLength       = "AUTH_ARGON2_SALT_LENGTH"
+	EnvAuthArgon2KeyLength        = "AUTH_ARGON2_KEY_LENGTH"
+	EnvAuthHashConcurrency        = "AUTH_HASH_CONCURRENCY"
+	EnvAuthSessionIdleTimeout     = "AUTH_SESSION_IDLE_TIMEOUT"
+	EnvAuthSessionAbsoluteTimeout = "AUTH_SESSION_ABSOLUTE_TIMEOUT"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -56,11 +58,13 @@ const (
 	DefaultLogFormat             = logging.FormatJSON
 
 	// The argon2id parameters are OWASP's minimum recommendation.
-	DefaultAuthArgon2Memory      = 19456 // KiB
-	DefaultAuthArgon2Iterations  = 2
-	DefaultAuthArgon2Parallelism = 1
-	DefaultAuthArgon2SaltLength  = 16
-	DefaultAuthArgon2KeyLength   = 32
+	DefaultAuthArgon2Memory           = 19456 // KiB
+	DefaultAuthArgon2Iterations       = 2
+	DefaultAuthArgon2Parallelism      = 1
+	DefaultAuthArgon2SaltLength       = 16
+	DefaultAuthArgon2KeyLength        = 32
+	DefaultAuthSessionIdleTimeout     = 7 * 24 * time.Hour
+	DefaultAuthSessionAbsoluteTimeout = 30 * 24 * time.Hour
 )
 
 // Defaults Load uses for optional variables whose value isn't a constant.
@@ -87,12 +91,14 @@ type Vars struct {
 	LogLevel              *slog.LevelVar
 	LogFormat             logging.Format
 
-	AuthArgon2Memory      uint32
-	AuthArgon2Iterations  uint32
-	AuthArgon2Parallelism uint8
-	AuthArgon2SaltLength  uint32
-	AuthArgon2KeyLength   uint32
-	AuthHashConcurrency   int
+	AuthArgon2Memory           uint32
+	AuthArgon2Iterations       uint32
+	AuthArgon2Parallelism      uint8
+	AuthArgon2SaltLength       uint32
+	AuthArgon2KeyLength        uint32
+	AuthHashConcurrency        int
+	AuthSessionIdleTimeout     time.Duration
+	AuthSessionAbsoluteTimeout time.Duration
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -114,8 +120,8 @@ func (v *Vars) PasswordParams() password.Params {
 // Durations use time.ParseDuration syntax, booleans use
 // strconv.ParseBool syntax (such as "true" or "0"), LOG_LEVEL uses slog.Level
 // names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". The
-// AUTH_HASH_CONCURRENCY must be at least 1 and the argon2id parameters within
-// the bounds of password.Params. Load reports every invalid or
+// AUTH_ durations must be positive, AUTH_HASH_CONCURRENCY at least 1 and the
+// argon2id parameters within the bounds of password.Params. Load reports every invalid or
 // missing variable, joined into one error.
 func Load() (*Vars, error) {
 	var errs []error
@@ -204,6 +210,7 @@ func Load() (*Vars, error) {
 type authVars struct {
 	argon2          password.Params
 	hashConcurrency int
+	idle, absolute  time.Duration
 }
 
 func loadAuth() (authVars, error) {
@@ -237,6 +244,11 @@ func loadAuth() (authVars, error) {
 	}
 	errs = append(errs, err)
 
+	a.idle, err = getEnvPositiveDuration(EnvAuthSessionIdleTimeout, DefaultAuthSessionIdleTimeout)
+	errs = append(errs, err)
+	a.absolute, err = getEnvPositiveDuration(EnvAuthSessionAbsoluteTimeout, DefaultAuthSessionAbsoluteTimeout)
+	errs = append(errs, err)
+
 	return a, errors.Join(errs...)
 }
 
@@ -247,6 +259,8 @@ func (a authVars) into(v *Vars) {
 	v.AuthArgon2SaltLength = a.argon2.SaltLength
 	v.AuthArgon2KeyLength = a.argon2.KeyLength
 	v.AuthHashConcurrency = a.hashConcurrency
+	v.AuthSessionIdleTimeout = a.idle
+	v.AuthSessionAbsoluteTimeout = a.absolute
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -284,6 +298,8 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Uint64(EnvAuthArgon2SaltLength, uint64(v.AuthArgon2SaltLength)),
 		slog.Uint64(EnvAuthArgon2KeyLength, uint64(v.AuthArgon2KeyLength)),
 		slog.Int(EnvAuthHashConcurrency, v.AuthHashConcurrency),
+		slog.Duration(EnvAuthSessionIdleTimeout, v.AuthSessionIdleTimeout),
+		slog.Duration(EnvAuthSessionAbsoluteTimeout, v.AuthSessionAbsoluteTimeout),
 	}
 }
 
@@ -321,6 +337,14 @@ func getEnvUint32(key string, defaultValue uint32) (uint32, error) {
 		return 0, fmt.Errorf("parse env %s: %w", key, err)
 	}
 	return uint32(value), nil // #nosec G115 -- Parsed with a 32-bit limit.
+}
+
+func getEnvPositiveDuration(key string, defaultValue time.Duration) (time.Duration, error) {
+	value, err := getEnvDuration(key, defaultValue)
+	if err == nil && value <= 0 {
+		return 0, fmt.Errorf("parse env %s: must be positive", key)
+	}
+	return value, err
 }
 
 func getEnvDuration(key string, defaultValue time.Duration) (time.Duration, error) {

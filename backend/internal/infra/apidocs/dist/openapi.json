@@ -29,6 +29,15 @@
           "pattern": "^[A-Za-z0-9._-]+$",
           "type": "string"
         }
+      },
+      "SetSessionCookie": {
+        "description": "The new session's cookie: __Host-session=\u003ctoken\u003e; Path=/; Max-Age=\u003cthe\nabsolute session limit in seconds\u003e; HttpOnly; Secure; SameSite=Lax. The\ntoken is 32 random bytes in base64url without padding; it appears nowhere\nelse, and script can't read it.\n",
+        "required": true,
+        "schema": {
+          "example": "__Host-session=q3Vb1x0tF6m8E3pO5yZr2HcL9wKdN7aJ4sGuViT0eXk; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax",
+          "pattern": "^__Host-session=[A-Za-z0-9_-]{43};",
+          "type": "string"
+        }
       }
     },
     "parameters": {
@@ -86,6 +95,21 @@
           }
         },
         "description": "JSON card content. Each field is NFC normalized and trimmed, then must be\n1 to its maximum length in code points (see LearningCardInput). Omitted or\nnull fields are treated as empty and fail validation. Unknown JSON\nproperties, including the card's read-only created_at and updated_at,\nare rejected with bind_error.\n",
+        "required": true
+      },
+      "LoginRequest": {
+        "content": {
+          "application/json": {
+            "example": {
+              "email": "armen@example.com",
+              "password": "correct horse battery staple"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/LoginRequest"
+            }
+          }
+        },
+        "description": "The account's email and password, canonicalized as at registration. Only\ntheir presence and maximum lengths are validated; anything else that\ndoesn't match an account is invalid_credentials. Unknown JSON properties\nare rejected with bind_error.\n",
         "required": true
       },
       "RegisterRequest": {
@@ -261,6 +285,63 @@
           }
         },
         "description": "Malformed JSON, incompatible JSON types and unknown fields, including\nthe card's read-only created_at and updated_at, return bind_error. Empty\nbodies and invalid field values return validation_error.\n",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "InvalidCredentials": {
+        "content": {
+          "application/json": {
+            "example": {
+              "code": "invalid_credentials"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "The email has no account or the password is wrong; the response doesn't\nsay which. No WWW-Authenticate header is sent.\n",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "InvalidLoginInput": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "binding": {
+                "value": {
+                  "code": "bind_error"
+                }
+              },
+              "validation": {
+                "value": {
+                  "code": "validation_error",
+                  "errors": [
+                    {
+                      "code": "required",
+                      "field": "password"
+                    }
+                  ]
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "Malformed JSON, incompatible JSON types and unknown fields return\nbind_error. A missing or overlong email or password returns\nvalidation_error with required or max_length.\n",
         "headers": {
           "Cache-Control": {
             "$ref": "#/components/headers/CacheControlNoStore"
@@ -560,6 +641,7 @@
             "enum": [
               "bind_error",
               "validation_error",
+              "invalid_credentials",
               "cross_origin_request",
               "not_found",
               "method_not_allowed",
@@ -587,7 +669,7 @@
         "additionalProperties": false,
         "properties": {
           "code": {
-            "description": "Card fields (title, description) report required or max_length.\nRegistration reports required, max_length, invalid_format or taken\n(email) and required, invalid_characters, min_length or max_length\n(password). Query parameters report invalid_integer or out_of_range\n(limit) and invalid_cursor (cursor). Path IDs report invalid_uuid7\n(id). untrimmed and not_normalized are reserved: fields are\ncanonicalized before validation, so these codes are not currently\nreturned.\n",
+            "description": "Card fields (title, description) report required or max_length.\nRegistration reports required, max_length, invalid_format or taken\n(email) and required, invalid_characters, min_length or max_length\n(password); login reports required or max_length. Query parameters\nreport invalid_integer or out_of_range (limit) and invalid_cursor\n(cursor). Path IDs report invalid_uuid7 (id). untrimmed and\nnot_normalized are reserved: fields are canonicalized before\nvalidation, so these codes are not currently returned.\n",
             "enum": [
               "invalid_uuid7",
               "invalid_cursor",
@@ -698,6 +780,31 @@
         ],
         "type": "object"
       },
+      "LoginRequest": {
+        "additionalProperties": false,
+        "description": "Field errors: email and password report required or max_length.\n",
+        "properties": {
+          "email": {
+            "example": "armen@example.com",
+            "maxLength": 254,
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "description": "Checked only for being present and at most 128 code points, so a stricter rule for new passwords never locks out an account.",
+            "example": "correct horse battery staple",
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
       "ProbeStatus": {
         "additionalProperties": false,
         "properties": {
@@ -740,6 +847,37 @@
         ],
         "type": "object"
       },
+      "Session": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "description": "When the session expires unless it is used, as an RFC 3339 timestamp in\nUTC. Each use extends it by the idle timeout, up to the absolute limit\nafter the session's creation.\n",
+            "example": "2026-12-05T09:30:00.123456Z",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/SessionId"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "id",
+          "expires_at",
+          "user"
+        ],
+        "type": "object"
+      },
+      "SessionId": {
+        "description": "Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant. It names\nthe session; only the token in the session cookie authenticates.\n",
+        "example": "019a0000-0000-7000-8000-0000000000bb",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "type": "string"
+      },
       "User": {
         "additionalProperties": false,
         "properties": {
@@ -766,7 +904,7 @@
     }
   },
   "info": {
-    "description": "Backend API for accounts and learning cards. No authentication is\nrequired.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
+    "description": "Backend API for accounts, sessions and learning cards. No operation\nrequires a session yet.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -1074,6 +1212,65 @@
         ]
       }
     },
+    "/api/sessions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "post": {
+        "description": "Creates a session for the email and password and sets its cookie.\nThe session the request carried, if any, is deleted, so a token\nplanted before the login is worthless after it. An unknown email and a\nwrong password get the same 401 invalid_credentials.\n",
+        "operationId": "createSession",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/LoginRequest"
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            },
+            "description": "Logged in. The body is the session.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
+              "Set-Cookie": {
+                "$ref": "#/components/headers/SetSessionCookie"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidLoginInput"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidCredentials"
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedError"
+          }
+        },
+        "summary": "Log in",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/api/users": {
       "parameters": [
         {
@@ -1222,7 +1419,7 @@
   ],
   "tags": [
     {
-      "description": "Register accounts.",
+      "description": "Register and log in.",
       "name": "Identity"
     },
     {

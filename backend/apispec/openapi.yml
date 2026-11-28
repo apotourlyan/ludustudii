@@ -6,8 +6,8 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   description: |
-    Backend API for accounts and learning cards. No authentication is
-    required.
+    Backend API for accounts, sessions and learning cards. No operation
+    requires a session yet.
 
     Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
     another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
@@ -39,7 +39,7 @@ servers:
 security: []
 tags:
   - name: Identity
-    description: Register accounts.
+    description: Register and log in.
   - name: Learning cards
     description: Create, read, replace, and delete learning cards.
   - name: Operations
@@ -51,6 +51,8 @@ paths:
     $ref: './paths/readyz.yml'
   /api/users:
     $ref: './paths/users.yml#/users'
+  /api/sessions:
+    $ref: './paths/sessions.yml#/sessions'
   /api/lcards:
     $ref: './paths/lcards.yml'
   /api/lcards/{id}:
@@ -72,11 +74,15 @@ components:
       $ref: './components/headers.yml#/CacheControlNoStoreUnlessEarly'
     RequestId:
       $ref: './components/headers.yml#/RequestId'
+    SetSessionCookie:
+      $ref: './components/headers.yml#/SetSessionCookie'
   requestBodies:
     LearningCardInput:
       $ref: './components/requestBodies.yml#/LearningCardInput'
     RegisterRequest:
       $ref: './components/requestBodies.yml#/RegisterRequest'
+    LoginRequest:
+      $ref: './components/requestBodies.yml#/LoginRequest'
   schemas:
     ProbeStatus:
       $ref: './components/schemas/probe.yml#/ProbeStatus'
@@ -96,8 +102,14 @@ components:
       $ref: './components/schemas/user.yml#/Email'
     RegisterRequest:
       $ref: './components/schemas/user.yml#/RegisterRequest'
+    LoginRequest:
+      $ref: './components/schemas/user.yml#/LoginRequest'
     User:
       $ref: './components/schemas/user.yml#/User'
+    SessionId:
+      $ref: './components/schemas/session.yml#/SessionId'
+    Session:
+      $ref: './components/schemas/session.yml#/Session'
     ErrorResponse:
       $ref: './components/schemas/errors.yml#/ErrorResponse'
     FieldError:
@@ -121,6 +133,10 @@ components:
       $ref: './components/responses/errors.yml#/InvalidCardId'
     InvalidRegistrationInput:
       $ref: './components/responses/errors.yml#/InvalidRegistrationInput'
+    InvalidLoginInput:
+      $ref: './components/responses/errors.yml#/InvalidLoginInput'
+    InvalidCredentials:
+      $ref: './components/responses/errors.yml#/InvalidCredentials'
     CrossOriginRequest:
       $ref: './components/responses/errors.yml#/CrossOriginRequest'
     NotFound:

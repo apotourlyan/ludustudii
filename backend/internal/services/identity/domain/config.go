@@ -16,11 +16,13 @@ type Config struct {
 	Password password.Params
 	// HashConcurrency caps the hashes computed at once.
 	HashConcurrency int
+	// Session decides when sessions expire.
+	Session SessionPolicy
 }
 
 // Validate reports every invalid setting.
 func (c Config) Validate() error {
-	errs := []error{c.Password.Validate()}
+	errs := []error{c.Password.Validate(), c.Session.Validate()}
 	if c.HashConcurrency < 1 {
 		errs = append(errs, fmt.Errorf("hash concurrency must be at least 1, got %d", c.HashConcurrency))
 	}

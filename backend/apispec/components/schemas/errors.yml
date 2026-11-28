@@ -8,6 +8,7 @@ ErrorResponse:
       enum:
         - bind_error
         - validation_error
+        - invalid_credentials
         - cross_origin_request
         - not_found
         - method_not_allowed
@@ -34,9 +35,9 @@ FieldError:
         Card fields (title, description) report required or max_length.
         Registration reports required, max_length, invalid_format or taken
         (email) and required, invalid_characters, min_length or max_length
-        (password). Query parameters report invalid_integer or out_of_range
-        (limit) and invalid_cursor (cursor). Path IDs report invalid_uuid7
-        (id). untrimmed and not_normalized are reserved: fields are
-        canonicalized before validation, so these codes are not currently
-        returned.
+        (password); login reports required or max_length. Query parameters
+        report invalid_integer or out_of_range (limit) and invalid_cursor
+        (cursor). Path IDs report invalid_uuid7 (id). untrimmed and
+        not_normalized are reserved: fields are canonicalized before
+        validation, so these codes are not currently returned.
       enum: [invalid_uuid7, invalid_cursor, required, min_length, max_length, invalid_format, invalid_characters, taken, untrimmed, not_normalized, invalid_integer, out_of_range]

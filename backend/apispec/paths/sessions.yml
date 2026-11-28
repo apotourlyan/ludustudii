@@ -1,0 +1,41 @@
+# One path item so far: /api/sessions (sessions).
+sessions:
+  parameters:
+    - $ref: '../components/parameters.yml#/RequestId'
+  post:
+    tags: [Identity]
+    operationId: createSession
+    summary: Log in
+    description: |
+      Creates a session for the email and password and sets its cookie.
+      The session the request carried, if any, is deleted, so a token
+      planted before the login is worthless after it. An unknown email and a
+      wrong password get the same 401 invalid_credentials.
+    requestBody:
+      $ref: '../components/requestBodies.yml#/LoginRequest'
+    responses:
+      '201':
+        description: Logged in. The body is the session.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers.yml#/RequestId'
+          Cache-Control:
+            $ref: '../components/headers.yml#/CacheControlNoStore'
+          Set-Cookie:
+            $ref: '../components/headers.yml#/SetSessionCookie'
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/session.yml#/Session'
+      '400':
+        $ref: '../components/responses/errors.yml#/InvalidLoginInput'
+      '401':
+        $ref: '../components/responses/errors.yml#/InvalidCredentials'
+      '403':
+        $ref: '../components/responses/errors.yml#/CrossOriginRequest'
+      '413':
+        $ref: '../components/responses/errors.yml#/PayloadTooLarge'
+      '415':
+        $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
+      '500':
+        $ref: '../components/responses/errors.yml#/UnexpectedError'

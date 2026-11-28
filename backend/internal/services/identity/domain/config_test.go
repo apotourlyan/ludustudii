@@ -15,6 +15,7 @@ func TestConfig_Validate(t *testing.T) {
 	valid := Config{
 		Password:        password.Params{Memory: 64, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32},
 		HashConcurrency: 1,
+		Session:         policy,
 	}
 	if err := valid.Validate(); err != nil {
 		t.Fatalf("valid config: %v", err)
@@ -24,7 +25,7 @@ func TestConfig_Validate(t *testing.T) {
 	if err == nil {
 		t.Fatal("zero config: want an error")
 	}
-	for _, want := range []string{"parallelism", "hash concurrency"} {
+	for _, want := range []string{"parallelism", "idle timeout", "hash concurrency"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("zero config error does not mention %q: %v", want, err)
 		}

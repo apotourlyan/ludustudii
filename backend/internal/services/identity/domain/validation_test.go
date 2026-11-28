@@ -125,3 +125,27 @@ func TestValidatePassword(t *testing.T) {
 		{name: "over max length", val: strings.Repeat("a", PasswordMaxLength+1), wantCode: validator.CodeMaxLength},
 	})
 }
+
+func TestValidateLoginEmail(t *testing.T) {
+	t.Parallel()
+
+	checkValidation(t, "email", ValidateLoginEmail, []validation{
+		{name: "valid", val: "armen@example.com"},
+		{name: "no @ is left to the lookup", val: "armen"},
+		{name: "at max length", val: strings.Repeat("a", EmailMaxLength)},
+		{name: "empty", val: "", wantCode: validator.CodeRequired},
+		{name: "over max length", val: strings.Repeat("a", EmailMaxLength+1), wantCode: validator.CodeMaxLength},
+	})
+}
+
+func TestValidateLoginPassword(t *testing.T) {
+	t.Parallel()
+
+	checkValidation(t, "password", ValidateLoginPassword, []validation{
+		{name: "short, from before a rule change", val: "short"},
+		{name: "control characters", val: "a\tb"},
+		{name: "at max length", val: strings.Repeat("a", PasswordMaxLength)},
+		{name: "empty", val: "", wantCode: validator.CodeRequired},
+		{name: "over max length", val: strings.Repeat("a", PasswordMaxLength+1), wantCode: validator.CodeMaxLength},
+	})
+}

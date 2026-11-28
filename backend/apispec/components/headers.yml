@@ -20,3 +20,14 @@ CacheControlNoStoreUnlessEarly:
   schema:
     type: string
     enum: [no-store]
+SetSessionCookie:
+  description: |
+    The new session's cookie: __Host-session=<token>; Path=/; Max-Age=<the
+    absolute session limit in seconds>; HttpOnly; Secure; SameSite=Lax. The
+    token is 32 random bytes in base64url without padding; it appears nowhere
+    else, and script can't read it.
+  required: true
+  schema:
+    type: string
+    pattern: '^__Host-session=[A-Za-z0-9_-]{43};'
+    example: __Host-session=q3Vb1x0tF6m8E3pO5yZr2HcL9wKdN7aJ4sGuViT0eXk; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax

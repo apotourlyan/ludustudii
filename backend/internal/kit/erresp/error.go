@@ -9,6 +9,7 @@ import (
 const (
 	CodeBinding              = "bind_error"
 	CodeCrossOriginRequest   = "cross_origin_request"
+	CodeInvalidCredentials   = "invalid_credentials" // #nosec G101 -- An error code, not a credential.
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
 	CodePayloadTooLarge      = "payload_too_large"
@@ -44,6 +45,14 @@ func Binding() ErrorResponse {
 func CrossOriginRequest() ErrorResponse {
 	return ErrorResponse{
 		Code: CodeCrossOriginRequest,
+	}
+}
+
+// InvalidCredentials returns the response for a failed login, whatever the
+// reason.
+func InvalidCredentials() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeInvalidCredentials,
 	}
 }
 

@@ -21,6 +21,7 @@ func TestConstructors(t *testing.T) {
 		{name: "New", new: func() ErrorResponse { return New("custom_error") }, code: "custom_error"},
 		{name: "Binding", new: Binding, code: "bind_error"},
 		{name: "CrossOriginRequest", new: CrossOriginRequest, code: "cross_origin_request"},
+		{name: "InvalidCredentials", new: InvalidCredentials, code: "invalid_credentials"},
 		{name: "MethodNotAllowed", new: MethodNotAllowed, code: "method_not_allowed"},
 		{name: "NotFound", new: NotFound, code: "not_found"},
 		{name: "PayloadTooLarge", new: PayloadTooLarge, code: "payload_too_large"},

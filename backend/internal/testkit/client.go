@@ -16,6 +16,8 @@ import (
 // empty ContentType and Body are not sent. Chunked sends Body without a
 // Content-Length, using chunked transfer encoding. Headers are copied before
 // ContentType is applied; a nonempty ContentType overrides that header.
+// Cookies are added to the request's Cookie header, whatever their
+// attributes, as a browser would send them.
 type DoOpts struct {
 	Method      string
 	Path        string
@@ -23,6 +25,7 @@ type DoOpts struct {
 	Headers     http.Header
 	Body        string
 	Chunked     bool
+	Cookies     []*http.Cookie
 }
 
 // Response contains the status, headers, and fully read body returned by Do.
@@ -30,6 +33,16 @@ type Response struct {
 	StatusCode int
 	Header     http.Header
 	Body       []byte
+}
+
+// Cookie returns the cookie named name that the response set, or nil.
+func (r Response) Cookie(name string) *http.Cookie {
+	for _, c := range (&http.Response{Header: r.Header}).Cookies() {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
 }
 
 // Do sends the request described by o to s, with a 10-second timeout, without
@@ -58,6 +71,9 @@ func Do(tb testing.TB, s *httptest.Server, o DoOpts) Response {
 	}
 	if o.ContentType != "" {
 		req.Header.Set("Content-Type", o.ContentType)
+	}
+	for _, c := range o.Cookies {
+		req.AddCookie(c)
 	}
 	client := *s.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error {

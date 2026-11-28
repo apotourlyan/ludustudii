@@ -79,6 +79,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sessions": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in
+         * @description Creates a session for the email and password and sets its cookie.
+         *     The session the request carried, if any, is deleted, so a token
+         *     planted before the login is worthless after it. An unknown email and a
+         *     wrong password get the same 401 invalid_credentials.
+         */
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users": {
         parameters: {
             query?: never;
@@ -197,7 +229,7 @@ export interface components {
         Email: string;
         ErrorResponse: {
             /** @enum {string} */
-            code: "bind_error" | "validation_error" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
+            code: "bind_error" | "validation_error" | "invalid_credentials" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
             /** @description Per-field failures, included only for validation_error responses. */
             errors?: components["schemas"]["FieldError"][];
         };
@@ -206,11 +238,11 @@ export interface components {
              * @description Card fields (title, description) report required or max_length.
              *     Registration reports required, max_length, invalid_format or taken
              *     (email) and required, invalid_characters, min_length or max_length
-             *     (password). Query parameters report invalid_integer or out_of_range
-             *     (limit) and invalid_cursor (cursor). Path IDs report invalid_uuid7
-             *     (id). untrimmed and not_normalized are reserved: fields are
-             *     canonicalized before validation, so these codes are not currently
-             *     returned.
+             *     (password); login reports required or max_length. Query parameters
+             *     report invalid_integer or out_of_range (limit) and invalid_cursor
+             *     (cursor). Path IDs report invalid_uuid7 (id). untrimmed and
+             *     not_normalized are reserved: fields are canonicalized before
+             *     validation, so these codes are not currently returned.
              * @enum {string}
              */
             code: "invalid_uuid7" | "invalid_cursor" | "required" | "min_length" | "max_length" | "invalid_format" | "invalid_characters" | "taken" | "untrimmed" | "not_normalized" | "invalid_integer" | "out_of_range";
@@ -266,6 +298,17 @@ export interface components {
              */
             next_cursor: string | null;
         };
+        /** @description Field errors: email and password report required or max_length. */
+        LoginRequest: {
+            /** @example armen@example.com */
+            email: string;
+            /**
+             * Format: password
+             * @description Checked only for being present and at most 128 code points, so a stricter rule for new passwords never locks out an account.
+             * @example correct horse battery staple
+             */
+            password: string;
+        };
         ProbeStatus: {
             /** @enum {string} */
             status: "ok" | "unavailable";
@@ -291,6 +334,25 @@ export interface components {
              */
             password: string;
         };
+        Session: {
+            /**
+             * Format: date-time
+             * @description When the session expires unless it is used, as an RFC 3339 timestamp in
+             *     UTC. Each use extends it by the idle timeout, up to the absolute limit
+             *     after the session's creation.
+             * @example 2026-12-05T09:30:00.123456Z
+             */
+            readonly expires_at: string;
+            id: components["schemas"]["SessionId"];
+            user: components["schemas"]["User"];
+        };
+        /**
+         * Format: uuid
+         * @description Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant. It names
+         *     the session; only the token in the session cookie authenticates.
+         * @example 019a0000-0000-7000-8000-0000000000bb
+         */
+        SessionId: string;
         User: {
             email: components["schemas"]["Email"];
             id: components["schemas"]["UserId"];
@@ -414,6 +476,40 @@ export interface components {
          *     bodies and invalid field values return validation_error.
          */
         InvalidCreateInput: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description The email has no account or the password is wrong; the response doesn't
+         *     say which. No WWW-Authenticate header is sent.
+         */
+        InvalidCredentials: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": "invalid_credentials"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description Malformed JSON, incompatible JSON types and unknown fields return
+         *     bind_error. A missing or overlong email or password returns
+         *     validation_error with required or max_length.
+         */
+        InvalidLoginInput: {
             headers: {
                 "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
@@ -611,6 +707,23 @@ export interface components {
             };
         };
         /**
+         * @description The account's email and password, canonicalized as at registration. Only
+         *     their presence and maximum lengths are validated; anything else that
+         *     doesn't match an account is invalid_credentials. Unknown JSON properties
+         *     are rejected with bind_error.
+         */
+        LoginRequest: {
+            content: {
+                /**
+                 * @example {
+                 *       "email": "armen@example.com",
+                 *       "password": "correct horse battery staple"
+                 *     }
+                 */
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        /**
          * @description The new account's email and password. The email is normalized to NFC,
          *     trimmed and lowercased; the password is normalized to NFC but never
          *     trimmed. Omitted or null fields are treated as empty and fail validation.
@@ -639,6 +752,13 @@ export interface components {
         CacheControlNoStoreUnlessEarly: "no-store";
         /** @description Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid. */
         RequestId: string;
+        /**
+         * @description The new session's cookie: __Host-session=<token>; Path=/; Max-Age=<the
+         *     absolute session limit in seconds>; HttpOnly; Secure; SameSite=Lax. The
+         *     token is 32 random bytes in base64url without padding; it appears nowhere
+         *     else, and script can't read it.
+         */
+        SetSessionCookie: string;
     };
     pathItems: never;
 }
@@ -903,6 +1023,44 @@ export interface operations {
             404: components["responses"]["HeadNotFound"];
             413: components["responses"]["HeadPayloadTooLarge"];
             500: components["responses"]["HeadUnexpectedError"];
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["LoginRequest"];
+        responses: {
+            /** @description Logged in. The body is the session. */
+            201: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    "Set-Cookie": components["headers"]["SetSessionCookie"];
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["InvalidLoginInput"];
+            401: components["responses"]["InvalidCredentials"];
+            403: components["responses"]["CrossOriginRequest"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            500: components["responses"]["UnexpectedError"];
         };
     };
     registerUser: {
