@@ -32,6 +32,9 @@ export default defineConfig(baseConfig("e2e"), {
       APP_API_DOCS: "false",
       LOG_LEVEL: "error",
       LOG_FORMAT: "text",
+      // Cheap password hashing (ADR 0046).
+      AUTH_ARGON2_MEMORY: "64",
+      AUTH_ARGON2_ITERATIONS: "1",
     },
     // The server logs to stdout. At LOG_LEVEL=error, the expected 404s stay
     // quiet and only failures, 5xx responses among them, show in the output.

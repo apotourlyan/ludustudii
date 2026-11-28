@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
+	"github.com/apotourlyan/ludustudii/internal/kit/password"
 )
 
 // Names of the environment variables read by Load.
@@ -29,6 +30,12 @@ const (
 	EnvAppAPIDocs            = "APP_API_DOCS"
 	EnvLogLevel              = "LOG_LEVEL"
 	EnvLogFormat             = "LOG_FORMAT"
+
+	EnvAuthArgon2Memory      = "AUTH_ARGON2_MEMORY"
+	EnvAuthArgon2Iterations  = "AUTH_ARGON2_ITERATIONS"
+	EnvAuthArgon2Parallelism = "AUTH_ARGON2_PARALLELISM"
+	EnvAuthArgon2SaltLength  = "AUTH_ARGON2_SALT_LENGTH"
+	EnvAuthArgon2KeyLength   = "AUTH_ARGON2_KEY_LENGTH"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -45,6 +52,13 @@ const (
 	DefaultAppAPIDocs            = false
 	DefaultLogLevel              = slog.LevelInfo
 	DefaultLogFormat             = logging.FormatJSON
+
+	// The argon2id parameters are OWASP's minimum recommendation.
+	DefaultAuthArgon2Memory      = 19456 // KiB
+	DefaultAuthArgon2Iterations  = 2
+	DefaultAuthArgon2Parallelism = 1
+	DefaultAuthArgon2SaltLength  = 16
+	DefaultAuthArgon2KeyLength   = 32
 )
 
 // Vars holds the configuration read by Load. Field names mirror the Env
@@ -64,6 +78,24 @@ type Vars struct {
 	AppAPIDocs            bool
 	LogLevel              *slog.LevelVar
 	LogFormat             logging.Format
+
+	AuthArgon2Memory      uint32
+	AuthArgon2Iterations  uint32
+	AuthArgon2Parallelism uint8
+	AuthArgon2SaltLength  uint32
+	AuthArgon2KeyLength   uint32
+}
+
+// PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
+// variables.
+func (v *Vars) PasswordParams() password.Params {
+	return password.Params{
+		Memory:      v.AuthArgon2Memory,
+		Iterations:  v.AuthArgon2Iterations,
+		Parallelism: v.AuthArgon2Parallelism,
+		SaltLength:  v.AuthArgon2SaltLength,
+		KeyLength:   v.AuthArgon2KeyLength,
+	}
 }
 
 // Load reads the configuration from the environment. DB_CONNECTION and
@@ -72,8 +104,9 @@ type Vars struct {
 // The other variables are optional and fall back to the Default constants.
 // Durations use time.ParseDuration syntax, booleans use
 // strconv.ParseBool syntax (such as "true" or "0"), LOG_LEVEL uses slog.Level
-// names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". Load
-// reports every invalid or missing variable, joined into one error.
+// names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". The
+// argon2id parameters must be within the bounds of password.Params. Load reports every invalid or
+// missing variable, joined into one error.
 func Load() (*Vars, error) {
 	var errs []error
 
@@ -129,11 +162,14 @@ func Load() (*Vars, error) {
 	logFormat, err := getEnvFormat(EnvLogFormat, DefaultLogFormat)
 	errs = append(errs, err)
 
+	auth, err := loadAuth()
+	errs = append(errs, err)
+
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 
-	return &Vars{
+	v := &Vars{
 		DBConnectionString:    dbConnectionString,
 		DBMaxOpenConns:        dbMaxOpenConns,
 		DBMaxIdleConns:        dbMaxIdleConns,
@@ -148,7 +184,51 @@ func Load() (*Vars, error) {
 		AppAPIDocs:            appAPIDocs,
 		LogLevel:              logLevel,
 		LogFormat:             logFormat,
-	}, nil
+	}
+	auth.into(v)
+	return v, nil
+}
+
+// authVars are the AUTH_ variables, loaded together so the argon2id
+// parameters can be checked as a whole.
+type authVars struct {
+	argon2 password.Params
+}
+
+func loadAuth() (authVars, error) {
+	var a authVars
+	var errs []error
+	var err error
+
+	a.argon2.Memory, err = getEnvUint32(EnvAuthArgon2Memory, DefaultAuthArgon2Memory)
+	errs = append(errs, err)
+	a.argon2.Iterations, err = getEnvUint32(EnvAuthArgon2Iterations, DefaultAuthArgon2Iterations)
+	errs = append(errs, err)
+	parallelism, err := getEnvUint32(EnvAuthArgon2Parallelism, DefaultAuthArgon2Parallelism)
+	if err == nil && parallelism > 255 {
+		err = fmt.Errorf("parse env %s: must be at most 255", EnvAuthArgon2Parallelism)
+	}
+	errs = append(errs, err)
+	a.argon2.Parallelism = uint8(min(parallelism, 255)) // #nosec G115 -- Capped at 255 above.
+	a.argon2.SaltLength, err = getEnvUint32(EnvAuthArgon2SaltLength, DefaultAuthArgon2SaltLength)
+	errs = append(errs, err)
+	a.argon2.KeyLength, err = getEnvUint32(EnvAuthArgon2KeyLength, DefaultAuthArgon2KeyLength)
+	errs = append(errs, err)
+	if err := errors.Join(errs...); err == nil {
+		if err := a.argon2.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("env AUTH_ARGON2_*: %w", err))
+		}
+	}
+
+	return a, errors.Join(errs...)
+}
+
+func (a authVars) into(v *Vars) {
+	v.AuthArgon2Memory = a.argon2.Memory
+	v.AuthArgon2Iterations = a.argon2.Iterations
+	v.AuthArgon2Parallelism = a.argon2.Parallelism
+	v.AuthArgon2SaltLength = a.argon2.SaltLength
+	v.AuthArgon2KeyLength = a.argon2.KeyLength
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -180,6 +260,11 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Bool(EnvAppAPIDocs, v.AppAPIDocs),
 		slog.String(EnvLogLevel, v.LogLevel.Level().String()),
 		slog.String(EnvLogFormat, v.LogFormat.String()),
+		slog.Uint64(EnvAuthArgon2Memory, uint64(v.AuthArgon2Memory)),
+		slog.Uint64(EnvAuthArgon2Iterations, uint64(v.AuthArgon2Iterations)),
+		slog.Uint64(EnvAuthArgon2Parallelism, uint64(v.AuthArgon2Parallelism)),
+		slog.Uint64(EnvAuthArgon2SaltLength, uint64(v.AuthArgon2SaltLength)),
+		slog.Uint64(EnvAuthArgon2KeyLength, uint64(v.AuthArgon2KeyLength)),
 	}
 }
 
@@ -205,6 +290,18 @@ func getEnvInt(key string, defaultValue int) (int, error) {
 		return 0, fmt.Errorf("parse env %s: %w", key, err)
 	}
 	return value, nil
+}
+
+func getEnvUint32(key string, defaultValue uint32) (uint32, error) {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+	value, err := strconv.ParseUint(valueStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("parse env %s: %w", key, err)
+	}
+	return uint32(value), nil // #nosec G115 -- Parsed with a 32-bit limit.
 }
 
 func getEnvDuration(key string, defaultValue time.Duration) (time.Duration, error) {

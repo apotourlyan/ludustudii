@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
+	"github.com/apotourlyan/ludustudii/internal/kit/password"
 )
 
 // setRequired sets the vars Load needs and clears the vars under test so the
@@ -313,5 +314,97 @@ func TestLoad_ShutdownDrainDelayErrorsCollected(t *testing.T) {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %q does not mention %s", err, name)
 		}
+	}
+}
+
+var authNames = []string{
+	EnvAuthArgon2Memory, EnvAuthArgon2Iterations, EnvAuthArgon2Parallelism,
+	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength,
+}
+
+// clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
+// development values.
+func clearAuth(t *testing.T) {
+	t.Helper()
+	for _, name := range authNames {
+		t.Setenv(name, "")
+	}
+}
+
+// The production values are in effect by default: tests elsewhere use cheap
+// ones (ADR 0046).
+func TestLoad_AuthDefaults(t *testing.T) {
+	setRequired(t)
+	clearAuth(t)
+
+	v, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got, want := v.PasswordParams(), (password.Params{Memory: 19456, Iterations: 2, Parallelism: 1, SaltLength: 16, KeyLength: 32}); got != want {
+		t.Errorf("argon2id: got %v, want %v", got, want)
+	}
+}
+
+func TestLoad_Auth(t *testing.T) {
+	setRequired(t)
+	clearAuth(t)
+	for name, value := range map[string]string{
+		EnvAuthArgon2Memory:      "64",
+		EnvAuthArgon2Iterations:  "1",
+		EnvAuthArgon2Parallelism: "2",
+		EnvAuthArgon2SaltLength:  "32",
+		EnvAuthArgon2KeyLength:   "64",
+	} {
+		t.Setenv(name, value)
+	}
+
+	v, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got, want := v.PasswordParams(), (password.Params{Memory: 64, Iterations: 1, Parallelism: 2, SaltLength: 32, KeyLength: 64}); got != want {
+		t.Errorf("argon2id: got %v, want %v", got, want)
+	}
+
+	attrs := map[string]string{}
+	for _, a := range v.LogAttrs() {
+		attrs[a.Key] = a.Value.String()
+	}
+	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthArgon2KeyLength: "64"} {
+		if attrs[name] != want {
+			t.Errorf("log attr %s: got %q, want %q", name, attrs[name], want)
+		}
+	}
+}
+
+func TestLoad_AuthErrors(t *testing.T) {
+	for _, tt := range []struct{ name, value, mention string }{
+		{EnvAuthArgon2Memory, "lots", EnvAuthArgon2Memory},
+		{EnvAuthArgon2Memory, "-1", EnvAuthArgon2Memory},
+		{EnvAuthArgon2Memory, "4294967296", EnvAuthArgon2Memory},
+		{EnvAuthArgon2Memory, "4", "memory"},
+		{EnvAuthArgon2Iterations, "0", "iterations"},
+		{EnvAuthArgon2Parallelism, "0", "parallelism"},
+		{EnvAuthArgon2Parallelism, "256", EnvAuthArgon2Parallelism},
+		{EnvAuthArgon2SaltLength, "4", "salt length"},
+		{EnvAuthArgon2KeyLength, "8", "key length"},
+	} {
+		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
+			setRequired(t)
+			clearAuth(t)
+			t.Setenv(tt.name, tt.value)
+			t.Setenv(EnvAppAPIDocs, "invalid")
+
+			v, err := Load()
+			if err == nil {
+				t.Fatalf("expected error, got vars %+v", v)
+			}
+			for _, want := range []string{tt.mention, EnvAppAPIDocs} {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error %q does not mention %s", err, want)
+				}
+			}
+		})
 	}
 }

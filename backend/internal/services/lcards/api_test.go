@@ -29,7 +29,11 @@ func newServer(t *testing.T) (*httptest.Server, *sql.DB) {
 	db := testkit.NewDB(t)
 	log := slog.New(slog.DiscardHandler)
 	onError := router.ErrorHandler(log)
-	srv := httptest.NewServer(router.New(log, onError, api.New(db, onError)))
+	surface, err := api.New(db, testkit.IdentityConfig(), onError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(router.New(log, onError, surface))
 	t.Cleanup(srv.Close)
 	return srv, db
 }

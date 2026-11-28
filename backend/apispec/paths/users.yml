@@ -1,0 +1,35 @@
+# One path item so far: /api/users (users).
+users:
+  parameters:
+    - $ref: '../components/parameters.yml#/RequestId'
+  post:
+    tags: [Identity]
+    operationId: registerUser
+    summary: Register a user
+    description: |
+      Creates an account. The response reveals whether an email has an
+      account (taken).
+    requestBody:
+      $ref: '../components/requestBodies.yml#/RegisterRequest'
+    responses:
+      '201':
+        description: User created. The body is the user.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers.yml#/RequestId'
+          Cache-Control:
+            $ref: '../components/headers.yml#/CacheControlNoStore'
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yml#/User'
+      '400':
+        $ref: '../components/responses/errors.yml#/InvalidRegistrationInput'
+      '403':
+        $ref: '../components/responses/errors.yml#/CrossOriginRequest'
+      '413':
+        $ref: '../components/responses/errors.yml#/PayloadTooLarge'
+      '415':
+        $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
+      '500':
+        $ref: '../components/responses/errors.yml#/UnexpectedError'

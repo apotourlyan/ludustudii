@@ -12,3 +12,10 @@ import (
 func String(val string) string {
 	return strings.TrimSpace(norm.NFC.String(val))
 }
+
+// Normalize returns val in Unicode NFC, white space included, so the result
+// passes validator.Normalized. Use it for input kept as typed, such as a
+// password.
+func Normalize(val string) string {
+	return norm.NFC.String(val)
+}

@@ -17,6 +17,7 @@ const (
 	CodeInvalidUUID7   = "invalid_uuid7"
 	CodeRequired       = "required"
 	CodeMaxLength      = "max_length"
+	CodeMinLength      = "min_length"
 	CodeUntrimmed      = "untrimmed"
 	CodeNormalized     = "not_normalized"
 	CodeOutOfRange     = "out_of_range"
@@ -78,6 +79,16 @@ func MaxLength(field, val string, max int) error {
 	if curr > max {
 		return NewFieldError(field, CodeMaxLength,
 			fmt.Errorf("%q %d/%d: %w", field, curr, max, ErrMaxLength))
+	}
+	return nil
+}
+
+// MinLength checks that val has at least min characters, counted in runes.
+func MinLength(field, val string, min int) error {
+	curr := utf8.RuneCountInString(val)
+	if curr < min {
+		return NewFieldError(field, CodeMinLength,
+			fmt.Errorf("%q %d/%d: %w", field, curr, min, ErrMinLength))
 	}
 	return nil
 }

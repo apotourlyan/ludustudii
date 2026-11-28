@@ -6,7 +6,8 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   description: |
-    Backend API for managing learning cards. No authentication is required.
+    Backend API for accounts and learning cards. No authentication is
+    required.
 
     Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
     another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
@@ -16,9 +17,11 @@ info:
     Requests with JSON bodies must use Content-Type: application/json
     (type and subtype are case-insensitive; media-type parameters are accepted).
     Other or missing Content-Types on a
-    nonempty body return 415 with code unsupported_media_type. Titles and descriptions are normalized
-    to Unicode NFC and trimmed before validation and storage. Length limits
-    count Unicode code points after this sanitization.
+    nonempty body return 415 with code unsupported_media_type. Titles,
+    descriptions and emails are normalized to Unicode NFC and trimmed
+    before validation and storage, and emails are lowercased; passwords are
+    normalized to NFC but never trimmed. Length limits count Unicode code
+    points after this sanitization.
 
     Request bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies
     return 413 with code payload_too_large, whether the size is declared in
@@ -35,6 +38,8 @@ servers:
     description: Current backend origin
 security: []
 tags:
+  - name: Identity
+    description: Register accounts.
   - name: Learning cards
     description: Create, read, replace, and delete learning cards.
   - name: Operations
@@ -44,6 +49,8 @@ paths:
     $ref: './paths/livez.yml'
   /readyz:
     $ref: './paths/readyz.yml'
+  /api/users:
+    $ref: './paths/users.yml#/users'
   /api/lcards:
     $ref: './paths/lcards.yml'
   /api/lcards/{id}:
@@ -68,6 +75,8 @@ components:
   requestBodies:
     LearningCardInput:
       $ref: './components/requestBodies.yml#/LearningCardInput'
+    RegisterRequest:
+      $ref: './components/requestBodies.yml#/RegisterRequest'
   schemas:
     ProbeStatus:
       $ref: './components/schemas/probe.yml#/ProbeStatus'
@@ -81,6 +90,14 @@ components:
       $ref: './components/schemas/lcard.yml#/CreatedLearningCard'
     LearningCardPage:
       $ref: './components/schemas/lcard.yml#/LearningCardPage'
+    UserId:
+      $ref: './components/schemas/user.yml#/UserId'
+    Email:
+      $ref: './components/schemas/user.yml#/Email'
+    RegisterRequest:
+      $ref: './components/schemas/user.yml#/RegisterRequest'
+    User:
+      $ref: './components/schemas/user.yml#/User'
     ErrorResponse:
       $ref: './components/schemas/errors.yml#/ErrorResponse'
     FieldError:
@@ -102,6 +119,8 @@ components:
       $ref: './components/responses/errors.yml#/InvalidReplaceInput'
     InvalidCardId:
       $ref: './components/responses/errors.yml#/InvalidCardId'
+    InvalidRegistrationInput:
+      $ref: './components/responses/errors.yml#/InvalidRegistrationInput'
     CrossOriginRequest:
       $ref: './components/responses/errors.yml#/CrossOriginRequest'
     NotFound:

@@ -59,7 +59,7 @@ func newSpecServer(t *testing.T) *httptest.Server {
 	}
 	log := discardLogger()
 	db := testkit.NewDB(t)
-	srv := httptest.NewServer(newHandler(log, parts{db: db, readiness: health.NewState(log, db), clientApp: clientApp}))
+	srv := httptest.NewServer(newIntegrationHandler(t, log, parts{db: db, readiness: health.NewState(log, db), clientApp: clientApp}))
 	t.Cleanup(srv.Close)
 	return srv
 }

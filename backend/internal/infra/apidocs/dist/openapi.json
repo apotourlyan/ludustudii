@@ -87,6 +87,21 @@
         },
         "description": "JSON card content. Each field is NFC normalized and trimmed, then must be\n1 to its maximum length in code points (see LearningCardInput). Omitted or\nnull fields are treated as empty and fail validation. Unknown JSON\nproperties, including the card's read-only created_at and updated_at,\nare rejected with bind_error.\n",
         "required": true
+      },
+      "RegisterRequest": {
+        "content": {
+          "application/json": {
+            "example": {
+              "email": "armen@example.com",
+              "password": "correct horse battery staple"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/RegisterRequest"
+            }
+          }
+        },
+        "description": "The new account's email and password. The email is normalized to NFC,\ntrimmed and lowercased; the password is normalized to NFC but never\ntrimmed. Omitted or null fields are treated as empty and fail validation.\nUnknown JSON properties are rejected with bind_error.\n",
+        "required": true
       }
     },
     "responses": {
@@ -273,6 +288,57 @@
           }
         },
         "description": "Invalid query parameters return validation_error with field errors. Malformed or overflowing limits report invalid_integer; out-of-range limits report out_of_range; invalid cursor tokens report invalid_cursor.",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "InvalidRegistrationInput": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "binding": {
+                "value": {
+                  "code": "bind_error"
+                }
+              },
+              "taken": {
+                "value": {
+                  "code": "validation_error",
+                  "errors": [
+                    {
+                      "code": "taken",
+                      "field": "email"
+                    }
+                  ]
+                }
+              },
+              "validation": {
+                "value": {
+                  "code": "validation_error",
+                  "errors": [
+                    {
+                      "code": "invalid_format",
+                      "field": "email"
+                    },
+                    {
+                      "code": "min_length",
+                      "field": "password"
+                    }
+                  ]
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "Malformed JSON, incompatible JSON types and unknown fields return\nbind_error. Empty bodies and invalid field values return\nvalidation_error: email reports required, max_length, invalid_format or\ntaken (an account has the email); password reports required,\ninvalid_characters, min_length or max_length.\n",
         "headers": {
           "Cache-Control": {
             "$ref": "#/components/headers/CacheControlNoStore"
@@ -480,6 +546,13 @@
         ],
         "type": "object"
       },
+      "Email": {
+        "description": "The account's email in canonical form: NFC, trimmed and lowercased, with\none @ and text on both sides. Length is counted in code points. It is\nthe login name, and it isn't verified.\n",
+        "example": "armen@example.com",
+        "maxLength": 254,
+        "minLength": 3,
+        "type": "string"
+      },
       "ErrorResponse": {
         "additionalProperties": false,
         "properties": {
@@ -514,12 +587,16 @@
         "additionalProperties": false,
         "properties": {
           "code": {
-            "description": "Card fields (title, description) report required or max_length.\nQuery parameters report invalid_integer or out_of_range (limit) and\ninvalid_cursor (cursor). Path IDs report invalid_uuid7 (id). untrimmed and not_normalized are reserved:\ncard fields are trimmed and NFC-normalized before validation, so\nthese codes are not currently returned.\n",
+            "description": "Card fields (title, description) report required or max_length.\nRegistration reports required, max_length, invalid_format or taken\n(email) and required, invalid_characters, min_length or max_length\n(password). Query parameters report invalid_integer or out_of_range\n(limit) and invalid_cursor (cursor). Path IDs report invalid_uuid7\n(id). untrimmed and not_normalized are reserved: fields are\ncanonicalized before validation, so these codes are not currently\nreturned.\n",
             "enum": [
               "invalid_uuid7",
               "invalid_cursor",
               "required",
+              "min_length",
               "max_length",
+              "invalid_format",
+              "invalid_characters",
+              "taken",
               "untrimmed",
               "not_normalized",
               "invalid_integer",
@@ -636,11 +713,60 @@
           "status"
         ],
         "type": "object"
+      },
+      "RegisterRequest": {
+        "additionalProperties": false,
+        "description": "Length constraints apply to the canonical form of each field, counted in\nUnicode code points: the email NFC, trimmed and lowercased, the password\nNFC only. Clients should validate that form; the server canonicalizes\nbefore validating. Field errors: email reports required, max_length,\ninvalid_format or taken; password reports required, invalid_characters\n(a control character or U+FFFD), min_length or max_length.\n",
+        "properties": {
+          "email": {
+            "description": "One @ with text on both sides. Must not belong to an account.",
+            "example": "armen@example.com",
+            "maxLength": 254,
+            "minLength": 3,
+            "type": "string"
+          },
+          "password": {
+            "description": "Any printable characters, spaces included, from 15 to 128 code points. Kept as typed apart from NFC.",
+            "example": "correct horse battery staple",
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 15,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "User": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "$ref": "#/components/schemas/Email"
+          },
+          "id": {
+            "$ref": "#/components/schemas/UserId"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "type": "object"
+      },
+      "UserId": {
+        "description": "Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant.",
+        "example": "019a0000-0000-7000-8000-0000000000aa",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "type": "string"
       }
     }
   },
   "info": {
-    "description": "Backend API for managing learning cards. No authentication is required.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles and descriptions are normalized\nto Unicode NFC and trimmed before validation and storage. Length limits\ncount Unicode code points after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
+    "description": "Backend API for accounts and learning cards. No authentication is\nrequired.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -948,6 +1074,59 @@
         ]
       }
     },
+    "/api/users": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "post": {
+        "description": "Creates an account. The response reveals whether an email has an\naccount (taken).\n",
+        "operationId": "registerUser",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/RegisterRequest"
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "User created. The body is the user.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRegistrationInput"
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedError"
+          }
+        },
+        "summary": "Register a user",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/livez": {
       "description": "GET and HEAD are supported. Other methods return 405 with the shared JSON\nerror body (code method_not_allowed), Allow: GET, HEAD, Cache-Control:\nno-store and X-Request-Id. The global 1 MiB body limit runs before probe\nhandling and rejects oversized declared bodies with 413.\n",
       "get": {
@@ -1042,6 +1221,10 @@
     }
   ],
   "tags": [
+    {
+      "description": "Register accounts.",
+      "name": "Identity"
+    },
     {
       "description": "Create, read, replace, and delete learning cards.",
       "name": "Learning cards"

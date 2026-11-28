@@ -19,7 +19,19 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
 	"github.com/apotourlyan/ludustudii/internal/infra/spa"
 	"github.com/apotourlyan/ludustudii/internal/kit/staticfile"
+	"github.com/apotourlyan/ludustudii/internal/testkit"
 )
+
+// newTestHandler builds the handler with the test identity configuration.
+func newTestHandler(t *testing.T, log *slog.Logger, p parts) http.Handler {
+	t.Helper()
+	p.identity = testkit.IdentityConfig()
+	h, err := newHandler(log, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
 
 func TestHandler_PathNormalization(t *testing.T) {
 	t.Parallel()
@@ -80,7 +92,7 @@ func testHandlerResponses(t *testing.T, cases []handlerResponseCase) {
 	}
 	docs := &apidocs.Docs{Page: staticfile.File{ContentType: "text/html", Bytes: []byte("reference")}}
 	log := slog.New(slog.DiscardHandler)
-	handler := newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp, docs: docs})
+	handler := newTestHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp, docs: docs})
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
 			t.Parallel()
@@ -106,7 +118,7 @@ func TestHandler_RequestIDHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 	log := slog.New(slog.DiscardHandler)
-	handler := newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp})
+	handler := newTestHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp})
 	for _, tc := range []struct {
 		name  string
 		value string
@@ -177,7 +189,7 @@ func TestHandler_HealthEndpointsReserveRootPaths(t *testing.T) {
 	}
 	log := slog.New(slog.DiscardHandler)
 	state := health.NewState(log, pingFunc(func(context.Context) error { return nil }))
-	handler := newHandler(log, parts{readiness: state, clientApp: clientApp})
+	handler := newTestHandler(t, log, parts{readiness: state, clientApp: clientApp})
 	for _, path := range []string{health.LivenessPath, health.ReadinessPath} {
 		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions} {
 			t.Run(method+" "+path, func(t *testing.T) {
@@ -250,7 +262,7 @@ func TestHandler_HealthRequestLogging(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				handler := newHandler(log, parts{readiness: state, clientApp: clientApp})
+				handler := newTestHandler(t, log, parts{readiness: state, clientApp: clientApp})
 				req := httptest.NewRequestWithContext(t.Context(), method, tc.path, nil)
 				req.Header.Set("X-Request-Id", "health-request")
 				rec := httptest.NewRecorder()
@@ -316,7 +328,7 @@ func TestHandler_LoggedRouteIsMatchedPattern(t *testing.T) {
 				t.Fatal(err)
 			}
 			rec := httptest.NewRecorder()
-			newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), tc.method, tc.path, nil))
+			newTestHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), tc.method, tc.path, nil))
 			if rec.Code != tc.status {
 				t.Fatalf("status: %d, want %d", rec.Code, tc.status)
 			}

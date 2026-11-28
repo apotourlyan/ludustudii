@@ -28,6 +28,18 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.DiscardHandler)
 }
 
+// newIntegrationHandler builds the handler with the test identity
+// configuration.
+func newIntegrationHandler(t *testing.T, log *slog.Logger, p parts) http.Handler {
+	t.Helper()
+	p.identity = testkit.IdentityConfig()
+	h, err := newHandler(log, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
+
 func newHandlerServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	clientApp, err := spa.Load()
@@ -35,7 +47,7 @@ func newHandlerServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	log := discardLogger()
-	srv := httptest.NewServer(newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
+	srv := httptest.NewServer(newIntegrationHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
 	t.Cleanup(srv.Close)
 	return srv
 }
@@ -69,7 +81,7 @@ func TestHandler_APIDocs(t *testing.T) {
 	t.Run("disabled: /docs is left to the SPA", func(t *testing.T) {
 		t.Parallel()
 		log := discardLogger()
-		srv := httptest.NewServer(newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
+		srv := httptest.NewServer(newIntegrationHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
 		t.Cleanup(srv.Close)
 
 		resp := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: apidocs.Path})
@@ -87,7 +99,7 @@ func TestHandler_APIDocs(t *testing.T) {
 	t.Run("enabled: /docs serves the reference", func(t *testing.T) {
 		t.Parallel()
 		log := discardLogger()
-		srv := httptest.NewServer(newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp, docs: docs}))
+		srv := httptest.NewServer(newIntegrationHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp, docs: docs}))
 		t.Cleanup(srv.Close)
 
 		for path, want := range map[string]staticfile.File{
@@ -244,7 +256,7 @@ func TestHandler_HealthEndpoints(t *testing.T) {
 			}
 			log := discardLogger()
 			state := health.NewState(log, db)
-			srv := httptest.NewServer(newHandler(log, parts{db: db, readiness: state, clientApp: clientApp}))
+			srv := httptest.NewServer(newIntegrationHandler(t, log, parts{db: db, readiness: state, clientApp: clientApp}))
 			t.Cleanup(srv.Close)
 			probe := func(path string, status int, body string) {
 				t.Helper()
@@ -338,7 +350,7 @@ func TestHandler_RequestLogging(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			srv := httptest.NewServer(newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
+			srv := httptest.NewServer(newIntegrationHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
 			t.Cleanup(srv.Close)
 
 			resp := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: tt.path, Headers: http.Header{"X-Request-Id": {tt.requestID}}})
@@ -406,7 +418,7 @@ func TestHandler_RequestLogging(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		srv := httptest.NewServer(newHandler(log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
+		srv := httptest.NewServer(newIntegrationHandler(t, log, parts{readiness: health.NewState(log, nil), clientApp: clientApp}))
 		t.Cleanup(srv.Close)
 
 		resp := testkit.Do(t, srv, testkit.DoOpts{

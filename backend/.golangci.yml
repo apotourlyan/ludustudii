@@ -141,6 +141,25 @@ linters:
               desc: surfaces take their parts from the composition root and must not load configuration
             - pkg: github.com/apotourlyan/ludustudii/internal/infra/rdb
               desc: surfaces take their parts from the composition root and must not connect to the database
+        # Services don't import each other (ADR 0001); they meet only in
+        # internal/app. Tests follow the same rule.
+        identity:
+          files: ["**/internal/services/**/*.go", "!**/internal/services/identity/**"]
+          deny:
+            - pkg: github.com/apotourlyan/ludustudii/internal/services/identity
+              desc: services don't import each other
+        lcards:
+          files: ["**/internal/services/**/*.go", "!**/internal/services/lcards/**"]
+          deny:
+            - pkg: github.com/apotourlyan/ludustudii/internal/services/lcards
+              desc: services don't import each other
+        # golang.org/x/crypto, which ADR 0046 approves, stays behind one kit
+        # package.
+        crypto:
+          files: ["$all", "!**/internal/kit/password/*.go"]
+          deny:
+            - pkg: golang.org/x/crypto
+              desc: only kit/password uses golang.org/x/crypto (argon2id, ADR 0046)
         testkit:
           files: ["!$test"]
           deny:

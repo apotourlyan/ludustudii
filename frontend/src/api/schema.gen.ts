@@ -79,6 +79,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a user
+         * @description Creates an account. The response reveals whether an email has an
+         *     account (taken).
+         */
+        post: operations["registerUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/livez": {
         parameters: {
             query?: never;
@@ -158,6 +188,13 @@ export interface components {
         CreatedLearningCard: {
             id: components["schemas"]["CardId"];
         };
+        /**
+         * @description The account's email in canonical form: NFC, trimmed and lowercased, with
+         *     one @ and text on both sides. Length is counted in code points. It is
+         *     the login name, and it isn't verified.
+         * @example armen@example.com
+         */
+        Email: string;
         ErrorResponse: {
             /** @enum {string} */
             code: "bind_error" | "validation_error" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
@@ -167,13 +204,16 @@ export interface components {
         FieldError: {
             /**
              * @description Card fields (title, description) report required or max_length.
-             *     Query parameters report invalid_integer or out_of_range (limit) and
-             *     invalid_cursor (cursor). Path IDs report invalid_uuid7 (id). untrimmed and not_normalized are reserved:
-             *     card fields are trimmed and NFC-normalized before validation, so
-             *     these codes are not currently returned.
+             *     Registration reports required, max_length, invalid_format or taken
+             *     (email) and required, invalid_characters, min_length or max_length
+             *     (password). Query parameters report invalid_integer or out_of_range
+             *     (limit) and invalid_cursor (cursor). Path IDs report invalid_uuid7
+             *     (id). untrimmed and not_normalized are reserved: fields are
+             *     canonicalized before validation, so these codes are not currently
+             *     returned.
              * @enum {string}
              */
-            code: "invalid_uuid7" | "invalid_cursor" | "required" | "max_length" | "untrimmed" | "not_normalized" | "invalid_integer" | "out_of_range";
+            code: "invalid_uuid7" | "invalid_cursor" | "required" | "min_length" | "max_length" | "invalid_format" | "invalid_characters" | "taken" | "untrimmed" | "not_normalized" | "invalid_integer" | "out_of_range";
             /** @example title */
             field: string;
         };
@@ -230,6 +270,37 @@ export interface components {
             /** @enum {string} */
             status: "ok" | "unavailable";
         };
+        /**
+         * @description Length constraints apply to the canonical form of each field, counted in
+         *     Unicode code points: the email NFC, trimmed and lowercased, the password
+         *     NFC only. Clients should validate that form; the server canonicalizes
+         *     before validating. Field errors: email reports required, max_length,
+         *     invalid_format or taken; password reports required, invalid_characters
+         *     (a control character or U+FFFD), min_length or max_length.
+         */
+        RegisterRequest: {
+            /**
+             * @description One @ with text on both sides. Must not belong to an account.
+             * @example armen@example.com
+             */
+            email: string;
+            /**
+             * Format: password
+             * @description Any printable characters, spaces included, from 15 to 128 code points. Kept as typed apart from NFC.
+             * @example correct horse battery staple
+             */
+            password: string;
+        };
+        User: {
+            email: components["schemas"]["Email"];
+            id: components["schemas"]["UserId"];
+        };
+        /**
+         * Format: uuid
+         * @description Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant.
+         * @example 019a0000-0000-7000-8000-0000000000aa
+         */
+        UserId: string;
     };
     responses: {
         /**
@@ -371,6 +442,23 @@ export interface components {
                  *       ]
                  *     }
                  */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description Malformed JSON, incompatible JSON types and unknown fields return
+         *     bind_error. Empty bodies and invalid field values return
+         *     validation_error: email reports required, max_length, invalid_format or
+         *     taken (an account has the email); password reports required,
+         *     invalid_characters, min_length or max_length.
+         */
+        InvalidRegistrationInput: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
@@ -520,6 +608,23 @@ export interface components {
                  *     }
                  */
                 "application/json": components["schemas"]["LearningCardInput"];
+            };
+        };
+        /**
+         * @description The new account's email and password. The email is normalized to NFC,
+         *     trimmed and lowercased; the password is normalized to NFC but never
+         *     trimmed. Omitted or null fields are treated as empty and fail validation.
+         *     Unknown JSON properties are rejected with bind_error.
+         */
+        RegisterRequest: {
+            content: {
+                /**
+                 * @example {
+                 *       "email": "armen@example.com",
+                 *       "password": "correct horse battery staple"
+                 *     }
+                 */
+                "application/json": components["schemas"]["RegisterRequest"];
             };
         };
     };
@@ -798,6 +903,42 @@ export interface operations {
             404: components["responses"]["HeadNotFound"];
             413: components["responses"]["HeadPayloadTooLarge"];
             500: components["responses"]["HeadUnexpectedError"];
+        };
+    };
+    registerUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["RegisterRequest"];
+        responses: {
+            /** @description User created. The body is the user. */
+            201: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["InvalidRegistrationInput"];
+            403: components["responses"]["CrossOriginRequest"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            500: components["responses"]["UnexpectedError"];
         };
     };
     getLiveness: {

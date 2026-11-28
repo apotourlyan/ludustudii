@@ -142,6 +142,40 @@ UnexpectedError:
       example:
         code: unexpected_error
 
+InvalidRegistrationInput:
+  description: |
+    Malformed JSON, incompatible JSON types and unknown fields return
+    bind_error. Empty bodies and invalid field values return
+    validation_error: email reports required, max_length, invalid_format or
+    taken (an account has the email); password reports required,
+    invalid_characters, min_length or max_length.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      examples:
+        binding:
+          value:
+            code: bind_error
+        taken:
+          value:
+            code: validation_error
+            errors:
+              - field: email
+                code: taken
+        validation:
+          value:
+            code: validation_error
+            errors:
+              - field: email
+                code: invalid_format
+              - field: password
+                code: min_length
 CrossOriginRequest:
   description: |
     A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from
