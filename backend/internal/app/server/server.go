@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -28,15 +29,24 @@ type Options struct {
 	// ShutdownTimeout is the grace period for in-flight requests after the
 	// drain delay.
 	ShutdownTimeout time.Duration
+	// Tasks run in the background for the server's lifetime, such as
+	// periodic cleanups, each in its own goroutine. They start before the
+	// server listens, and their context is cancelled once the server has
+	// shut down or failed; Run returns only after every task has returned.
+	Tasks []func(context.Context)
 }
 
 // Run serves srv until it fails or the process receives SIGINT or SIGTERM. On
 // a signal it calls OnDrain, keeps serving for the drain delay, then
 // shuts the server down within the shutdown timeout. A second signal during
-// draining or shutdown terminates the process immediately.
+// draining or shutdown terminates the process immediately. The background
+// tasks run until the server has stopped.
 func Run(srv *http.Server, opts Options) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	stopTasks := startTasks(opts.Tasks)
+	defer stopTasks()
 
 	errChan := make(chan error, 1)
 	go func() {
@@ -65,6 +75,20 @@ func drain(onDrain func(context.Context), delay time.Duration) {
 		onDrain(context.Background())
 	}
 	time.Sleep(delay)
+}
+
+// startTasks runs each task in its own goroutine and returns a function that
+// cancels their context and waits for all of them to return.
+func startTasks(tasks []func(context.Context)) (stop func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	for _, task := range tasks {
+		wg.Go(func() { task(ctx) })
+	}
+	return func() {
+		cancel()
+		wg.Wait()
+	}
 }
 
 type shutter interface {

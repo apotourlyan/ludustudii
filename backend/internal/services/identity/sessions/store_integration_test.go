@@ -190,6 +190,43 @@ func TestPostgres_Delete(t *testing.T) {
 	}
 }
 
+func TestPostgres_DeleteExpired(t *testing.T) {
+	t.Parallel()
+
+	db := testkit.NewDB(t)
+	store := NewPostgres(db)
+	user := insertUser(t, db)
+	for token, expiresIn := range map[string]time.Duration{
+		"expired":     time.Minute,
+		"at the edge": time.Hour,
+		"valid":       2 * time.Hour,
+	} {
+		if _, err := store.Create(t.Context(), NewSession{
+			UserID: user, TokenHash: hashOf(token), LastSeenAt: now, ExpiresAt: now.Add(expiresIn),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	n, err := store.DeleteExpired(t.Context(), now.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 {
+		t.Errorf("deleted: got %d, want 2", n)
+	}
+	var left int
+	if err := db.QueryRowContext(t.Context(), `SELECT count(*) FROM sessions`).Scan(&left); err != nil {
+		t.Fatal(err)
+	}
+	if left != 1 {
+		t.Errorf("left: got %d, want 1", left)
+	}
+	if _, err := store.FindValid(t.Context(), hashOf("valid"), now.Add(time.Hour)); err != nil {
+		t.Errorf("valid session deleted: %v", err)
+	}
+}
+
 func TestPostgres_Constraints(t *testing.T) {
 	t.Parallel()
 

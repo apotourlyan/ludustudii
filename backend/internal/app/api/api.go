@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -20,6 +21,7 @@ const Prefix = "/api"
 // Surface routes every path under Prefix to the services' API.
 type Surface struct {
 	handler http.Handler
+	tasks   []func(context.Context)
 }
 
 // New registers every service's routes on one API, reporting handler errors
@@ -43,6 +45,7 @@ func New(db *sql.DB, identityConfig identity.Config, onError httpkit.ErrorHandle
 			httpkit.NoStore(),
 			httpkit.CrossOriginProtection(onError),
 		)(api),
+		tasks: []func(context.Context){id.CleanupSessions},
 	}, nil
 }
 
@@ -52,4 +55,11 @@ func New(db *sql.DB, identityConfig identity.Config, onError httpkit.ErrorHandle
 func (s *Surface) Mount(mux *http.ServeMux) {
 	mux.Handle(Prefix, s.handler)
 	mux.Handle(Prefix+"/", s.handler)
+}
+
+// Tasks returns the work that runs in the background for as long as the
+// surface is served, such as deleting expired sessions. Each runs until its
+// context ends.
+func (s *Surface) Tasks() []func(context.Context) {
+	return s.tasks
 }

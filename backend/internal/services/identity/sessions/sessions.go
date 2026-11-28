@@ -11,6 +11,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -128,6 +129,29 @@ func (m *Manager) resolve(r *http.Request) (string, error) {
 		return "", err
 	}
 	return s.UserID, nil
+}
+
+// Cleanup deletes expired sessions every interval until ctx ends. Failures
+// are logged, and the next tick tries again.
+func (m *Manager) Cleanup(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			n, err := m.store.DeleteExpired(ctx, m.now())
+			switch {
+			case ctx.Err() != nil:
+				return
+			case err != nil:
+				slog.ErrorContext(ctx, "Deleting expired sessions failed", "error", err)
+			case n > 0:
+				slog.DebugContext(ctx, "Deleted expired sessions", "count", n)
+			}
+		}
+	}
 }
 
 // cookie returns the session cookie carrying token. Max-Age is the absolute

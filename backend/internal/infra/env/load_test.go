@@ -322,7 +322,7 @@ var authNames = []string{
 	EnvAuthArgon2Memory, EnvAuthArgon2Iterations, EnvAuthArgon2Parallelism,
 	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength, EnvAuthHashConcurrency,
 	EnvAuthSessionIdleTimeout, EnvAuthSessionAbsoluteTimeout,
-	EnvAuthSessionTouchInterval,
+	EnvAuthSessionTouchInterval, EnvAuthSessionCleanupInterval,
 }
 
 // clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
@@ -354,6 +354,7 @@ func TestLoad_AuthDefaults(t *testing.T) {
 		"idle timeout":     {v.AuthSessionIdleTimeout, 7 * 24 * time.Hour},
 		"absolute timeout": {v.AuthSessionAbsoluteTimeout, 30 * 24 * time.Hour},
 		"touch interval":   {v.AuthSessionTouchInterval, time.Minute},
+		"cleanup interval": {v.AuthSessionCleanupInterval, time.Hour},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s: got %v, want %v", name, tt.got, tt.want)
@@ -374,6 +375,7 @@ func TestLoad_Auth(t *testing.T) {
 		EnvAuthSessionIdleTimeout:     "1h",
 		EnvAuthSessionAbsoluteTimeout: "2h",
 		EnvAuthSessionTouchInterval:   "5s",
+		EnvAuthSessionCleanupInterval: "10m",
 	} {
 		t.Setenv(name, value)
 	}
@@ -386,7 +388,7 @@ func TestLoad_Auth(t *testing.T) {
 		t.Errorf("argon2id: got %v, want %v", got, want)
 	}
 	if v.AuthHashConcurrency != 3 || v.AuthSessionIdleTimeout != time.Hour || v.AuthSessionAbsoluteTimeout != 2*time.Hour ||
-		v.AuthSessionTouchInterval != 5*time.Second {
+		v.AuthSessionTouchInterval != 5*time.Second || v.AuthSessionCleanupInterval != 10*time.Minute {
 		t.Errorf("sessions: got %+v", v)
 	}
 
@@ -417,6 +419,7 @@ func TestLoad_AuthErrors(t *testing.T) {
 		{EnvAuthSessionIdleTimeout, "7d", EnvAuthSessionIdleTimeout},
 		{EnvAuthSessionAbsoluteTimeout, "0s", EnvAuthSessionAbsoluteTimeout},
 		{EnvAuthSessionTouchInterval, "-1m", EnvAuthSessionTouchInterval},
+		{EnvAuthSessionCleanupInterval, "0", EnvAuthSessionCleanupInterval},
 	} {
 		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
 			setRequired(t)

@@ -26,11 +26,11 @@ import (
 func newTestHandler(t *testing.T, log *slog.Logger, p parts) http.Handler {
 	t.Helper()
 	p.identity = testkit.IdentityConfig()
-	h, err := newHandler(log, p)
+	s, err := newHandler(log, p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return h
+	return s.handler
 }
 
 func TestHandler_PathNormalization(t *testing.T) {

@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
 )
@@ -18,6 +19,8 @@ type Config struct {
 	HashConcurrency int
 	// Session decides when sessions expire.
 	Session SessionPolicy
+	// SessionCleanupInterval is how often expired sessions are deleted.
+	SessionCleanupInterval time.Duration
 }
 
 // Validate reports every invalid setting.
@@ -25,6 +28,9 @@ func (c Config) Validate() error {
 	errs := []error{c.Password.Validate(), c.Session.Validate()}
 	if c.HashConcurrency < 1 {
 		errs = append(errs, fmt.Errorf("hash concurrency must be at least 1, got %d", c.HashConcurrency))
+	}
+	if c.SessionCleanupInterval <= 0 {
+		errs = append(errs, fmt.Errorf("session cleanup interval must be positive, got %v", c.SessionCleanupInterval))
 	}
 	return errors.Join(errs...)
 }

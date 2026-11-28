@@ -112,6 +112,22 @@ func (s *memStore) Delete(_ context.Context, hash []byte) error {
 	return nil
 }
 
+func (s *memStore) DeleteExpired(_ context.Context, now time.Time) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.err != nil {
+		return 0, s.err
+	}
+	var n int64
+	for hash, found := range s.sessions {
+		if !found.ExpiresAt.After(now) {
+			delete(s.sessions, hash)
+			n++
+		}
+	}
+	return n, nil
+}
+
 func newTestManager(t *testing.T) (*Manager, *memStore, *clock) {
 	t.Helper()
 	c := &clock{now: start}
@@ -489,5 +505,50 @@ func TestManager_End(t *testing.T) {
 	rec := httptest.NewRecorder()
 	if err := m.End(t.Context(), rec, r); err == nil || !strings.Contains(rec.Header().Get("Set-Cookie"), "Max-Age=0") {
 		t.Errorf("failed delete: got %v and Set-Cookie %q", err, rec.Header().Get("Set-Cookie"))
+	}
+}
+
+// expiringStore reports each DeleteExpired call.
+type expiringStore struct {
+	*memStore
+	calls chan time.Time
+	err   error
+}
+
+func (s *expiringStore) DeleteExpired(_ context.Context, now time.Time) (int64, error) {
+	s.calls <- now
+	return 0, s.err
+}
+
+func TestManager_Cleanup(t *testing.T) {
+	t.Parallel()
+
+	for _, storeErr := range []error{nil, errors.New("boom")} {
+		m, mem, _ := newTestManager(t)
+		store := &expiringStore{memStore: mem, calls: make(chan time.Time, 10), err: storeErr}
+		m.store = store
+
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan struct{})
+		go func() {
+			m.Cleanup(ctx, time.Millisecond)
+			close(done)
+		}()
+		for range 3 {
+			select {
+			case now := <-store.calls:
+				if !now.Equal(start) {
+					t.Errorf("cleanup used %v, not the manager's clock", now)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("cleanup didn't run")
+			}
+		}
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("cleanup didn't stop when its context ended")
+		}
 	}
 }

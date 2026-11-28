@@ -20,6 +20,8 @@ var (
 	touchSQL string
 	//go:embed delete.sql
 	deleteSQL string
+	//go:embed delete_expired.sql
+	deleteExpiredSQL string
 )
 
 // Session is a stored session. Its token isn't part of it: only the token's
@@ -53,6 +55,9 @@ type Store interface {
 	Touch(ctx context.Context, id string, lastSeenAt, expiresAt time.Time) error
 	// Delete deletes the session with tokenHash, if there is one.
 	Delete(ctx context.Context, tokenHash []byte) error
+	// DeleteExpired deletes the sessions that expire at or before now and
+	// returns how many it deleted.
+	DeleteExpired(ctx context.Context, now time.Time) (int64, error)
 }
 
 // Postgres is the Store in the sessions table.
@@ -109,4 +114,17 @@ func (p *Postgres) Delete(ctx context.Context, tokenHash []byte) error {
 		return fmt.Errorf("delete session: %w", err)
 	}
 	return nil
+}
+
+// DeleteExpired deletes every session that expires at or before now.
+func (p *Postgres) DeleteExpired(ctx context.Context, now time.Time) (int64, error) {
+	res, err := p.db.ExecContext(ctx, deleteExpiredSQL, now)
+	if err != nil {
+		return 0, fmt.Errorf("delete expired sessions: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("delete expired sessions: rows affected: %w", err)
+	}
+	return n, nil
 }

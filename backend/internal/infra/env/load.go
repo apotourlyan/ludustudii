@@ -41,6 +41,7 @@ const (
 	EnvAuthSessionIdleTimeout     = "AUTH_SESSION_IDLE_TIMEOUT"
 	EnvAuthSessionAbsoluteTimeout = "AUTH_SESSION_ABSOLUTE_TIMEOUT"
 	EnvAuthSessionTouchInterval   = "AUTH_SESSION_TOUCH_INTERVAL"
+	EnvAuthSessionCleanupInterval = "AUTH_SESSION_CLEANUP_INTERVAL"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -67,6 +68,7 @@ const (
 	DefaultAuthSessionIdleTimeout     = 7 * 24 * time.Hour
 	DefaultAuthSessionAbsoluteTimeout = 30 * 24 * time.Hour
 	DefaultAuthSessionTouchInterval   = time.Minute
+	DefaultAuthSessionCleanupInterval = time.Hour
 )
 
 // Defaults Load uses for optional variables whose value isn't a constant.
@@ -102,6 +104,7 @@ type Vars struct {
 	AuthSessionIdleTimeout     time.Duration
 	AuthSessionAbsoluteTimeout time.Duration
 	AuthSessionTouchInterval   time.Duration
+	AuthSessionCleanupInterval time.Duration
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -211,9 +214,9 @@ func Load() (*Vars, error) {
 // authVars are the AUTH_ variables, loaded together so the argon2id
 // parameters can be checked as a whole.
 type authVars struct {
-	argon2                password.Params
-	hashConcurrency       int
-	idle, absolute, touch time.Duration
+	argon2                         password.Params
+	hashConcurrency                int
+	idle, absolute, touch, cleanup time.Duration
 }
 
 func loadAuth() (authVars, error) {
@@ -253,6 +256,8 @@ func loadAuth() (authVars, error) {
 	errs = append(errs, err)
 	a.touch, err = getEnvPositiveDuration(EnvAuthSessionTouchInterval, DefaultAuthSessionTouchInterval)
 	errs = append(errs, err)
+	a.cleanup, err = getEnvPositiveDuration(EnvAuthSessionCleanupInterval, DefaultAuthSessionCleanupInterval)
+	errs = append(errs, err)
 
 	return a, errors.Join(errs...)
 }
@@ -267,6 +272,7 @@ func (a authVars) into(v *Vars) {
 	v.AuthSessionIdleTimeout = a.idle
 	v.AuthSessionAbsoluteTimeout = a.absolute
 	v.AuthSessionTouchInterval = a.touch
+	v.AuthSessionCleanupInterval = a.cleanup
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -307,6 +313,7 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Duration(EnvAuthSessionIdleTimeout, v.AuthSessionIdleTimeout),
 		slog.Duration(EnvAuthSessionAbsoluteTimeout, v.AuthSessionAbsoluteTimeout),
 		slog.Duration(EnvAuthSessionTouchInterval, v.AuthSessionTouchInterval),
+		slog.Duration(EnvAuthSessionCleanupInterval, v.AuthSessionCleanupInterval),
 	}
 }
 

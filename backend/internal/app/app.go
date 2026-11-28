@@ -83,7 +83,7 @@ func Run() (err error) {
 	}()
 
 	readiness := health.NewState(log, db)
-	handler, err := newHandler(log, parts{
+	s, err := newHandler(log, parts{
 		db:        db,
 		identity:  identityConfig(ev),
 		readiness: readiness,
@@ -97,7 +97,7 @@ func Run() (err error) {
 	slog.Info("Starting HTTP server", "port", ev.AppPort)
 	return server.Run(&http.Server{
 		Addr:         net.JoinHostPort("", ev.AppPort),
-		Handler:      handler,
+		Handler:      s.handler,
 		ReadTimeout:  ev.AppReadTimeout,
 		WriteTimeout: ev.AppWriteTimeout,
 		IdleTimeout:  ev.AppIdleTimeout,
@@ -105,6 +105,7 @@ func Run() (err error) {
 		OnDrain:         readiness.MarkStopping,
 		DrainDelay:      ev.AppShutdownDrainDelay,
 		ShutdownTimeout: ev.AppShutdownTimeout,
+		Tasks:           s.tasks,
 	})
 }
 
@@ -119,5 +120,6 @@ func identityConfig(ev *env.Vars) identity.Config {
 			AbsoluteTimeout: ev.AuthSessionAbsoluteTimeout,
 			TouchInterval:   ev.AuthSessionTouchInterval,
 		},
+		SessionCleanupInterval: ev.AuthSessionCleanupInterval,
 	}
 }

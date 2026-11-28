@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
@@ -24,6 +25,13 @@ type parts struct {
 	docs      *apidocs.Docs // nil when the API reference is disabled
 }
 
+// served is what newHandler builds: the handler, and the background tasks
+// that run for as long as it is served.
+type served struct {
+	handler http.Handler
+	tasks   []func(context.Context)
+}
+
 // newHandler builds each surface and mounts it on the shared router. Each
 // surface owns its patterns and depends only on its own parts:
 //
@@ -33,11 +41,11 @@ type parts struct {
 //	/                 client app catch-all (spa), embedded files only
 //
 // Middleware errors use the JSON error shape on every surface.
-func newHandler(log *slog.Logger, p parts) (http.Handler, error) {
+func newHandler(log *slog.Logger, p parts) (served, error) {
 	onError := router.ErrorHandler(log)
 	apiSurface, err := api.New(p.db, p.identity, onError)
 	if err != nil {
-		return nil, fmt.Errorf("build API: %w", err)
+		return served{}, fmt.Errorf("build API: %w", err)
 	}
 	surfaces := []router.Surface{
 		health.NewProbes(p.readiness, onError),
@@ -47,5 +55,8 @@ func newHandler(log *slog.Logger, p parts) (http.Handler, error) {
 		surfaces = append(surfaces, apidocs.NewHandler(p.docs))
 	}
 	surfaces = append(surfaces, spa.NewHandler(p.clientApp, onError))
-	return router.New(log, onError, surfaces...), nil
+	return served{
+		handler: router.New(log, onError, surfaces...),
+		tasks:   apiSurface.Tasks(),
+	}, nil
 }

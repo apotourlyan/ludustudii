@@ -25,6 +25,7 @@ func IdentityConfig() domain.Config {
 			AbsoluteTimeout: 30 * 24 * time.Hour,
 			TouchInterval:   time.Minute,
 		},
+		SessionCleanupInterval: time.Hour,
 	}
 }
 

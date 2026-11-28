@@ -8,9 +8,11 @@
 package identity
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/authn"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
@@ -29,14 +31,15 @@ type Config = domain.Config
 // SessionPolicy decides when sessions expire (see domain.SessionPolicy).
 type SessionPolicy = domain.SessionPolicy
 
-// Service is the identity service: its routes and the middleware that
-// authenticates API requests.
+// Service is the identity service: its routes, the middleware that
+// authenticates API requests, and the cleanup of expired sessions.
 type Service struct {
-	sessions *sessions.Manager
-	register *register.Handler
-	login    *login.Handler
-	logout   *logout.Handler
-	me       *me.Handler
+	sessions        *sessions.Manager
+	cleanupInterval time.Duration
+	register        *register.Handler
+	login           *login.Handler
+	logout          *logout.Handler
+	me              *me.Handler
 }
 
 // New builds the identity service on db. It validates cfg and hashes a
@@ -56,8 +59,9 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 	}
 	sm := sessions.NewManager(sessions.NewPostgres(db), cfg.Session)
 	return &Service{
-		sessions: sm,
-		register: register.NewHandler(register.NewStore(db), hasher, sm),
+		sessions:        sm,
+		cleanupInterval: cfg.SessionCleanupInterval,
+		register:        register.NewHandler(register.NewStore(db), hasher, sm),
 		login: login.NewHandler(login.Deps{
 			Store:     login.NewStore(db),
 			Hasher:    hasher,
@@ -89,4 +93,10 @@ func (s *Service) RegisterRoutes(api *httpkit.API) {
 // failures to onError (see sessions.Manager.Authenticate).
 func (s *Service) Authenticate(onError httpkit.ErrorHandler) httpkit.Middleware {
 	return s.sessions.Authenticate(onError)
+}
+
+// CleanupSessions deletes expired sessions at the configured interval until
+// ctx ends. Run it for the server's lifetime.
+func (s *Service) CleanupSessions(ctx context.Context) {
+	s.sessions.Cleanup(ctx, s.cleanupInterval)
 }
