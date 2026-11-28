@@ -131,8 +131,9 @@ export interface paths {
         put?: never;
         /**
          * Register a user
-         * @description Creates an account. The response reveals whether an email has an
-         *     account (taken).
+         * @description Creates an account and logs it in, as POST /api/sessions does: the
+         *     response sets the new session's cookie. The response reveals whether
+         *     an email has an account (taken).
          */
         post: operations["registerUser"];
         delete?: never;
@@ -1081,10 +1082,11 @@ export interface operations {
         };
         requestBody: components["requestBodies"]["RegisterRequest"];
         responses: {
-            /** @description User created. The body is the user. */
+            /** @description User created and logged in. The body is the user. */
             201: {
                 headers: {
                     "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    "Set-Cookie": components["headers"]["SetSessionCookie"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };

@@ -9,6 +9,7 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
+	"github.com/apotourlyan/ludustudii/internal/services/identity/sessions"
 )
 
 type request struct {
@@ -29,20 +30,26 @@ type hasher interface {
 	Hash(ctx context.Context, password string) (string, error)
 }
 
+type sessionStarter interface {
+	Start(ctx context.Context, w http.ResponseWriter, userID string) (sessions.Session, error)
+}
+
 // Handler serves the POST /api/users endpoint.
 type Handler struct {
 	store    creator
 	hasher   hasher
+	sessions sessionStarter
 	bind     func(r *http.Request, i any) error
 	validate func(req request) error
 }
 
-// NewHandler returns a Handler that stores users in s and hashes passwords
-// with h.
-func NewHandler(s creator, h hasher) *Handler {
+// NewHandler returns a Handler that stores users in s, hashes passwords with
+// h and starts sessions with sm.
+func NewHandler(s creator, h hasher, sm sessionStarter) *Handler {
 	return &Handler{
 		store:    s,
 		hasher:   h,
+		sessions: sm,
 		bind:     bind,
 		validate: validate,
 	}
@@ -50,7 +57,8 @@ func NewHandler(s creator, h hasher) *Handler {
 
 // Handle registers a user: it canonicalizes and validates the JSON email and
 // password (400 for invalid ones, including an email that has an account),
-// stores the user with its password hash and responds 201 with the user.
+// stores the user with its password hash, starts a session and responds 201
+// with the user and the session cookie.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
@@ -75,6 +83,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return httpkit.Validation(validator.NewFieldError("email", domain.CodeTaken, err))
 	}
 	if err != nil {
+		return err
+	}
+
+	if _, err := h.sessions.Start(ctx, w, data.ID); err != nil {
 		return err
 	}
 

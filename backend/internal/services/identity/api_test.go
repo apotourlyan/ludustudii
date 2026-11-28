@@ -88,9 +88,11 @@ func assertCode(t *testing.T, resp testkit.Response, status int, body string) {
 	testkit.AssertJSON(t, resp.Body, body)
 }
 
-// account is a user registered through the API.
+// account is a user registered through the API, with the session its
+// registration started.
 type account struct {
 	ID, Email, Password string
+	Session             *http.Cookie
 }
 
 // newAccount registers a user with a unique email and returns it.
@@ -104,7 +106,7 @@ func newAccount(t *testing.T, srv *httptest.Server) account {
 	if err := json.Unmarshal(resp.Body, &created); err != nil {
 		t.Fatal(err)
 	}
-	return account{ID: created.ID, Email: email, Password: pw}
+	return account{ID: created.ID, Email: email, Password: pw, Session: resp.Cookie(cookieName)}
 }
 
 // hasSession reports whether the database holds an unexpired session for
@@ -125,9 +127,9 @@ func hasSession(t *testing.T, db *sql.DB, c *http.Cookie) bool {
 	return ok
 }
 
-func TestRegister(t *testing.T) {
+func TestRegister_LogsIn(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, db := newServer(t)
 
 	resp := register(t, srv, credentials("  Armen@Example.COM ", "correct horse battery staple"))
 	testkit.AssertStatus(t, resp, http.StatusCreated)
@@ -138,8 +140,18 @@ func TestRegister(t *testing.T) {
 	if user.Email != "armen@example.com" {
 		t.Errorf("email: got %q, want it canonical", user.Email)
 	}
-	if resp.Cookie(cookieName) != nil {
-		t.Error("registration set a session cookie")
+	session := assertSessionCookie(t, resp)
+
+	// The token is not stored; its hash is, and it isn't in the body.
+	var stored []byte
+	if err := db.QueryRowContext(t.Context(), `SELECT token_hash FROM sessions WHERE user_id = $1`, user.ID).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if len(stored) != 32 || string(stored) == session.Value || strings.Contains(string(resp.Body), session.Value) {
+		t.Errorf("token storage: %d-byte hash, body %s", len(stored), resp.Body)
+	}
+	if !hasSession(t, db, session) {
+		t.Error("no session stored for the registration's cookie")
 	}
 }
 
@@ -167,6 +179,9 @@ func TestRegister_FieldErrors(t *testing.T) {
 			t.Parallel()
 			resp := register(t, srv, tt.body)
 			assertCode(t, resp, http.StatusBadRequest, `{"code":"validation_error","errors":`+tt.want+`}`)
+			if resp.Cookie(cookieName) != nil {
+				t.Error("a failed registration set a session cookie")
+			}
 		})
 	}
 
@@ -231,13 +246,9 @@ func TestLogin(t *testing.T) {
 		t.Error("no session stored for the login's cookie")
 	}
 
-	// The token is not stored; its hash is, and it isn't in the body.
-	var stored []byte
-	if err := db.QueryRowContext(t.Context(), `SELECT token_hash FROM sessions WHERE user_id = $1`, u.ID).Scan(&stored); err != nil {
-		t.Fatal(err)
-	}
-	if len(stored) != 32 || string(stored) == session.Value || strings.Contains(string(resp.Body), session.Value) {
-		t.Errorf("token storage: %d-byte hash, body %s", len(stored), resp.Body)
+	// Registration's session is a separate one and still stands.
+	if !hasSession(t, db, u.Session) {
+		t.Error("the login ended the registration's session")
 	}
 }
 
@@ -247,15 +258,14 @@ func TestLogin_ReplacesCarriedSession(t *testing.T) {
 	t.Parallel()
 	srv, db := newServer(t)
 	u := newAccount(t, srv)
-	carried := assertSessionCookie(t, login(t, srv, credentials(u.Email, u.Password)))
 
-	resp := login(t, srv, credentials(u.Email, u.Password), carried)
+	resp := login(t, srv, credentials(u.Email, u.Password), u.Session)
 	testkit.AssertStatus(t, resp, http.StatusCreated)
 	fresh := assertSessionCookie(t, resp)
-	if fresh.Value == carried.Value {
+	if fresh.Value == u.Session.Value {
 		t.Fatal("login reused the carried token")
 	}
-	if hasSession(t, db, carried) {
+	if hasSession(t, db, u.Session) {
 		t.Error("the carried session survived the login")
 	}
 	if !hasSession(t, db, fresh) {

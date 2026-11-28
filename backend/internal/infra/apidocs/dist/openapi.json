@@ -1278,7 +1278,7 @@
         }
       ],
       "post": {
-        "description": "Creates an account. The response reveals whether an email has an\naccount (taken).\n",
+        "description": "Creates an account and logs it in, as POST /api/sessions does: the\nresponse sets the new session's cookie. The response reveals whether\nan email has an account (taken).\n",
         "operationId": "registerUser",
         "requestBody": {
           "$ref": "#/components/requestBodies/RegisterRequest"
@@ -1292,10 +1292,13 @@
                 }
               }
             },
-            "description": "User created. The body is the user.",
+            "description": "User created and logged in. The body is the user.",
             "headers": {
               "Cache-Control": {
                 "$ref": "#/components/headers/CacheControlNoStore"
+              },
+              "Set-Cookie": {
+                "$ref": "#/components/headers/SetSessionCookie"
               },
               "X-Request-Id": {
                 "$ref": "#/components/headers/RequestId"

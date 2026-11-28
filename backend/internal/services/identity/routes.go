@@ -48,7 +48,7 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 	}
 	sm := sessions.NewManager(sessions.NewPostgres(db), cfg.Session)
 	return &Service{
-		register: register.NewHandler(register.NewStore(db), hasher),
+		register: register.NewHandler(register.NewStore(db), hasher, sm),
 		login: login.NewHandler(login.Deps{
 			Store:     login.NewStore(db),
 			Hasher:    hasher,
@@ -60,7 +60,7 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 
 // RegisterRoutes registers the identity endpoints:
 //
-//	POST /api/users     register (register)
+//	POST /api/users     register and log in (register)
 //	POST /api/sessions  log in (login)
 func (s *Service) RegisterRoutes(api *httpkit.API) {
 	api.HandleFunc("POST "+domain.UsersPath, s.register.Handle)

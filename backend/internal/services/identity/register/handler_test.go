@@ -16,6 +16,7 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
+	"github.com/apotourlyan/ludustudii/internal/services/identity/sessions"
 )
 
 const userID = "019a0000-0000-7000-8000-000000000001"
@@ -36,9 +37,18 @@ func (m *mockHasher) Hash(ctx context.Context, password string) (string, error) 
 	return m.hashFn(ctx, password)
 }
 
+type mockSessions struct {
+	startFn func(ctx context.Context, w http.ResponseWriter, userID string) (sessions.Session, error)
+}
+
+func (m *mockSessions) Start(ctx context.Context, w http.ResponseWriter, userID string) (sessions.Session, error) {
+	return m.startFn(ctx, w, userID)
+}
+
 type mocks struct {
-	store  *mockStore
-	hasher *mockHasher
+	store    *mockStore
+	hasher   *mockHasher
+	sessions *mockSessions
 }
 
 func testContext(t *testing.T, body string) (*http.Request, *httptest.ResponseRecorder) {
@@ -50,7 +60,8 @@ func testContext(t *testing.T, body string) (*http.Request, *httptest.ResponseRe
 }
 
 // testHandler returns a Handler whose every step succeeds without effects
-// and whose store and hasher fail the test unless setup replaces them.
+// and whose store, hasher and sessions fail the test unless setup replaces
+// them.
 func testHandler(t *testing.T, setup func(*Handler, *mocks)) *Handler {
 	t.Helper()
 	m := &mocks{
@@ -62,10 +73,15 @@ func testHandler(t *testing.T, setup func(*Handler, *mocks)) *Handler {
 			t.Fatal("unexpected call to hashFn")
 			return "", nil
 		}},
+		sessions: &mockSessions{startFn: func(context.Context, http.ResponseWriter, string) (sessions.Session, error) {
+			t.Fatal("unexpected call to startFn")
+			return sessions.Session{}, nil
+		}},
 	}
 	h := &Handler{
 		store:    m.store,
 		hasher:   m.hasher,
+		sessions: m.sessions,
 		bind:     func(*http.Request, any) error { return nil },
 		validate: func(request) error { return nil },
 	}
@@ -79,6 +95,10 @@ func succeed(m *mocks) {
 	m.hasher.hashFn = func(context.Context, string) (string, error) { return "$argon2id$hash", nil }
 	m.store.createFn = func(_ context.Context, p createParams) (row, error) {
 		return row{ID: userID, Email: p.Email}, nil
+	}
+	m.sessions.startFn = func(_ context.Context, w http.ResponseWriter, _ string) (sessions.Session, error) {
+		http.SetCookie(w, &http.Cookie{Name: domain.SessionCookieName, Value: "token"})
+		return sessions.Session{}, nil
 	}
 }
 
@@ -135,6 +155,16 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			wantCode: http.StatusInternalServerError,
 		},
+		{
+			name: "session error",
+			setup: func(_ *Handler, m *mocks) {
+				succeed(m)
+				m.sessions.startFn = func(context.Context, http.ResponseWriter, string) (sessions.Session, error) {
+					return sessions.Session{}, errors.New("")
+				}
+			},
+			wantCode: http.StatusInternalServerError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -180,8 +210,8 @@ func TestHandler_Success(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201", rec.Code)
 	}
-	if got := rec.Header().Get("Set-Cookie"); got != "" {
-		t.Errorf("Set-Cookie: got %q, want none", got)
+	if got := rec.Header().Get("Set-Cookie"); !strings.HasPrefix(got, domain.SessionCookieName+"=") {
+		t.Errorf("Set-Cookie: got %q", got)
 	}
 	var got response
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
@@ -193,11 +223,12 @@ func TestHandler_Success(t *testing.T) {
 }
 
 // NewHandler wires the real binding, canonicalization and validation: the
-// email is stored canonical and the password hashed as typed apart from NFC.
+// email is stored canonical, the password hashed as typed apart from NFC, the
+// session started for the new user.
 func TestHandler_Wiring(t *testing.T) {
 	t.Parallel()
 
-	var hashed string
+	var hashed, startedFor string
 	var stored createParams
 	h := NewHandler(
 		&mockStore{createFn: func(_ context.Context, p createParams) (row, error) {
@@ -207,6 +238,10 @@ func TestHandler_Wiring(t *testing.T) {
 		&mockHasher{hashFn: func(_ context.Context, pw string) (string, error) {
 			hashed = pw
 			return "$argon2id$hash", nil
+		}},
+		&mockSessions{startFn: func(_ context.Context, _ http.ResponseWriter, id string) (sessions.Session, error) {
+			startedFor = id
+			return sessions.Session{}, nil
 		}},
 	)
 
@@ -224,6 +259,9 @@ func TestHandler_Wiring(t *testing.T) {
 	}
 	if want := (createParams{Email: "rené@example.com", PasswordHash: "$argon2id$hash"}); stored != want {
 		t.Errorf("stored: got %+q, want %+q", stored, want)
+	}
+	if startedFor != userID {
+		t.Errorf("session started for %q, want %q", startedFor, userID)
 	}
 	assertResponse(t, rec.Body.Bytes(), response{ID: userID, Email: "rené@example.com"})
 }

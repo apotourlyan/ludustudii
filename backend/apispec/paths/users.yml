@@ -7,18 +7,21 @@ users:
     operationId: registerUser
     summary: Register a user
     description: |
-      Creates an account. The response reveals whether an email has an
-      account (taken).
+      Creates an account and logs it in, as POST /api/sessions does: the
+      response sets the new session's cookie. The response reveals whether
+      an email has an account (taken).
     requestBody:
       $ref: '../components/requestBodies.yml#/RegisterRequest'
     responses:
       '201':
-        description: User created. The body is the user.
+        description: User created and logged in. The body is the user.
         headers:
           X-Request-Id:
             $ref: '../components/headers.yml#/RequestId'
           Cache-Control:
             $ref: '../components/headers.yml#/CacheControlNoStore'
+          Set-Cookie:
+            $ref: '../components/headers.yml#/SetSessionCookie'
         content:
           application/json:
             schema:
