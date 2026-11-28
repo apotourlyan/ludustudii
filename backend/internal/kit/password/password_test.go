@@ -3,8 +3,11 @@
 package password
 
 import (
+	"context"
+	"errors"
 	"regexp"
 	"testing"
+	"time"
 )
 
 // cheap keeps the tests fast; production parameters are tested only for
@@ -94,7 +97,7 @@ func TestParams_Validate(t *testing.T) {
 func TestHasher(t *testing.T) {
 	t.Parallel()
 
-	h, err := NewHasher(cheap)
+	h, err := NewHasher(cheap, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +113,45 @@ func TestHasher(t *testing.T) {
 func TestNewHasher_Invalid(t *testing.T) {
 	t.Parallel()
 
-	if _, err := NewHasher(Params{}); err == nil {
+	if _, err := NewHasher(cheap, 0); err == nil {
+		t.Error("expected an error for zero concurrency")
+	}
+	if _, err := NewHasher(Params{}, 1); err == nil {
 		t.Error("expected an error for zero parameters")
+	}
+}
+
+// A full Hasher makes callers wait, and a caller whose context ends while
+// waiting gets its error without hashing.
+func TestHasher_ConcurrencyCap(t *testing.T) {
+	t.Parallel()
+
+	h, err := NewHasher(cheap, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := h.acquire(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	if _, err := h.Hash(ctx, "pw"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("hash while full: got %v, want DeadlineExceeded", err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := h.Hash(t.Context(), "pw")
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		t.Fatalf("hash finished while the only slot was taken: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	h.release()
+	if err := <-done; err != nil {
+		t.Errorf("hash after release: %v", err)
 	}
 }

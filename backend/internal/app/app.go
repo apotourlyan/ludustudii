@@ -112,6 +112,7 @@ func Run() (err error) {
 // the API surface never sees the rest.
 func identityConfig(ev *env.Vars) identity.Config {
 	return identity.Config{
-		Password: ev.PasswordParams(),
+		Password:        ev.PasswordParams(),
+		HashConcurrency: ev.AuthHashConcurrency,
 	}
 }

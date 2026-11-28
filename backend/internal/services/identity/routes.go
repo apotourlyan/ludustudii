@@ -28,7 +28,7 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("identity config: %w", err)
 	}
-	hasher, err := password.NewHasher(cfg.Password)
+	hasher, err := password.NewHasher(cfg.Password, cfg.HashConcurrency)
 	if err != nil {
 		return nil, err
 	}

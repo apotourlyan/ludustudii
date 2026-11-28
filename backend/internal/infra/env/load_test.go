@@ -4,6 +4,7 @@ package env
 
 import (
 	"log/slog"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -319,7 +320,7 @@ func TestLoad_ShutdownDrainDelayErrorsCollected(t *testing.T) {
 
 var authNames = []string{
 	EnvAuthArgon2Memory, EnvAuthArgon2Iterations, EnvAuthArgon2Parallelism,
-	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength,
+	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength, EnvAuthHashConcurrency,
 }
 
 // clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
@@ -344,6 +345,9 @@ func TestLoad_AuthDefaults(t *testing.T) {
 	if got, want := v.PasswordParams(), (password.Params{Memory: 19456, Iterations: 2, Parallelism: 1, SaltLength: 16, KeyLength: 32}); got != want {
 		t.Errorf("argon2id: got %v, want %v", got, want)
 	}
+	if v.AuthHashConcurrency != runtime.NumCPU() {
+		t.Errorf("hash concurrency: got %d, want %d", v.AuthHashConcurrency, runtime.NumCPU())
+	}
 }
 
 func TestLoad_Auth(t *testing.T) {
@@ -355,6 +359,7 @@ func TestLoad_Auth(t *testing.T) {
 		EnvAuthArgon2Parallelism: "2",
 		EnvAuthArgon2SaltLength:  "32",
 		EnvAuthArgon2KeyLength:   "64",
+		EnvAuthHashConcurrency:   "3",
 	} {
 		t.Setenv(name, value)
 	}
@@ -366,12 +371,15 @@ func TestLoad_Auth(t *testing.T) {
 	if got, want := v.PasswordParams(), (password.Params{Memory: 64, Iterations: 1, Parallelism: 2, SaltLength: 32, KeyLength: 64}); got != want {
 		t.Errorf("argon2id: got %v, want %v", got, want)
 	}
+	if v.AuthHashConcurrency != 3 {
+		t.Errorf("hash concurrency: got %d, want 3", v.AuthHashConcurrency)
+	}
 
 	attrs := map[string]string{}
 	for _, a := range v.LogAttrs() {
 		attrs[a.Key] = a.Value.String()
 	}
-	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthArgon2KeyLength: "64"} {
+	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthHashConcurrency: "3"} {
 		if attrs[name] != want {
 			t.Errorf("log attr %s: got %q, want %q", name, attrs[name], want)
 		}
@@ -389,6 +397,8 @@ func TestLoad_AuthErrors(t *testing.T) {
 		{EnvAuthArgon2Parallelism, "256", EnvAuthArgon2Parallelism},
 		{EnvAuthArgon2SaltLength, "4", "salt length"},
 		{EnvAuthArgon2KeyLength, "8", "key length"},
+		{EnvAuthHashConcurrency, "0", EnvAuthHashConcurrency},
+		{EnvAuthHashConcurrency, "many", EnvAuthHashConcurrency},
 	} {
 		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
 			setRequired(t)

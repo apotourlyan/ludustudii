@@ -79,23 +79,46 @@ func Hash(password string, p Params) (string, error) {
 	return encode(p, salt, key), nil
 }
 
-// Hasher hashes passwords under configured parameters.
+// Hasher hashes passwords under configured parameters, with at most a fixed
+// number of hashes running at once. Callers past the cap wait
+// for a slot or for their context to end.
 type Hasher struct {
 	params Params
+	slots  chan struct{}
 }
 
-// NewHasher returns a Hasher for p.
-func NewHasher(p Params) (*Hasher, error) {
-	if err := p.Validate(); err != nil {
+// NewHasher returns a Hasher for p that runs at most concurrency hashes at
+// once.
+func NewHasher(p Params, concurrency int) (*Hasher, error) {
+	err := p.Validate()
+	if concurrency < 1 {
+		err = errors.Join(err, fmt.Errorf("concurrency must be at least 1, got %d", concurrency))
+	}
+	if err != nil {
 		return nil, fmt.Errorf("new hasher: %w", err)
 	}
-	return &Hasher{params: p}, nil
+	return &Hasher{params: p, slots: make(chan struct{}, concurrency)}, nil
 }
 
 // Hash returns the PHC string of password under the Hasher's parameters.
-func (h *Hasher) Hash(_ context.Context, password string) (string, error) {
+func (h *Hasher) Hash(ctx context.Context, password string) (string, error) {
+	if err := h.acquire(ctx); err != nil {
+		return "", err
+	}
+	defer h.release()
 	return Hash(password, h.params)
 }
+
+func (h *Hasher) acquire(ctx context.Context) error {
+	select {
+	case h.slots <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("wait for a hashing slot: %w", ctx.Err())
+	}
+}
+
+func (h *Hasher) release() { <-h.slots }
 
 const phcID = "argon2id"
 

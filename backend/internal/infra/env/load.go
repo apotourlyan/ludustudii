@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -36,6 +37,7 @@ const (
 	EnvAuthArgon2Parallelism = "AUTH_ARGON2_PARALLELISM"
 	EnvAuthArgon2SaltLength  = "AUTH_ARGON2_SALT_LENGTH"
 	EnvAuthArgon2KeyLength   = "AUTH_ARGON2_KEY_LENGTH"
+	EnvAuthHashConcurrency   = "AUTH_HASH_CONCURRENCY"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -61,6 +63,12 @@ const (
 	DefaultAuthArgon2KeyLength   = 32
 )
 
+// Defaults Load uses for optional variables whose value isn't a constant.
+var (
+	// DefaultAuthHashConcurrency is the number of CPUs, read at startup.
+	DefaultAuthHashConcurrency = runtime.NumCPU()
+)
+
 // Vars holds the configuration read by Load. Field names mirror the Env
 // constants.
 type Vars struct {
@@ -84,6 +92,7 @@ type Vars struct {
 	AuthArgon2Parallelism uint8
 	AuthArgon2SaltLength  uint32
 	AuthArgon2KeyLength   uint32
+	AuthHashConcurrency   int
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -105,7 +114,8 @@ func (v *Vars) PasswordParams() password.Params {
 // Durations use time.ParseDuration syntax, booleans use
 // strconv.ParseBool syntax (such as "true" or "0"), LOG_LEVEL uses slog.Level
 // names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". The
-// argon2id parameters must be within the bounds of password.Params. Load reports every invalid or
+// AUTH_HASH_CONCURRENCY must be at least 1 and the argon2id parameters within
+// the bounds of password.Params. Load reports every invalid or
 // missing variable, joined into one error.
 func Load() (*Vars, error) {
 	var errs []error
@@ -192,7 +202,8 @@ func Load() (*Vars, error) {
 // authVars are the AUTH_ variables, loaded together so the argon2id
 // parameters can be checked as a whole.
 type authVars struct {
-	argon2 password.Params
+	argon2          password.Params
+	hashConcurrency int
 }
 
 func loadAuth() (authVars, error) {
@@ -220,6 +231,12 @@ func loadAuth() (authVars, error) {
 		}
 	}
 
+	a.hashConcurrency, err = getEnvInt(EnvAuthHashConcurrency, DefaultAuthHashConcurrency)
+	if err == nil && a.hashConcurrency < 1 {
+		err = fmt.Errorf("parse env %s: must be at least 1", EnvAuthHashConcurrency)
+	}
+	errs = append(errs, err)
+
 	return a, errors.Join(errs...)
 }
 
@@ -229,6 +246,7 @@ func (a authVars) into(v *Vars) {
 	v.AuthArgon2Parallelism = a.argon2.Parallelism
 	v.AuthArgon2SaltLength = a.argon2.SaltLength
 	v.AuthArgon2KeyLength = a.argon2.KeyLength
+	v.AuthHashConcurrency = a.hashConcurrency
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -265,6 +283,7 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Uint64(EnvAuthArgon2Parallelism, uint64(v.AuthArgon2Parallelism)),
 		slog.Uint64(EnvAuthArgon2SaltLength, uint64(v.AuthArgon2SaltLength)),
 		slog.Uint64(EnvAuthArgon2KeyLength, uint64(v.AuthArgon2KeyLength)),
+		slog.Int(EnvAuthHashConcurrency, v.AuthHashConcurrency),
 	}
 }
 
