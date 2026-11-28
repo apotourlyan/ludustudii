@@ -3,10 +3,7 @@
 package identity_test
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -67,6 +64,11 @@ func login(t *testing.T, srv *httptest.Server, body string, cookies ...*http.Coo
 	})
 }
 
+func me(t *testing.T, srv *httptest.Server, cookies ...*http.Cookie) testkit.Response {
+	t.Helper()
+	return testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/users/me", Cookies: cookies})
+}
+
 // assertSessionCookie checks the attributes of a session cookie set by resp
 // and returns it.
 func assertSessionCookie(t *testing.T, resp testkit.Response) *http.Cookie {
@@ -82,57 +84,30 @@ func assertSessionCookie(t *testing.T, resp testkit.Response) *http.Cookie {
 	return c
 }
 
+func assertUnauthenticated(t *testing.T, resp testkit.Response) {
+	t.Helper()
+	testkit.AssertStatus(t, resp, http.StatusUnauthorized)
+	testkit.AssertJSON(t, resp.Body, `{"code":"unauthenticated"}`)
+	if v := resp.Header.Get("WWW-Authenticate"); v != "" {
+		t.Errorf("WWW-Authenticate: got %q, want none", v)
+	}
+}
+
 func assertCode(t *testing.T, resp testkit.Response, status int, body string) {
 	t.Helper()
 	testkit.AssertStatus(t, resp, status)
 	testkit.AssertJSON(t, resp.Body, body)
 }
 
-// account is a user registered through the API, with the session its
-// registration started.
-type account struct {
-	ID, Email, Password string
-	Session             *http.Cookie
-}
-
-// newAccount registers a user with a unique email and returns it.
-func newAccount(t *testing.T, srv *httptest.Server) account {
-	t.Helper()
-	email := "user-" + strings.ToLower(rand.Text()) + "@example.com"
-	const pw = "correct horse battery staple"
-	resp := register(t, srv, credentials(email, pw))
-	testkit.AssertStatus(t, resp, http.StatusCreated)
-	var created struct{ ID string }
-	if err := json.Unmarshal(resp.Body, &created); err != nil {
-		t.Fatal(err)
-	}
-	return account{ID: created.ID, Email: email, Password: pw, Session: resp.Cookie(cookieName)}
-}
-
-// hasSession reports whether the database holds an unexpired session for
-// the token in c.
-func hasSession(t *testing.T, db *sql.DB, c *http.Cookie) bool {
-	t.Helper()
-	raw, err := base64.RawURLEncoding.DecodeString(c.Value)
-	if err != nil {
-		t.Fatalf("session cookie %q: %v", c.Value, err)
-	}
-	sum := sha256.Sum256(raw)
-	var ok bool
-	if err := db.QueryRowContext(t.Context(),
-		`SELECT EXISTS (SELECT 1 FROM sessions WHERE token_hash = $1 AND expires_at > now())`, sum[:],
-	).Scan(&ok); err != nil {
-		t.Fatal(err)
-	}
-	return ok
-}
-
-func TestRegister_LogsIn(t *testing.T) {
+func TestLifecycle(t *testing.T) {
 	t.Parallel()
 	srv, db := newServer(t)
 
 	resp := register(t, srv, credentials("  Armen@Example.COM ", "correct horse battery staple"))
 	testkit.AssertStatus(t, resp, http.StatusCreated)
+	if got := resp.Header.Get("Location"); got != "/api/users/me" {
+		t.Errorf("Location: got %q", got)
+	}
 	var user struct{ ID, Email string }
 	if err := json.Unmarshal(resp.Body, &user); err != nil {
 		t.Fatal(err)
@@ -150,9 +125,39 @@ func TestRegister_LogsIn(t *testing.T) {
 	if len(stored) != 32 || string(stored) == session.Value || strings.Contains(string(resp.Body), session.Value) {
 		t.Errorf("token storage: %d-byte hash, body %s", len(stored), resp.Body)
 	}
-	if !hasSession(t, db, session) {
-		t.Error("no session stored for the registration's cookie")
+
+	resp = me(t, srv, session)
+	testkit.AssertStatus(t, resp, http.StatusOK)
+	testkit.AssertJSON(t, resp.Body, `{"id":"`+user.ID+`","email":"armen@example.com"}`)
+}
+
+func TestMe(t *testing.T) {
+	t.Parallel()
+	srv, _ := newServer(t)
+	u := testkit.NewUser(t, srv)
+
+	for _, tt := range []struct {
+		name    string
+		cookies []*http.Cookie
+	}{
+		{"no cookie", nil},
+		{"malformed cookie", []*http.Cookie{{Name: cookieName, Value: "not-a-token"}}},
+		{"unknown token", []*http.Cookie{{Name: cookieName, Value: strings.Repeat("A", 43)}}},
+		{"cookie under another name", []*http.Cookie{{Name: "session", Value: u.Session.Value}}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assertUnauthenticated(t, me(t, srv, tt.cookies...))
+		})
 	}
+
+	t.Run("HEAD", func(t *testing.T) {
+		t.Parallel()
+		resp := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodHead, Path: "/api/users/me", Cookies: []*http.Cookie{u.Session}})
+		testkit.AssertStatus(t, resp, http.StatusOK)
+		resp = testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodHead, Path: "/api/users/me"})
+		testkit.AssertStatus(t, resp, http.StatusUnauthorized)
+	})
 }
 
 func TestRegister_FieldErrors(t *testing.T) {
@@ -221,8 +226,8 @@ func TestRegister_Taken(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	t.Parallel()
-	srv, db := newServer(t)
-	u := newAccount(t, srv)
+	srv, _ := newServer(t)
+	u := testkit.NewUser(t, srv)
 
 	before := time.Now()
 	resp := login(t, srv, credentials(" "+strings.ToUpper(u.Email)+" ", u.Password))
@@ -242,22 +247,18 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expires_at: got %v, want about %v", s.ExpiresAt, want)
 	}
 	session := assertSessionCookie(t, resp)
-	if !hasSession(t, db, session) {
-		t.Error("no session stored for the login's cookie")
-	}
+	testkit.AssertStatus(t, me(t, srv, session), http.StatusOK)
 
-	// Registration's session is a separate one and still stands.
-	if !hasSession(t, db, u.Session) {
-		t.Error("the login ended the registration's session")
-	}
+	// Registration's session is a separate one and still works.
+	testkit.AssertStatus(t, me(t, srv, u.Session), http.StatusOK)
 }
 
 // A login deletes the session its request carried, so a token planted
 // before it is worthless after it.
 func TestLogin_ReplacesCarriedSession(t *testing.T) {
 	t.Parallel()
-	srv, db := newServer(t)
-	u := newAccount(t, srv)
+	srv, _ := newServer(t)
+	u := testkit.NewUser(t, srv)
 
 	resp := login(t, srv, credentials(u.Email, u.Password), u.Session)
 	testkit.AssertStatus(t, resp, http.StatusCreated)
@@ -265,24 +266,18 @@ func TestLogin_ReplacesCarriedSession(t *testing.T) {
 	if fresh.Value == u.Session.Value {
 		t.Fatal("login reused the carried token")
 	}
-	if hasSession(t, db, u.Session) {
-		t.Error("the carried session survived the login")
-	}
-	if !hasSession(t, db, fresh) {
-		t.Error("no session stored for the new cookie")
-	}
+	assertUnauthenticated(t, me(t, srv, u.Session))
+	testkit.AssertStatus(t, me(t, srv, fresh), http.StatusOK)
 
 	// A failed login leaves the carried session alone.
 	testkit.AssertStatus(t, login(t, srv, credentials(u.Email, "wrong password"), fresh), http.StatusUnauthorized)
-	if !hasSession(t, db, fresh) {
-		t.Error("a failed login ended the carried session")
-	}
+	testkit.AssertStatus(t, me(t, srv, fresh), http.StatusOK)
 }
 
 func TestLogin_Failures(t *testing.T) {
 	t.Parallel()
 	srv, _ := newServer(t)
-	u := newAccount(t, srv)
+	u := testkit.NewUser(t, srv)
 
 	unknown := login(t, srv, credentials("nobody@example.com", u.Password))
 	wrong := login(t, srv, credentials(u.Email, "the wrong password"))
@@ -319,7 +314,7 @@ func TestLogin_Rehash(t *testing.T) {
 	t.Parallel()
 	db := testkit.NewDB(t)
 	oldSrv := newServerOn(t, db, testkit.IdentityConfig())
-	u := newAccount(t, oldSrv)
+	u := testkit.NewUser(t, oldSrv)
 
 	stronger := testkit.IdentityConfig()
 	stronger.Password.Iterations = 2
@@ -340,4 +335,55 @@ func TestLogin_Rehash(t *testing.T) {
 		t.Errorf("hash after a login under new parameters: %q", h)
 	}
 	testkit.AssertStatus(t, login(t, newSrv, credentials(u.Email, u.Password)), http.StatusCreated)
+}
+
+// Sessions expire by the stored expiry, and a use after the touch interval
+// records itself and extends the expiry. Times are set in the database; the
+// unit tests in package sessions drive the same rules with a fake clock.
+func TestSessionExpiry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an expired session is anonymous", func(t *testing.T) {
+		t.Parallel()
+		srv, db := newServer(t)
+		u := testkit.NewUser(t, srv)
+		if _, err := db.ExecContext(t.Context(),
+			`UPDATE sessions SET last_seen_at = now() - interval '8 days', expires_at = now() - interval '1 day' WHERE user_id = $1`, u.ID,
+		); err != nil {
+			t.Fatal(err)
+		}
+		assertUnauthenticated(t, me(t, srv, u.Session))
+	})
+
+	t.Run("a use records itself at most once a minute", func(t *testing.T) {
+		t.Parallel()
+		srv, db := newServer(t)
+		u := testkit.NewUser(t, srv)
+		times := func() (lastSeen, expires time.Time) {
+			if err := db.QueryRowContext(t.Context(),
+				`SELECT last_seen_at, expires_at FROM sessions WHERE user_id = $1`, u.ID,
+			).Scan(&lastSeen, &expires); err != nil {
+				t.Fatal(err)
+			}
+			return lastSeen, expires
+		}
+
+		created, _ := times()
+		testkit.AssertStatus(t, me(t, srv, u.Session), http.StatusOK)
+		if lastSeen, _ := times(); !lastSeen.Equal(created) {
+			t.Errorf("touched within the interval: %v -> %v", created, lastSeen)
+		}
+
+		if _, err := db.ExecContext(t.Context(),
+			`UPDATE sessions SET last_seen_at = last_seen_at - interval '2 minutes', expires_at = expires_at - interval '2 minutes' WHERE user_id = $1`, u.ID,
+		); err != nil {
+			t.Fatal(err)
+		}
+		before := time.Now()
+		testkit.AssertStatus(t, me(t, srv, u.Session), http.StatusOK)
+		lastSeen, expires := times()
+		if lastSeen.Before(before.Add(-time.Second)) || !expires.Equal(lastSeen.Add(7*24*time.Hour)) {
+			t.Errorf("after a touch: last seen %v, expires %v", lastSeen, expires)
+		}
+	})
 }

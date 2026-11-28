@@ -200,6 +200,22 @@ InvalidLoginInput:
             errors:
               - field: password
                 code: required
+Unauthenticated:
+  description: |
+    The request carries no valid session: no session cookie, or one whose
+    session is unknown, ended or expired. No WWW-Authenticate header is sent:
+    cookie sessions have no registered scheme.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: unauthenticated
 InvalidCredentials:
   description: |
     The email has no account or the password is wrong; the response doesn't

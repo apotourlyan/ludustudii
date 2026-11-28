@@ -117,6 +117,7 @@ func identityConfig(ev *env.Vars) identity.Config {
 		Session: identity.SessionPolicy{
 			IdleTimeout:     ev.AuthSessionIdleTimeout,
 			AbsoluteTimeout: ev.AuthSessionAbsoluteTimeout,
+			TouchInterval:   ev.AuthSessionTouchInterval,
 		},
 	}
 }

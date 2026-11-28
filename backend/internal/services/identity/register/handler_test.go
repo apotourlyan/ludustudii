@@ -210,6 +210,9 @@ func TestHandler_Success(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201", rec.Code)
 	}
+	if got := rec.Header().Get("Location"); got != "/api/users/me" {
+		t.Errorf("Location: got %q", got)
+	}
 	if got := rec.Header().Get("Set-Cookie"); !strings.HasPrefix(got, domain.SessionCookieName+"=") {
 		t.Errorf("Set-Cookie: got %q", got)
 	}

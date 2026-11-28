@@ -121,6 +121,47 @@ func TestPostgres_FindValid(t *testing.T) {
 	}
 }
 
+func TestPostgres_Touch(t *testing.T) {
+	t.Parallel()
+
+	db := testkit.NewDB(t)
+	store := NewPostgres(db)
+	user := insertUser(t, db)
+	s, err := store.Create(t.Context(), NewSession{
+		UserID: user, TokenHash: hashOf("token"), LastSeenAt: now, ExpiresAt: now.Add(time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	later := now.Add(30 * time.Minute)
+	if err := store.Touch(t.Context(), s.ID, later, later.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	found, err := store.FindValid(t.Context(), hashOf("token"), now.Add(80*time.Minute))
+	if err != nil {
+		t.Fatalf("touched session not found past its old expiry: %v", err)
+	}
+	if !found.LastSeenAt.Equal(later) || !found.ExpiresAt.Equal(later.Add(time.Hour)) {
+		t.Errorf("after touch: %+v", found)
+	}
+
+	var createdAt, updatedAt time.Time
+	if err := db.QueryRowContext(t.Context(),
+		`SELECT created_at, updated_at FROM sessions WHERE id = $1`, s.ID,
+	).Scan(&createdAt, &updatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if !createdAt.Equal(s.CreatedAt) || updatedAt.Before(createdAt) {
+		t.Errorf("timestamps: created_at %v (was %v), updated_at %v", createdAt, s.CreatedAt, updatedAt)
+	}
+
+	// Touching a deleted session changes nothing and isn't an error.
+	if err := store.Touch(t.Context(), "019a0000-0000-7000-8000-000000000001", later, later.Add(time.Hour)); err != nil {
+		t.Errorf("touch unknown session: %v", err)
+	}
+}
+
 func TestPostgres_Delete(t *testing.T) {
 	t.Parallel()
 

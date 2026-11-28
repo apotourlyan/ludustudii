@@ -142,6 +142,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/me": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current user
+         * @description The user whose session the request carries.
+         */
+        get: operations["getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /**
+         * Get current user response headers
+         * @description Executes the get operation, without a response body.
+         */
+        head: operations["headCurrentUser"];
+        patch?: never;
+        trace?: never;
+    };
     "/livez": {
         parameters: {
             query?: never;
@@ -230,7 +263,7 @@ export interface components {
         Email: string;
         ErrorResponse: {
             /** @enum {string} */
-            code: "bind_error" | "validation_error" | "invalid_credentials" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
+            code: "bind_error" | "validation_error" | "unauthenticated" | "invalid_credentials" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
             /** @description Per-field failures, included only for validation_error responses. */
             errors?: components["schemas"]["FieldError"][];
         };
@@ -440,6 +473,15 @@ export interface components {
             };
             content?: never;
         };
+        /** @description The request carries no valid session. No response body and no WWW-Authenticate header. */
+        HeadUnauthenticated: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
         /** @description An unexpected server or storage error occurred. No response body. */
         HeadUnexpectedError: {
             headers: {
@@ -637,6 +679,26 @@ export interface components {
                  *     }
                  */
                 "application/json": components["schemas"]["ProbeStatus"];
+            };
+        };
+        /**
+         * @description The request carries no valid session: no session cookie, or one whose
+         *     session is unknown, ended or expired. No WWW-Authenticate header is sent:
+         *     cookie sessions have no registered scheme.
+         */
+        Unauthenticated: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": "unauthenticated"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
             };
         };
         /** @description An unexpected server or storage error occurred. Internal details are not returned. */
@@ -1082,10 +1144,12 @@ export interface operations {
         };
         requestBody: components["requestBodies"]["RegisterRequest"];
         responses: {
-            /** @description User created and logged in. The body is the user. */
+            /** @description User created and logged in. The body is the user; Location is the current user's URL. */
             201: {
                 headers: {
                     "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    /** @description URL of the current user. */
+                    Location: "/api/users/me";
                     "Set-Cookie": components["headers"]["SetSessionCookie"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
@@ -1099,6 +1163,64 @@ export interface operations {
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             500: components["responses"]["UnexpectedError"];
+        };
+    };
+    getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current user. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            413: components["responses"]["PayloadTooLarge"];
+            500: components["responses"]["UnexpectedError"];
+        };
+    };
+    headCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["HeadSuccess"];
+            401: components["responses"]["HeadUnauthenticated"];
+            413: components["responses"]["HeadPayloadTooLarge"];
+            500: components["responses"]["HeadUnexpectedError"];
         };
     };
     getLiveness: {

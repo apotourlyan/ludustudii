@@ -10,6 +10,7 @@ import (
 var policy = SessionPolicy{
 	IdleTimeout:     7 * 24 * time.Hour,
 	AbsoluteTimeout: 30 * 24 * time.Hour,
+	TouchInterval:   time.Minute,
 }
 
 var created = time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
@@ -36,9 +37,28 @@ func TestSessionPolicy_ExpiresAt(t *testing.T) {
 	}
 
 	// An absolute limit shorter than the idle timeout wins from the start.
-	short := SessionPolicy{IdleTimeout: time.Hour, AbsoluteTimeout: time.Minute}
+	short := SessionPolicy{IdleTimeout: time.Hour, AbsoluteTimeout: time.Minute, TouchInterval: time.Second}
 	if got := short.ExpiresAt(created, created); !got.Equal(created.Add(time.Minute)) {
 		t.Errorf("short absolute limit: got %v", got)
+	}
+}
+
+func TestSessionPolicy_NeedsTouch(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		since time.Duration
+		want  bool
+	}{
+		{0, false},
+		{59 * time.Second, false},
+		{time.Minute, true},
+		{time.Hour, true},
+		{-time.Second, false}, // a clock that went back
+	} {
+		if got := policy.NeedsTouch(created, created.Add(tt.since)); got != tt.want {
+			t.Errorf("%v after the last use: got %v, want %v", tt.since, got, tt.want)
+		}
 	}
 }
 
@@ -50,8 +70,8 @@ func TestSessionPolicy_Validate(t *testing.T) {
 	}
 	for _, p := range []SessionPolicy{
 		{},
-		{IdleTimeout: time.Hour},
-		{IdleTimeout: -time.Hour, AbsoluteTimeout: time.Hour},
+		{IdleTimeout: time.Hour, AbsoluteTimeout: time.Hour},
+		{IdleTimeout: -time.Hour, AbsoluteTimeout: time.Hour, TouchInterval: time.Minute},
 	} {
 		if err := p.Validate(); err == nil {
 			t.Errorf("%+v: want an error", p)

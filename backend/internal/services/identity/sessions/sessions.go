@@ -1,4 +1,5 @@
-// Package sessions issues the identity service's cookie sessions (ADR 0047). A session's token is 32 random bytes, sent to the
+// Package sessions issues and resolves the identity service's cookie
+// sessions (ADR 0047). A session's token is 32 random bytes, sent to the
 // browser in the session cookie as base64url without padding; the Store keeps
 // only its SHA-256 hash. The endpoints use a Manager; the Store behind it is
 // replaceable.
@@ -9,9 +10,13 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/apotourlyan/ludustudii/internal/kit"
+	"github.com/apotourlyan/ludustudii/internal/kit/authn"
+	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
 )
 
@@ -20,7 +25,8 @@ const tokenBytes = 32
 
 var tokenEncoding = base64.RawURLEncoding.Strict()
 
-// Manager starts sessions under a SessionPolicy and a clock.
+// Manager starts sessions and resolves the session a request carries, under a
+// SessionPolicy and a clock.
 type Manager struct {
 	store  Store
 	policy domain.SessionPolicy
@@ -59,6 +65,57 @@ func (m *Manager) Replace(ctx context.Context, w http.ResponseWriter, r *http.Re
 		}
 	}
 	return m.Start(ctx, w, userID)
+}
+
+// Authenticate returns middleware that resolves the session cookie: for a
+// valid session, it records the use (at most once per touch interval, which
+// extends the idle timeout) and passes on a request whose context carries the
+// user's ID for authn.UserID. A missing, malformed, unknown or expired cookie
+// leaves the request anonymous; routes that need a user wrap their handler
+// in authn.Require. Storage failures go to onError.
+func (m *Manager) Authenticate(onError httpkit.ErrorHandler) httpkit.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userID, err := m.resolve(r)
+			if err != nil {
+				onError(w, r, err)
+				return
+			}
+			if userID != "" {
+				r = r.WithContext(authn.WithUserID(r.Context(), userID))
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// resolve returns the user of the valid session r carries, or "" for none.
+func (m *Manager) resolve(r *http.Request) (string, error) {
+	hash, ok := carriedTokenHash(r)
+	if !ok {
+		return "", nil
+	}
+	ctx := r.Context()
+	now := m.now()
+	s, err := m.store.FindValid(ctx, hash, now)
+	if errors.Is(err, kit.ErrNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if !m.policy.NeedsTouch(s.LastSeenAt, now) {
+		return s.UserID, nil
+	}
+	expiresAt := m.policy.ExpiresAt(s.CreatedAt, now)
+	if !expiresAt.After(now) {
+		// At its absolute limit: expired, whatever the stored expiry says.
+		return "", nil
+	}
+	if err := m.store.Touch(ctx, s.ID, now, expiresAt); err != nil {
+		return "", err
+	}
+	return s.UserID, nil
 }
 
 // cookie returns the session cookie carrying token. Max-Age is the absolute

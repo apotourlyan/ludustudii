@@ -33,3 +33,11 @@ HeadUnexpectedError:
       $ref: '../headers.yml#/RequestId'
     Cache-Control:
       $ref: '../headers.yml#/CacheControlNoStore'
+
+HeadUnauthenticated:
+  description: The request carries no valid session. No response body and no WWW-Authenticate header.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'

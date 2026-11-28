@@ -12,10 +12,12 @@ import (
 const SessionCookieName = "__Host-session"
 
 // SessionPolicy decides when a session expires: IdleTimeout after its last
-// use, and no later than AbsoluteTimeout after its creation.
+// use, and no later than AbsoluteTimeout after its creation. Its last use is
+// recorded at most once per TouchInterval.
 type SessionPolicy struct {
 	IdleTimeout     time.Duration
 	AbsoluteTimeout time.Duration
+	TouchInterval   time.Duration
 }
 
 // Validate reports every duration that isn't positive.
@@ -24,6 +26,7 @@ func (p SessionPolicy) Validate() error {
 	for name, d := range map[string]time.Duration{
 		"idle timeout":     p.IdleTimeout,
 		"absolute timeout": p.AbsoluteTimeout,
+		"touch interval":   p.TouchInterval,
 	} {
 		if d <= 0 {
 			errs = append(errs, fmt.Errorf("session %s must be positive, got %v", name, d))
@@ -41,4 +44,10 @@ func (p SessionPolicy) ExpiresAt(createdAt, lastSeenAt time.Time) time.Time {
 		return idle
 	}
 	return absolute
+}
+
+// NeedsTouch reports whether a session last used at lastSeenAt should record
+// a use at now.
+func (p SessionPolicy) NeedsTouch(lastSeenAt, now time.Time) bool {
+	return now.Sub(lastSeenAt) >= p.TouchInterval
 }

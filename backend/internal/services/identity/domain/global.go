@@ -6,8 +6,9 @@ import "errors"
 
 // URL paths of the identity resources.
 const (
-	UsersPath    = "/api/users"
-	SessionsPath = "/api/sessions"
+	UsersPath       = "/api/users"
+	CurrentUserPath = UsersPath + "/me"
+	SessionsPath    = "/api/sessions"
 )
 
 // ErrEmailTaken reports a registration for an email that has an account.

@@ -13,6 +13,7 @@ const (
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
 	CodePayloadTooLarge      = "payload_too_large"
+	CodeUnauthenticated      = "unauthenticated"
 	CodeUnexpected           = "unexpected_error"
 	CodeValidation           = "validation_error"
 	CodeUnsupportedMediaType = "unsupported_media_type"
@@ -74,6 +75,14 @@ func NotFound() ErrorResponse {
 func PayloadTooLarge() ErrorResponse {
 	return ErrorResponse{
 		Code: CodePayloadTooLarge,
+	}
+}
+
+// Unauthenticated returns the response for a request that needs a session
+// and carries none that is valid.
+func Unauthenticated() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeUnauthenticated,
 	}
 }
 

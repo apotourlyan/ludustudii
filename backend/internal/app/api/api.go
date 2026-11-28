@@ -23,14 +23,19 @@ type Surface struct {
 }
 
 // New registers every service's routes on one API, reporting handler errors
-// to onError. Every response is Cache-Control: no-store, and unsafe requests
-// from other origins get 403 cross_origin_request.
+// to onError. Every response is Cache-Control: no-store, unsafe requests
+// from other origins get 403 cross_origin_request, and each route runs behind
+// the identity service's authentication, so a handler finds the session's
+// user through authn.UserID.
 func New(db *sql.DB, identityConfig identity.Config, onError httpkit.ErrorHandler) (*Surface, error) {
 	id, err := identity.New(db, identityConfig)
 	if err != nil {
 		return nil, err
 	}
-	api := httpkit.NewAPI(onError)
+	// Authentication passes on a request with a new context, so it runs per
+	// route, after the API's mux has set the route's pattern for the request
+	// log (see httpkit.NewAPI).
+	api := httpkit.NewAPI(onError, id.Authenticate(onError))
 	id.RegisterRoutes(api)
 	lcards.RegisterRoutes(api, db)
 	return &Surface{

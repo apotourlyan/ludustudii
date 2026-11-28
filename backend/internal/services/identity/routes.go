@@ -3,7 +3,8 @@
 // writes users, a Store; sessions holds the session machinery the endpoints
 // share; rules, limits and configuration are in domain.
 //
-// Other services never import this package.
+// Other services never import this package: they read the authenticated
+// user through kit/authn, which the middleware from Authenticate fills in.
 package identity
 
 import (
@@ -11,10 +12,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apotourlyan/ludustudii/internal/kit/authn"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/login"
+	"github.com/apotourlyan/ludustudii/internal/services/identity/me"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/register"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/sessions"
 )
@@ -25,10 +28,13 @@ type Config = domain.Config
 // SessionPolicy decides when sessions expire (see domain.SessionPolicy).
 type SessionPolicy = domain.SessionPolicy
 
-// Service is the identity service's routes.
+// Service is the identity service: its routes and the middleware that
+// authenticates API requests.
 type Service struct {
+	sessions *sessions.Manager
 	register *register.Handler
 	login    *login.Handler
+	me       *me.Handler
 }
 
 // New builds the identity service on db. It validates cfg and hashes a
@@ -48,6 +54,7 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 	}
 	sm := sessions.NewManager(sessions.NewPostgres(db), cfg.Session)
 	return &Service{
+		sessions: sm,
 		register: register.NewHandler(register.NewStore(db), hasher, sm),
 		login: login.NewHandler(login.Deps{
 			Store:     login.NewStore(db),
@@ -55,14 +62,26 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 			DummyHash: dummyHash,
 			Sessions:  sm,
 		}),
+		me: me.NewHandler(me.NewStore(db)),
 	}, nil
 }
 
 // RegisterRoutes registers the identity endpoints:
 //
 //	POST /api/users     register and log in (register)
+//	GET  /api/users/me  the current user (me), with a session only
 //	POST /api/sessions  log in (login)
+//
+// GET also serves HEAD.
 func (s *Service) RegisterRoutes(api *httpkit.API) {
 	api.HandleFunc("POST "+domain.UsersPath, s.register.Handle)
+	api.HandleFunc("GET "+domain.CurrentUserPath, authn.Require(s.me.Handle))
 	api.HandleFunc("POST "+domain.SessionsPath, s.login.Handle)
+}
+
+// Authenticate returns the middleware that resolves the session cookie of
+// every API request into the user for authn.UserID, reporting storage
+// failures to onError (see sessions.Manager.Authenticate).
+func (s *Service) Authenticate(onError httpkit.ErrorHandler) httpkit.Middleware {
+	return s.sessions.Authenticate(onError)
 }

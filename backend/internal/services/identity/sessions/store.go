@@ -16,6 +16,8 @@ var (
 	createSQL string
 	//go:embed find_valid.sql
 	findValidSQL string
+	//go:embed touch.sql
+	touchSQL string
 	//go:embed delete.sql
 	deleteSQL string
 )
@@ -47,6 +49,8 @@ type Store interface {
 	// FindValid returns the session with tokenHash that expires after now,
 	// or kit.ErrNotFound.
 	FindValid(ctx context.Context, tokenHash []byte, now time.Time) (Session, error)
+	// Touch records a use of the session with id and its new expiry.
+	Touch(ctx context.Context, id string, lastSeenAt, expiresAt time.Time) error
 	// Delete deletes the session with tokenHash, if there is one.
 	Delete(ctx context.Context, tokenHash []byte) error
 }
@@ -88,6 +92,15 @@ func (p *Postgres) FindValid(ctx context.Context, tokenHash []byte, now time.Tim
 		return Session{}, fmt.Errorf("find session: %w", err)
 	}
 	return s, nil
+}
+
+// Touch updates the session's last use and expiry. A session deleted
+// meanwhile is not an error.
+func (p *Postgres) Touch(ctx context.Context, id string, lastSeenAt, expiresAt time.Time) error {
+	if _, err := p.db.ExecContext(ctx, touchSQL, id, lastSeenAt, expiresAt); err != nil {
+		return fmt.Errorf("touch session: %w", err)
+	}
+	return nil
 }
 
 // Delete deletes the session with tokenHash; deleting none is not an error.

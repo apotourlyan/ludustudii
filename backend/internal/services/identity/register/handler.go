@@ -58,7 +58,7 @@ func NewHandler(s creator, h hasher, sm sessionStarter) *Handler {
 // Handle registers a user: it canonicalizes and validates the JSON email and
 // password (400 for invalid ones, including an email that has an account),
 // stores the user with its password hash, starts a session and responds 201
-// with the user and the session cookie.
+// with the user, its URL in Location and the session cookie.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
@@ -90,6 +90,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.Header().Set("Location", domain.CurrentUserPath)
 	return httpkit.JSON(w, http.StatusCreated, response(data))
 }
 

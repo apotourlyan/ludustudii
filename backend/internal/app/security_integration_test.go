@@ -25,7 +25,7 @@ type specOperation struct {
 	op           *openapi3.Operation
 }
 
-func specOperations(t *testing.T) []specOperation {
+func specOperations(t *testing.T) (*openapi3.T, []specOperation) {
 	t.Helper()
 	doc, err := apispec.Load()
 	if err != nil {
@@ -40,7 +40,25 @@ func specOperations(t *testing.T) []specOperation {
 	slices.SortFunc(ops, func(a, b specOperation) int {
 		return strings.Compare(a.method+" "+a.path, b.method+" "+b.path)
 	})
-	return ops
+	return doc, ops
+}
+
+// requiresSession reports whether every security alternative of op names
+// sessionCookie, so a request without it can't satisfy any of them.
+func requiresSession(doc *openapi3.T, op *openapi3.Operation) bool {
+	reqs := doc.Security
+	if op.Security != nil {
+		reqs = *op.Security
+	}
+	if len(reqs) == 0 {
+		return false
+	}
+	for _, alternative := range reqs {
+		if _, ok := alternative["sessionCookie"]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 var pathParam = regexp.MustCompile(`\{[^}]+\}`)
@@ -71,9 +89,40 @@ func requestBody(op *openapi3.Operation) (contentType, body string) {
 	return "application/json", "{}"
 }
 
+func TestSpec_SessionOperationsAnswerUnauthenticated(t *testing.T) {
+	t.Parallel()
+	doc, ops := specOperations(t)
+	srv := newSpecServer(t)
+
+	covered := 0
+	for _, o := range ops {
+		if !requiresSession(doc, o.op) {
+			continue
+		}
+		covered++
+		t.Run(o.method+" "+o.path, func(t *testing.T) {
+			t.Parallel()
+			contentType, body := requestBody(o.op)
+			resp := testkit.Do(t, srv, testkit.DoOpts{
+				Method: o.method, Path: concretePath(o.path), ContentType: contentType, Body: body,
+			})
+			testkit.AssertStatus(t, resp, http.StatusUnauthorized)
+			if o.method != http.MethodHead {
+				testkit.AssertJSON(t, resp.Body, `{"code":"unauthenticated"}`)
+			}
+			if v := resp.Header.Get("WWW-Authenticate"); v != "" {
+				t.Errorf("WWW-Authenticate: got %q, want none", v)
+			}
+		})
+	}
+	if covered == 0 {
+		t.Fatal("no operation in the spec requires sessionCookie")
+	}
+}
+
 func TestSpec_UnsafeOperationsRejectCrossOrigin(t *testing.T) {
 	t.Parallel()
-	ops := specOperations(t)
+	_, ops := specOperations(t)
 	srv := newSpecServer(t)
 
 	unsafe := []string{http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete}
@@ -110,7 +159,7 @@ func TestSpec_UnsafeOperationsRejectCrossOrigin(t *testing.T) {
 // The same requests from the client app's own origin pass the check.
 func TestSpec_UnsafeOperationsAllowSameOrigin(t *testing.T) {
 	t.Parallel()
-	ops := specOperations(t)
+	_, ops := specOperations(t)
 	srv := newSpecServer(t)
 
 	for _, o := range ops {

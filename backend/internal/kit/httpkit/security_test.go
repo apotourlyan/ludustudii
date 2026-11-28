@@ -3,11 +3,54 @@
 package httpkit
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+// Route middleware runs after the mux matched, so the request a middleware
+// replaces still carries the pattern on the request the caller passed in,
+// and unmatched requests skip it.
+func TestAPI_RouteMiddleware(t *testing.T) {
+	t.Parallel()
+
+	type key struct{}
+	var order []string
+	mark := func(name string) Middleware {
+		return func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				order = append(order, name)
+				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), key{}, name)))
+			})
+		}
+	}
+	var seen any
+	api := NewAPI(func(w http.ResponseWriter, _ *http.Request, err error) {
+		w.WriteHeader(StatusCode(err))
+	}, mark("outer"), mark("inner"))
+	api.HandleFunc("GET /items/{id}", func(w http.ResponseWriter, r *http.Request) error {
+		seen = r.Context().Value(key{})
+		return NoContent(w, http.StatusNoContent)
+	})
+
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/items/1", nil)
+	api.ServeHTTP(httptest.NewRecorder(), r)
+	if r.Pattern != "GET /items/{id}" {
+		t.Errorf("pattern on the caller's request: got %q", r.Pattern)
+	}
+	if seen != "inner" || len(order) != 2 || order[0] != "outer" || order[1] != "inner" {
+		t.Errorf("middleware: order %v, handler saw %v", order, seen)
+	}
+
+	order = nil
+	rec := httptest.NewRecorder()
+	api.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/nope", nil))
+	if rec.Code != http.StatusNotFound || len(order) != 0 {
+		t.Errorf("unmatched request: status %d, middleware %v", rec.Code, order)
+	}
+}
 
 func TestNoStore(t *testing.T) {
 	t.Parallel()

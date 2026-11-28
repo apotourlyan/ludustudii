@@ -1,4 +1,4 @@
-# One path item so far: /api/users (users).
+# Two path items: /api/users (users) and /api/users/me (me).
 users:
   parameters:
     - $ref: '../components/parameters.yml#/RequestId'
@@ -14,12 +14,18 @@ users:
       $ref: '../components/requestBodies.yml#/RegisterRequest'
     responses:
       '201':
-        description: User created and logged in. The body is the user.
+        description: User created and logged in. The body is the user; Location is the current user's URL.
         headers:
           X-Request-Id:
             $ref: '../components/headers.yml#/RequestId'
           Cache-Control:
             $ref: '../components/headers.yml#/CacheControlNoStore'
+          Location:
+            description: URL of the current user.
+            required: true
+            schema:
+              type: string
+              enum: [/api/users/me]
           Set-Cookie:
             $ref: '../components/headers.yml#/SetSessionCookie'
         content:
@@ -36,3 +42,47 @@ users:
         $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
       '500':
         $ref: '../components/responses/errors.yml#/UnexpectedError'
+me:
+  parameters:
+    - $ref: '../components/parameters.yml#/RequestId'
+  get:
+    tags: [Identity]
+    operationId: getCurrentUser
+    summary: Get the current user
+    description: The user whose session the request carries.
+    security:
+      - sessionCookie: []
+    responses:
+      '200':
+        description: The current user.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers.yml#/RequestId'
+          Cache-Control:
+            $ref: '../components/headers.yml#/CacheControlNoStore'
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yml#/User'
+      '401':
+        $ref: '../components/responses/errors.yml#/Unauthenticated'
+      '413':
+        $ref: '../components/responses/errors.yml#/PayloadTooLarge'
+      '500':
+        $ref: '../components/responses/errors.yml#/UnexpectedError'
+  head:
+    tags: [Identity]
+    operationId: headCurrentUser
+    summary: Get current user response headers
+    description: Executes the get operation, without a response body.
+    security:
+      - sessionCookie: []
+    responses:
+      '200':
+        $ref: '../components/responses/head.yml#/HeadSuccess'
+      '401':
+        $ref: '../components/responses/head.yml#/HeadUnauthenticated'
+      '413':
+        $ref: '../components/responses/head.yml#/HeadPayloadTooLarge'
+      '500':
+        $ref: '../components/responses/head.yml#/HeadUnexpectedError'

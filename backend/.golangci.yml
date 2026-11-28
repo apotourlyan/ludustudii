@@ -142,12 +142,13 @@ linters:
             - pkg: github.com/apotourlyan/ludustudii/internal/infra/rdb
               desc: surfaces take their parts from the composition root and must not connect to the database
         # Services don't import each other (ADR 0001); they meet only in
-        # internal/app. Tests follow the same rule.
+        # internal/app. They read the authenticated user through kit/authn,
+        # never through identity. Tests follow the same rule.
         identity:
           files: ["**/internal/services/**/*.go", "!**/internal/services/identity/**"]
           deny:
             - pkg: github.com/apotourlyan/ludustudii/internal/services/identity
-              desc: services don't import each other
+              desc: read the authenticated user through kit/authn; services don't import each other
         lcards:
           files: ["**/internal/services/**/*.go", "!**/internal/services/lcards/**"]
           deny:

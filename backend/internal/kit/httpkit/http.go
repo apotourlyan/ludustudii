@@ -55,6 +55,7 @@ var (
 	ErrMethodNotAllowed     = &StatusError{Code: http.StatusMethodNotAllowed, Response: erresp.MethodNotAllowed()}
 	ErrPayloadTooLarge      = &StatusError{Code: http.StatusRequestEntityTooLarge, Response: erresp.PayloadTooLarge()}
 	ErrUnsupportedMediaType = &StatusError{Code: http.StatusUnsupportedMediaType, Response: erresp.UnsupportedMediaType()}
+	ErrUnauthenticated      = &StatusError{Code: http.StatusUnauthorized, Response: erresp.Unauthenticated()}
 	ErrUnexpected           = &StatusError{Code: http.StatusInternalServerError, Response: erresp.Unexpected()}
 )
 

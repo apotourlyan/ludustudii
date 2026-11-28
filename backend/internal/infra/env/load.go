@@ -40,6 +40,7 @@ const (
 	EnvAuthHashConcurrency        = "AUTH_HASH_CONCURRENCY"
 	EnvAuthSessionIdleTimeout     = "AUTH_SESSION_IDLE_TIMEOUT"
 	EnvAuthSessionAbsoluteTimeout = "AUTH_SESSION_ABSOLUTE_TIMEOUT"
+	EnvAuthSessionTouchInterval   = "AUTH_SESSION_TOUCH_INTERVAL"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -65,6 +66,7 @@ const (
 	DefaultAuthArgon2KeyLength        = 32
 	DefaultAuthSessionIdleTimeout     = 7 * 24 * time.Hour
 	DefaultAuthSessionAbsoluteTimeout = 30 * 24 * time.Hour
+	DefaultAuthSessionTouchInterval   = time.Minute
 )
 
 // Defaults Load uses for optional variables whose value isn't a constant.
@@ -99,6 +101,7 @@ type Vars struct {
 	AuthHashConcurrency        int
 	AuthSessionIdleTimeout     time.Duration
 	AuthSessionAbsoluteTimeout time.Duration
+	AuthSessionTouchInterval   time.Duration
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -208,9 +211,9 @@ func Load() (*Vars, error) {
 // authVars are the AUTH_ variables, loaded together so the argon2id
 // parameters can be checked as a whole.
 type authVars struct {
-	argon2          password.Params
-	hashConcurrency int
-	idle, absolute  time.Duration
+	argon2                password.Params
+	hashConcurrency       int
+	idle, absolute, touch time.Duration
 }
 
 func loadAuth() (authVars, error) {
@@ -248,6 +251,8 @@ func loadAuth() (authVars, error) {
 	errs = append(errs, err)
 	a.absolute, err = getEnvPositiveDuration(EnvAuthSessionAbsoluteTimeout, DefaultAuthSessionAbsoluteTimeout)
 	errs = append(errs, err)
+	a.touch, err = getEnvPositiveDuration(EnvAuthSessionTouchInterval, DefaultAuthSessionTouchInterval)
+	errs = append(errs, err)
 
 	return a, errors.Join(errs...)
 }
@@ -261,6 +266,7 @@ func (a authVars) into(v *Vars) {
 	v.AuthHashConcurrency = a.hashConcurrency
 	v.AuthSessionIdleTimeout = a.idle
 	v.AuthSessionAbsoluteTimeout = a.absolute
+	v.AuthSessionTouchInterval = a.touch
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -300,6 +306,7 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Int(EnvAuthHashConcurrency, v.AuthHashConcurrency),
 		slog.Duration(EnvAuthSessionIdleTimeout, v.AuthSessionIdleTimeout),
 		slog.Duration(EnvAuthSessionAbsoluteTimeout, v.AuthSessionAbsoluteTimeout),
+		slog.Duration(EnvAuthSessionTouchInterval, v.AuthSessionTouchInterval),
 	}
 }
 
