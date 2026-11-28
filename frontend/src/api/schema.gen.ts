@@ -101,8 +101,10 @@ export interface paths {
          * Log in
          * @description Creates a session for the email and password and sets its cookie.
          *     The session the request carried, if any, is deleted, so a token
-         *     planted before the login is worthless after it. An unknown email and a
-         *     wrong password get the same 401 invalid_credentials.
+         *     planted before the login is worthless after it. Logins are limited per
+         *     client IP, and failed logins per account; a limited login is refused
+         *     before its password is checked. An unknown email and a wrong password
+         *     get the same 401 invalid_credentials.
          */
         post: operations["createSession"];
         delete?: never;
@@ -293,7 +295,7 @@ export interface components {
         Email: string;
         ErrorResponse: {
             /** @enum {string} */
-            code: "bind_error" | "validation_error" | "unauthenticated" | "invalid_credentials" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
+            code: "bind_error" | "validation_error" | "unauthenticated" | "invalid_credentials" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "too_many_requests" | "unexpected_error";
             /** @description Per-field failures, included only for validation_error responses. */
             errors?: components["schemas"]["FieldError"][];
         };
@@ -560,7 +562,8 @@ export interface components {
         };
         /**
          * @description The email has no account or the password is wrong; the response doesn't
-         *     say which. No WWW-Authenticate header is sent.
+         *     say which. Counts as a failed login for the email's per-account limit.
+         *     No WWW-Authenticate header is sent.
          */
         InvalidCredentials: {
             headers: {
@@ -712,6 +715,27 @@ export interface components {
             };
         };
         /**
+         * @description The login is over a rate limit: per client IP, or per account (counting
+         *     failed logins). Limits slow requests down and clear with
+         *     time; no account is locked.
+         */
+        TooManyRequests: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "Retry-After": components["headers"]["RetryAfter"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": "too_many_requests"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
          * @description The request carries no valid session: no session cookie, or one whose
          *     session is unknown, ended or expired. No WWW-Authenticate header is sent:
          *     cookie sessions have no registered scheme.
@@ -847,6 +871,8 @@ export interface components {
         ExpireSessionCookie: string;
         /** @description Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid. */
         RequestId: string;
+        /** @description Whole seconds, rounded up, until the limit allows another request. */
+        RetryAfter: number;
         /**
          * @description The new session's cookie: __Host-session=<token>; Path=/; Max-Age=<the
          *     absolute session limit in seconds>; HttpOnly; Secure; SameSite=Lax. The
@@ -1157,6 +1183,7 @@ export interface operations {
             403: components["responses"]["CrossOriginRequest"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            429: components["responses"]["TooManyRequests"];
             500: components["responses"]["UnexpectedError"];
         };
     };

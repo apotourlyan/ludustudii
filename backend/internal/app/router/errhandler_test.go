@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit"
 	"github.com/apotourlyan/ludustudii/internal/kit/erresp"
@@ -123,6 +124,20 @@ func TestHTTPErrorHandler(t *testing.T) {
 			testkit.AssertJSON(t, rec.Body.Bytes(), tt.wantJSON)
 		})
 	}
+
+	t.Run("status error headers are sent", func(t *testing.T) {
+		t.Parallel()
+
+		for _, method := range []string{http.MethodGet, http.MethodHead} {
+			req := httptest.NewRequestWithContext(t.Context(), method, "/api/test", nil)
+			rec := httptest.NewRecorder()
+			httpErrorHandler(slog.New(slog.DiscardHandler), httpkit.NewResponseWriter(rec, req), req, httpkit.TooManyRequests(1500*time.Millisecond))
+
+			if rec.Code != http.StatusTooManyRequests || rec.Header().Get("Retry-After") != "2" {
+				t.Errorf("%s: got %d with Retry-After %q, want 429 with 2", method, rec.Code, rec.Header().Get("Retry-After"))
+			}
+		}
+	})
 
 	t.Run("committed response is left alone", func(t *testing.T) {
 		t.Parallel()

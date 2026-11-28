@@ -29,12 +29,15 @@ func Adapt(h HandlerFunc, onError ErrorHandler) http.Handler {
 }
 
 // StatusError carries a public HTTP status and response body, plus an optional
-// underlying cause that is logged without exposing it to clients.
-// Use the constructors or shared sentinels to build status errors.
+// underlying cause that is logged without exposing it to clients. Header holds
+// response headers the error handler sends with it, such as Retry-After.
+// Use the constructors or shared sentinels to build status errors, and never
+// change a sentinel's Header.
 type StatusError struct {
 	Code     int
 	Err      error
 	Response erresp.ErrorResponse
+	Header   http.Header
 }
 
 func (e *StatusError) Error() string {

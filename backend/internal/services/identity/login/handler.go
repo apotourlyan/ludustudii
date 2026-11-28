@@ -45,47 +45,71 @@ type sessionReplacer interface {
 	Replace(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (sessions.Session, error)
 }
 
+type limiter interface {
+	Allow(key string, now time.Time) (bool, time.Duration)
+}
+
+type failureLimiter interface {
+	Check(key string, now time.Time) (bool, time.Duration)
+	Take(key string, now time.Time)
+}
+
 // Handler serves the POST /api/sessions endpoint.
 type Handler struct {
-	store     userStore
-	hasher    hasher
-	dummyHash string
-	sessions  sessionReplacer
-	bind      func(r *http.Request, i any) error
-	validate  func(req request) error
+	store        userStore
+	hasher       hasher
+	dummyHash    string
+	sessions     sessionReplacer
+	ipLimit      limiter
+	accountLimit failureLimiter
+	now          func() time.Time
+	bind         func(r *http.Request, i any) error
+	validate     func(req request) error
 }
 
 // Deps are what a Handler uses. DummyHash is a hash of a password nobody
 // knows, made with the hasher's parameters, which a login for an unknown
 // email verifies so that it takes as long as one for a known email.
 type Deps struct {
-	Store     userStore
-	Hasher    hasher
-	DummyHash string
-	Sessions  sessionReplacer
+	Store        userStore
+	Hasher       hasher
+	DummyHash    string
+	Sessions     sessionReplacer
+	IPLimit      limiter
+	AccountLimit failureLimiter
 }
 
 // NewHandler returns a Handler that uses d.
 func NewHandler(d Deps) *Handler {
 	return &Handler{
-		store:     d.Store,
-		hasher:    d.Hasher,
-		dummyHash: d.DummyHash,
-		sessions:  d.Sessions,
-		bind:      bind,
-		validate:  validate,
+		store:        d.Store,
+		hasher:       d.Hasher,
+		dummyHash:    d.DummyHash,
+		sessions:     d.Sessions,
+		ipLimit:      d.IPLimit,
+		accountLimit: d.AccountLimit,
+		now:          time.Now,
+		bind:         bind,
+		validate:     validate,
 	}
 }
 
-// Handle logs a user in. It canonicalizes the JSON email and password and checks only that both are present and not too long
+// Handle logs a user in. Past the per-IP limit, or the per-account limit on
+// failed logins, it responds 429 with Retry-After. It canonicalizes the JSON
+// email and password and checks only that both are present and not too long
 // (400). An unknown email and a wrong password both get 401
 // invalid_credentials, and both verify a hash, the unknown email against
-// the dummy hash. On success it
+// the dummy hash; either counts as a failure for the account. On success it
 // rehashes a password whose hash has outdated parameters, replaces the
 // session the request carried with a new one and responds 201 with the
 // session, its URL in Location and the session cookie.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+	now := h.now()
+
+	if ok, wait := h.ipLimit.Allow(httpkit.ClientIP(r), now); !ok {
+		return httpkit.TooManyRequests(wait)
+	}
 
 	var req request
 	if err := h.bind(r, &req); err != nil {
@@ -96,6 +120,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	if err := h.validate(req); err != nil {
 		return httpkit.Validation(err)
+	}
+
+	if ok, wait := h.accountLimit.Check(req.Email, now); !ok {
+		return httpkit.TooManyRequests(wait)
 	}
 
 	u, err := h.store.FindByEmail(ctx, req.Email)
@@ -112,6 +140,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if !known || !ok {
+		h.accountLimit.Take(req.Email, now)
 		return httpkit.ErrInvalidCredentials
 	}
 

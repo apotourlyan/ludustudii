@@ -15,6 +15,7 @@ ErrorResponse:
         - method_not_allowed
         - payload_too_large
         - unsupported_media_type
+        - too_many_requests
         - unexpected_error
     errors:
       type: array

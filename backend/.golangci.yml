@@ -154,13 +154,18 @@ linters:
           deny:
             - pkg: github.com/apotourlyan/ludustudii/internal/services/lcards
               desc: services don't import each other
-        # golang.org/x/crypto, which ADR 0046 approves, stays behind one kit
-        # package.
+        # The two golang.org/x modules ADRs 0046 and 0048 approve stay behind
+        # one kit package each.
         crypto:
           files: ["$all", "!**/internal/kit/password/*.go"]
           deny:
             - pkg: golang.org/x/crypto
               desc: only kit/password uses golang.org/x/crypto (argon2id, ADR 0046)
+        rate:
+          files: ["$all", "!**/internal/kit/ratelimit/*.go"]
+          deny:
+            - pkg: golang.org/x/time
+              desc: only kit/ratelimit uses golang.org/x/time (rate limits, ADR 0048)
         testkit:
           files: ["!$test"]
           deny:

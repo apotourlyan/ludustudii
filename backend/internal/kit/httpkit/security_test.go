@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/apotourlyan/ludustudii/internal/kit/erresp"
 )
 
 // Route middleware runs after the mux matched, so the request a middleware
@@ -49,6 +52,49 @@ func TestAPI_RouteMiddleware(t *testing.T) {
 	api.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/nope", nil))
 	if rec.Code != http.StatusNotFound || len(order) != 0 {
 		t.Errorf("unmatched request: status %d, middleware %v", rec.Code, order)
+	}
+}
+
+func TestTooManyRequests(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		retryAfter time.Duration
+		want       string
+	}{
+		{0, "1"},
+		{time.Millisecond, "1"},
+		{time.Second, "1"},
+		{time.Second + time.Nanosecond, "2"},
+		{3333 * time.Millisecond, "4"},
+		{15 * time.Minute, "900"},
+	} {
+		err := TooManyRequests(tt.retryAfter)
+		se, ok := errors.AsType[*StatusError](err)
+		if !ok || se.Code != http.StatusTooManyRequests || se.Response.Code != erresp.CodeTooManyRequests {
+			t.Fatalf("%v: got %#v", tt.retryAfter, err)
+		}
+		if got := se.Header.Get("Retry-After"); got != tt.want {
+			t.Errorf("%v: Retry-After %q, want %q", tt.retryAfter, got, tt.want)
+		}
+	}
+}
+
+func TestClientIP(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct{ remote, want string }{
+		{"192.0.2.1:1234", "192.0.2.1"},
+		{"[2001:db8::1]:443", "2001:db8::1"},
+		{"192.0.2.1", "192.0.2.1"},
+		{"", ""},
+	} {
+		r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+		r.RemoteAddr = tt.remote
+		r.Header.Set("X-Forwarded-For", "203.0.113.9")
+		if got := ClientIP(r); got != tt.want {
+			t.Errorf("ClientIP(%q): got %q, want %q", tt.remote, got, tt.want)
+		}
 	}
 }
 

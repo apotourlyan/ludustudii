@@ -219,7 +219,8 @@ Unauthenticated:
 InvalidCredentials:
   description: |
     The email has no account or the password is wrong; the response doesn't
-    say which. No WWW-Authenticate header is sent.
+    say which. Counts as a failed login for the email's per-account limit.
+    No WWW-Authenticate header is sent.
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
@@ -247,3 +248,21 @@ CrossOriginRequest:
         $ref: '../schemas/errors.yml#/ErrorResponse'
       example:
         code: cross_origin_request
+TooManyRequests:
+  description: |
+    The login is over a rate limit: per client IP, or per account (counting
+    failed logins). Limits slow requests down and clear with
+    time; no account is locked.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+    Retry-After:
+      $ref: '../headers.yml#/RetryAfter'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: too_many_requests

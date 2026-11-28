@@ -62,10 +62,32 @@ func (m *mockSessions) Replace(ctx context.Context, w http.ResponseWriter, r *ht
 	return m.replaceFn(ctx, w, r, userID)
 }
 
+type mockLimiter struct {
+	allowFn func(key string, now time.Time) (bool, time.Duration)
+}
+
+func (m *mockLimiter) Allow(key string, now time.Time) (bool, time.Duration) {
+	return m.allowFn(key, now)
+}
+
+// accountLimiter records the failures taken from it.
+type accountLimiter struct {
+	checkFn func(key string, now time.Time) (bool, time.Duration)
+	taken   []string
+}
+
+func (m *accountLimiter) Check(key string, now time.Time) (bool, time.Duration) {
+	return m.checkFn(key, now)
+}
+
+func (m *accountLimiter) Take(key string, _ time.Time) { m.taken = append(m.taken, key) }
+
 type mocks struct {
 	store    *mockStore
 	hasher   *mockHasher
 	sessions *mockSessions
+	ipLimit  *mockLimiter
+	account  *accountLimiter
 	verified []string // the hashes Verify was given
 }
 
@@ -96,6 +118,8 @@ func testHandler(t *testing.T, setup func(*Handler, *mocks)) (*Handler, *mocks) 
 			w.Header().Set("Set-Cookie", "__Host-session=token")
 			return sessions.Session{ID: sessionID, ExpiresAt: start.Add(7 * 24 * time.Hour)}, nil
 		}},
+		ipLimit: &mockLimiter{allowFn: func(string, time.Time) (bool, time.Duration) { return true, 0 }},
+		account: &accountLimiter{checkFn: func(string, time.Time) (bool, time.Duration) { return true, 0 }},
 	}
 	m.hasher = &mockHasher{
 		hashFn: func(context.Context, string) (string, error) {
@@ -108,10 +132,13 @@ func testHandler(t *testing.T, setup func(*Handler, *mocks)) (*Handler, *mocks) 
 		},
 	}
 	h := &Handler{
-		store:     m.store,
-		hasher:    m.hasher,
-		dummyHash: dummyHash,
-		sessions:  m.sessions,
+		store:        m.store,
+		hasher:       m.hasher,
+		dummyHash:    dummyHash,
+		sessions:     m.sessions,
+		ipLimit:      m.ipLimit,
+		accountLimit: m.account,
+		now:          func() time.Time { return start },
 		bind: func(_ *http.Request, i any) error {
 			*i.(*request) = request{Email: "a@example.com", Password: "pw"}
 			return nil
@@ -136,7 +163,20 @@ func TestHandler_Failures(t *testing.T) {
 		wantCode    int
 		wantErrCode string
 		wantVerify  []string // the hashes verified, nil for none
+		wantTaken   int      // failures counted for the account
 	}{
+		{
+			name: "over the IP limit",
+			setup: func(h *Handler, m *mocks) {
+				m.ipLimit.allowFn = func(string, time.Time) (bool, time.Duration) { return false, 6 * time.Second }
+				h.bind = func(*http.Request, any) error {
+					t.Fatal("bound a request over the limit")
+					return nil
+				}
+			},
+			wantCode:    http.StatusTooManyRequests,
+			wantErrCode: erresp.CodeTooManyRequests,
+		},
 		{
 			name: "binding error",
 			setup: func(h *Handler, _ *mocks) {
@@ -154,6 +194,18 @@ func TestHandler_Failures(t *testing.T) {
 			wantErrCode: erresp.CodeValidation,
 		},
 		{
+			name: "over the account limit, checked before verifying",
+			setup: func(_ *Handler, m *mocks) {
+				m.account.checkFn = func(string, time.Time) (bool, time.Duration) { return false, 15 * time.Minute }
+				m.store.findFn = func(context.Context, string) (user, error) {
+					t.Fatal("looked up a user over the account limit")
+					return user{}, nil
+				}
+			},
+			wantCode:    http.StatusTooManyRequests,
+			wantErrCode: erresp.CodeTooManyRequests,
+		},
+		{
 			name: "store error",
 			setup: func(_ *Handler, m *mocks) {
 				m.store.findFn = func(context.Context, string) (user, error) { return user{}, errors.New("") }
@@ -166,6 +218,7 @@ func TestHandler_Failures(t *testing.T) {
 			wantCode:    http.StatusUnauthorized,
 			wantErrCode: erresp.CodeInvalidCredentials,
 			wantVerify:  []string{dummyHash},
+			wantTaken:   1,
 		},
 		{
 			name: "unknown email fails even if the dummy hash matched",
@@ -179,6 +232,7 @@ func TestHandler_Failures(t *testing.T) {
 			wantCode:    http.StatusUnauthorized,
 			wantErrCode: erresp.CodeInvalidCredentials,
 			wantVerify:  []string{dummyHash},
+			wantTaken:   1,
 		},
 		{
 			name: "wrong password",
@@ -191,6 +245,7 @@ func TestHandler_Failures(t *testing.T) {
 			wantCode:    http.StatusUnauthorized,
 			wantErrCode: erresp.CodeInvalidCredentials,
 			wantVerify:  []string{userHash},
+			wantTaken:   1,
 		},
 		{
 			name: "verify error",
@@ -239,6 +294,9 @@ func TestHandler_Failures(t *testing.T) {
 			if strings.Join(m.verified, ",") != strings.Join(tt.wantVerify, ",") {
 				t.Errorf("verified hashes: got %v, want %v", m.verified, tt.wantVerify)
 			}
+			if len(m.account.taken) != tt.wantTaken {
+				t.Errorf("failures counted: got %v, want %d", m.account.taken, tt.wantTaken)
+			}
 		})
 	}
 }
@@ -265,7 +323,7 @@ func TestHandler_Success(t *testing.T) {
 	t.Parallel()
 
 	var replacedFor string
-	h, _ := testHandler(t, func(_ *Handler, m *mocks) {
+	h, m := testHandler(t, func(_ *Handler, m *mocks) {
 		next := m.sessions.replaceFn
 		m.sessions.replaceFn = func(ctx context.Context, w http.ResponseWriter, r *http.Request, id string) (sessions.Session, error) {
 			replacedFor = id
@@ -284,6 +342,9 @@ func TestHandler_Success(t *testing.T) {
 	}
 	if replacedFor != userID {
 		t.Errorf("session replaced for %q, want %q", replacedFor, userID)
+	}
+	if len(m.account.taken) != 0 {
+		t.Errorf("a success counted as a failure: %v", m.account.taken)
 	}
 	var got map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
@@ -357,12 +418,17 @@ func TestHandler_Rehash(t *testing.T) {
 }
 
 // NewHandler wires the real binding, canonicalization and validation: the
-// lookup takes the canonical email, while the password is verified as typed
-// apart from NFC.
+// IP limit takes the client IP, and the account limit, the lookup and the
+// failure count take the canonical email, while the password is verified
+// as typed apart from NFC.
 func TestHandler_Wiring(t *testing.T) {
 	t.Parallel()
 
-	var foundEmail, verified string
+	var ipKey, checkKey, foundEmail, verified string
+	account := &accountLimiter{checkFn: func(key string, _ time.Time) (bool, time.Duration) {
+		checkKey = key
+		return true, 0
+	}}
 	h := NewHandler(Deps{
 		Store: &mockStore{findFn: func(_ context.Context, email string) (user, error) {
 			foundEmail = email
@@ -373,6 +439,11 @@ func TestHandler_Wiring(t *testing.T) {
 			return false, false, nil
 		}},
 		DummyHash: dummyHash,
+		IPLimit: &mockLimiter{allowFn: func(key string, _ time.Time) (bool, time.Duration) {
+			ipKey = key
+			return true, 0
+		}},
+		AccountLimit: account,
 	})
 
 	body, _ := json.Marshal(request{Email: "  René@Example.COM ", Password: " Café "})
@@ -381,8 +452,11 @@ func TestHandler_Wiring(t *testing.T) {
 		t.Fatalf("got %v, want ErrInvalidCredentials", err)
 	}
 	const email = "rené@example.com"
-	if foundEmail != email {
-		t.Errorf("lookup: got %q, want %q", foundEmail, email)
+	if ipKey != "192.0.2.7" || checkKey != email || foundEmail != email {
+		t.Errorf("keys: IP %q, account %q, lookup %q", ipKey, checkKey, foundEmail)
+	}
+	if len(account.taken) != 1 || account.taken[0] != email {
+		t.Errorf("failures counted: %v", account.taken)
 	}
 	if verified != " Café " {
 		t.Errorf("verified password %q, want NFC and untrimmed", verified)

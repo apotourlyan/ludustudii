@@ -121,5 +121,7 @@ func identityConfig(ev *env.Vars) identity.Config {
 			TouchInterval:   ev.AuthSessionTouchInterval,
 		},
 		SessionCleanupInterval: ev.AuthSessionCleanupInterval,
+		LoginIPLimit:           ev.AuthLoginIPLimit,
+		LoginAccountLimit:      ev.AuthLoginAccountLimit,
 	}
 }

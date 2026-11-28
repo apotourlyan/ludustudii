@@ -13,6 +13,7 @@ const (
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
 	CodePayloadTooLarge      = "payload_too_large"
+	CodeTooManyRequests      = "too_many_requests"
 	CodeUnauthenticated      = "unauthenticated"
 	CodeUnexpected           = "unexpected_error"
 	CodeValidation           = "validation_error"
@@ -75,6 +76,13 @@ func NotFound() ErrorResponse {
 func PayloadTooLarge() ErrorResponse {
 	return ErrorResponse{
 		Code: CodePayloadTooLarge,
+	}
+}
+
+// TooManyRequests returns the response for a request over a rate limit.
+func TooManyRequests() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeTooManyRequests,
 	}
 }
 

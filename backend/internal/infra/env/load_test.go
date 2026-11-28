@@ -11,6 +11,7 @@ import (
 
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 )
 
 // setRequired sets the vars Load needs and clears the vars under test so the
@@ -323,6 +324,7 @@ var authNames = []string{
 	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength, EnvAuthHashConcurrency,
 	EnvAuthSessionIdleTimeout, EnvAuthSessionAbsoluteTimeout,
 	EnvAuthSessionTouchInterval, EnvAuthSessionCleanupInterval,
+	EnvAuthLoginIPLimit, EnvAuthLoginAccountLimit,
 }
 
 // clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
@@ -360,6 +362,14 @@ func TestLoad_AuthDefaults(t *testing.T) {
 			t.Errorf("%s: got %v, want %v", name, tt.got, tt.want)
 		}
 	}
+	for name, tt := range map[string]struct{ got, want ratelimit.Limit }{
+		"login IP":      {v.AuthLoginIPLimit, ratelimit.Limit{Count: 10, Per: time.Minute}},
+		"login account": {v.AuthLoginAccountLimit, ratelimit.Limit{Count: 5, Per: 15 * time.Minute}},
+	} {
+		if tt.got != tt.want {
+			t.Errorf("%s limit: got %v, want %v", name, tt.got, tt.want)
+		}
+	}
 }
 
 func TestLoad_Auth(t *testing.T) {
@@ -376,6 +386,8 @@ func TestLoad_Auth(t *testing.T) {
 		EnvAuthSessionAbsoluteTimeout: "2h",
 		EnvAuthSessionTouchInterval:   "5s",
 		EnvAuthSessionCleanupInterval: "10m",
+		EnvAuthLoginIPLimit:           "1000/1m",
+		EnvAuthLoginAccountLimit:      "100/1m",
 	} {
 		t.Setenv(name, value)
 	}
@@ -391,12 +403,16 @@ func TestLoad_Auth(t *testing.T) {
 		v.AuthSessionTouchInterval != 5*time.Second || v.AuthSessionCleanupInterval != 10*time.Minute {
 		t.Errorf("sessions: got %+v", v)
 	}
+	if v.AuthLoginIPLimit != (ratelimit.Limit{Count: 1000, Per: time.Minute}) ||
+		v.AuthLoginAccountLimit != (ratelimit.Limit{Count: 100, Per: time.Minute}) {
+		t.Errorf("limits: got %v, %v", v.AuthLoginIPLimit, v.AuthLoginAccountLimit)
+	}
 
 	attrs := map[string]string{}
 	for _, a := range v.LogAttrs() {
 		attrs[a.Key] = a.Value.String()
 	}
-	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthSessionIdleTimeout: "1h0m0s"} {
+	for name, want := range map[string]string{EnvAuthArgon2Memory: "64", EnvAuthLoginIPLimit: "1000/1m0s", EnvAuthSessionIdleTimeout: "1h0m0s"} {
 		if attrs[name] != want {
 			t.Errorf("log attr %s: got %q, want %q", name, attrs[name], want)
 		}
@@ -420,6 +436,8 @@ func TestLoad_AuthErrors(t *testing.T) {
 		{EnvAuthSessionAbsoluteTimeout, "0s", EnvAuthSessionAbsoluteTimeout},
 		{EnvAuthSessionTouchInterval, "-1m", EnvAuthSessionTouchInterval},
 		{EnvAuthSessionCleanupInterval, "0", EnvAuthSessionCleanupInterval},
+		{EnvAuthLoginIPLimit, "10", EnvAuthLoginIPLimit},
+		{EnvAuthLoginAccountLimit, "0/15m", EnvAuthLoginAccountLimit},
 	} {
 		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
 			setRequired(t)

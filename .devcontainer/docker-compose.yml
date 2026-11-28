@@ -18,10 +18,12 @@ services:
       - APP_PORT=8080
       - DB_CONNECTION=postgres://ludus:ludus@db:5432/ludustudii_db?sslmode=disable
       - DB_TEST_CONNECTION=postgres://tester:tester@db_test:5432/ludustudii_db_test?sslmode=disable
-      # Cheap password hashing for development (ADR 0046); the defaults are
-      # production values.
+      # Cheap password hashing and generous login limits
+      # for development (ADR 0046, 0048); the defaults are production values.
       - AUTH_ARGON2_MEMORY=64
       - AUTH_ARGON2_ITERATIONS=1
+      - AUTH_LOGIN_IP_LIMIT=10000/1m
+      - AUTH_LOGIN_ACCOUNT_LIMIT=10000/1m
       - CLAUDE_CONFIG_DIR=/root/.claude
       # Where Playwright installs its browser, on a volume so a rebuild keeps it.
       - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright

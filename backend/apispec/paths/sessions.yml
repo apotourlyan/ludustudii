@@ -9,8 +9,10 @@ sessions:
     description: |
       Creates a session for the email and password and sets its cookie.
       The session the request carried, if any, is deleted, so a token
-      planted before the login is worthless after it. An unknown email and a
-      wrong password get the same 401 invalid_credentials.
+      planted before the login is worthless after it. Logins are limited per
+      client IP, and failed logins per account; a limited login is refused
+      before its password is checked. An unknown email and a wrong password
+      get the same 401 invalid_credentials.
     requestBody:
       $ref: '../components/requestBodies.yml#/LoginRequest'
     responses:
@@ -43,6 +45,8 @@ sessions:
         $ref: '../components/responses/errors.yml#/PayloadTooLarge'
       '415':
         $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
+      '429':
+        $ref: '../components/responses/errors.yml#/TooManyRequests'
       '500':
         $ref: '../components/responses/errors.yml#/UnexpectedError'
 current:

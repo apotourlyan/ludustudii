@@ -20,8 +20,10 @@ info:
 
     Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
     another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
-    cross_origin_request. No /api response may be cached: every one
-    carries Cache-Control: no-store.
+    cross_origin_request. Login is rate limited and
+    answers 429 with code too_many_requests and Retry-After when over a
+    limit. No /api response may be cached: every one carries
+    Cache-Control: no-store.
 
     Requests with JSON bodies must use Content-Type: application/json
     (type and subtype are case-insensitive; media-type parameters are accepted).
@@ -99,6 +101,8 @@ components:
       $ref: './components/headers.yml#/SetSessionCookie'
     ExpireSessionCookie:
       $ref: './components/headers.yml#/ExpireSessionCookie'
+    RetryAfter:
+      $ref: './components/headers.yml#/RetryAfter'
   requestBodies:
     LearningCardInput:
       $ref: './components/requestBodies.yml#/LearningCardInput'
@@ -164,6 +168,8 @@ components:
       $ref: './components/responses/errors.yml#/InvalidCredentials'
     CrossOriginRequest:
       $ref: './components/responses/errors.yml#/CrossOriginRequest'
+    TooManyRequests:
+      $ref: './components/responses/errors.yml#/TooManyRequests'
     NotFound:
       $ref: './components/responses/errors.yml#/NotFound'
     PayloadTooLarge:

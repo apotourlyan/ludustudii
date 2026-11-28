@@ -10,13 +10,16 @@ import (
 	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
 )
 
 // IdentityConfig returns the identity configuration for tests: hashing
-// parameters cheap enough to keep tests fast, and the production session
-// times.
+// parameters cheap enough to keep tests fast, the production session times,
+// and limits so generous that no test reaches them. Tests of a limit set a
+// low one on the returned value.
 func IdentityConfig() domain.Config {
+	generous := ratelimit.Limit{Count: 1_000_000, Per: time.Second}
 	return domain.Config{
 		Password:        password.Params{Memory: 64, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32},
 		HashConcurrency: 8,
@@ -26,6 +29,8 @@ func IdentityConfig() domain.Config {
 			TouchInterval:   time.Minute,
 		},
 		SessionCleanupInterval: time.Hour,
+		LoginIPLimit:           generous,
+		LoginAccountLimit:      generous,
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 )
 
 func TestConfig_Validate(t *testing.T) {
@@ -18,6 +19,8 @@ func TestConfig_Validate(t *testing.T) {
 		HashConcurrency:        1,
 		Session:                policy,
 		SessionCleanupInterval: time.Hour,
+		LoginIPLimit:           ratelimit.Limit{Count: 10, Per: time.Minute},
+		LoginAccountLimit:      ratelimit.Limit{Count: 5, Per: 15 * time.Minute},
 	}
 	if err := valid.Validate(); err != nil {
 		t.Fatalf("valid config: %v", err)
@@ -27,7 +30,7 @@ func TestConfig_Validate(t *testing.T) {
 	if err == nil {
 		t.Fatal("zero config: want an error")
 	}
-	for _, want := range []string{"parallelism", "idle timeout", "hash concurrency", "cleanup interval"} {
+	for _, want := range []string{"parallelism", "idle timeout", "hash concurrency", "cleanup interval", "login IP limit", "login account limit"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("zero config error does not mention %q: %v", want, err)
 		}

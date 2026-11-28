@@ -13,6 +13,7 @@ import (
 
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 )
 
 // Names of the environment variables read by Load.
@@ -42,6 +43,8 @@ const (
 	EnvAuthSessionAbsoluteTimeout = "AUTH_SESSION_ABSOLUTE_TIMEOUT"
 	EnvAuthSessionTouchInterval   = "AUTH_SESSION_TOUCH_INTERVAL"
 	EnvAuthSessionCleanupInterval = "AUTH_SESSION_CLEANUP_INTERVAL"
+	EnvAuthLoginIPLimit           = "AUTH_LOGIN_IP_LIMIT"
+	EnvAuthLoginAccountLimit      = "AUTH_LOGIN_ACCOUNT_LIMIT"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -75,6 +78,9 @@ const (
 var (
 	// DefaultAuthHashConcurrency is the number of CPUs, read at startup.
 	DefaultAuthHashConcurrency = runtime.NumCPU()
+	DefaultAuthLoginIPLimit    = ratelimit.Limit{Count: 10, Per: time.Minute}
+	// DefaultAuthLoginAccountLimit counts failed logins only.
+	DefaultAuthLoginAccountLimit = ratelimit.Limit{Count: 5, Per: 15 * time.Minute}
 )
 
 // Vars holds the configuration read by Load. Field names mirror the Env
@@ -105,6 +111,8 @@ type Vars struct {
 	AuthSessionAbsoluteTimeout time.Duration
 	AuthSessionTouchInterval   time.Duration
 	AuthSessionCleanupInterval time.Duration
+	AuthLoginIPLimit           ratelimit.Limit
+	AuthLoginAccountLimit      ratelimit.Limit
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -126,8 +134,9 @@ func (v *Vars) PasswordParams() password.Params {
 // Durations use time.ParseDuration syntax, booleans use
 // strconv.ParseBool syntax (such as "true" or "0"), LOG_LEVEL uses slog.Level
 // names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". The
-// AUTH_ durations must be positive, AUTH_HASH_CONCURRENCY at least 1 and the
-// argon2id parameters within the bounds of password.Params. Load reports every invalid or
+// AUTH_ durations must be positive, AUTH_HASH_CONCURRENCY at least 1, the
+// argon2id parameters within the bounds of password.Params, and the limits
+// "<count>/<duration>", such as "10/1m". Load reports every invalid or
 // missing variable, joined into one error.
 func Load() (*Vars, error) {
 	var errs []error
@@ -217,6 +226,7 @@ type authVars struct {
 	argon2                         password.Params
 	hashConcurrency                int
 	idle, absolute, touch, cleanup time.Duration
+	loginIP, loginAccount          ratelimit.Limit
 }
 
 func loadAuth() (authVars, error) {
@@ -259,6 +269,11 @@ func loadAuth() (authVars, error) {
 	a.cleanup, err = getEnvPositiveDuration(EnvAuthSessionCleanupInterval, DefaultAuthSessionCleanupInterval)
 	errs = append(errs, err)
 
+	a.loginIP, err = getEnvLimit(EnvAuthLoginIPLimit, DefaultAuthLoginIPLimit)
+	errs = append(errs, err)
+	a.loginAccount, err = getEnvLimit(EnvAuthLoginAccountLimit, DefaultAuthLoginAccountLimit)
+	errs = append(errs, err)
+
 	return a, errors.Join(errs...)
 }
 
@@ -273,6 +288,8 @@ func (a authVars) into(v *Vars) {
 	v.AuthSessionAbsoluteTimeout = a.absolute
 	v.AuthSessionTouchInterval = a.touch
 	v.AuthSessionCleanupInterval = a.cleanup
+	v.AuthLoginIPLimit = a.loginIP
+	v.AuthLoginAccountLimit = a.loginAccount
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -314,6 +331,8 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Duration(EnvAuthSessionAbsoluteTimeout, v.AuthSessionAbsoluteTimeout),
 		slog.Duration(EnvAuthSessionTouchInterval, v.AuthSessionTouchInterval),
 		slog.Duration(EnvAuthSessionCleanupInterval, v.AuthSessionCleanupInterval),
+		slog.String(EnvAuthLoginIPLimit, v.AuthLoginIPLimit.String()),
+		slog.String(EnvAuthLoginAccountLimit, v.AuthLoginAccountLimit.String()),
 	}
 }
 
@@ -359,6 +378,18 @@ func getEnvPositiveDuration(key string, defaultValue time.Duration) (time.Durati
 		return 0, fmt.Errorf("parse env %s: must be positive", key)
 	}
 	return value, err
+}
+
+func getEnvLimit(key string, defaultValue ratelimit.Limit) (ratelimit.Limit, error) {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+	value, err := ratelimit.ParseLimit(valueStr)
+	if err != nil {
+		return ratelimit.Limit{}, fmt.Errorf("parse env %s: %w", key, err)
+	}
+	return value, nil
 }
 
 func getEnvDuration(key string, defaultValue time.Duration) (time.Duration, error) {

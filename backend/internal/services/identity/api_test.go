@@ -18,6 +18,7 @@ import (
 
 	"github.com/apotourlyan/ludustudii/internal/app/api"
 	"github.com/apotourlyan/ludustudii/internal/app/router"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 	"github.com/apotourlyan/ludustudii/internal/services/identity"
 	"github.com/apotourlyan/ludustudii/internal/testkit"
 )
@@ -29,11 +30,16 @@ func TestMain(m *testing.M) {
 const cookieName = "__Host-session"
 
 // newServer serves the API surface alone on a new database, with the test
-// identity configuration.
-func newServer(t *testing.T) (*httptest.Server, *sql.DB) {
+// identity configuration changed by configure (when not nil).
+func newServer(t *testing.T, configure func(*identity.Config)) (*httptest.Server, *sql.DB) {
 	t.Helper()
 	db := testkit.NewDB(t)
-	return newServerOn(t, db, testkit.IdentityConfig()), db
+	cfg := testkit.IdentityConfig()
+	if configure != nil {
+		configure(&cfg)
+	}
+	srv := newServerOn(t, db, cfg)
+	return srv, db
 }
 
 func newServerOn(t *testing.T, db *sql.DB, cfg identity.Config) *httptest.Server {
@@ -108,7 +114,7 @@ func assertCode(t *testing.T, resp testkit.Response, status int, body string) {
 
 func TestLifecycle(t *testing.T) {
 	t.Parallel()
-	srv, db := newServer(t)
+	srv, db := newServer(t, nil)
 
 	resp := register(t, srv, credentials("  Armen@Example.COM ", "correct horse battery staple"))
 	testkit.AssertStatus(t, resp, http.StatusCreated)
@@ -152,7 +158,7 @@ func TestLifecycle(t *testing.T) {
 
 func TestMe(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	u := testkit.NewUser(t, srv)
 
 	for _, tt := range []struct {
@@ -181,7 +187,7 @@ func TestMe(t *testing.T) {
 
 func TestRegister_FieldErrors(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	const pw = "correct horse battery staple"
 
 	for _, tt := range []struct {
@@ -234,7 +240,7 @@ func TestRegister_FieldErrors(t *testing.T) {
 // canonical.
 func TestRegister_Taken(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 
 	testkit.AssertStatus(t, register(t, srv, credentials("rené@example.com", "correct horse battery staple")), http.StatusCreated)
 	for _, email := range []string{"rené@example.com", " RENÉ@Example.com", "René@EXAMPLE.COM"} {
@@ -245,7 +251,7 @@ func TestRegister_Taken(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	u := testkit.NewUser(t, srv)
 
 	before := time.Now()
@@ -279,7 +285,7 @@ func TestLogin(t *testing.T) {
 // before it is worthless after it.
 func TestLogin_ReplacesCarriedSession(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	u := testkit.NewUser(t, srv)
 
 	resp := login(t, srv, credentials(u.Email, u.Password), u.Session)
@@ -298,7 +304,7 @@ func TestLogin_ReplacesCarriedSession(t *testing.T) {
 
 func TestLogin_Failures(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	u := testkit.NewUser(t, srv)
 
 	unknown := login(t, srv, credentials("nobody@example.com", u.Password))
@@ -359,6 +365,53 @@ func TestLogin_Rehash(t *testing.T) {
 	testkit.AssertStatus(t, login(t, newSrv, credentials(u.Email, u.Password)), http.StatusCreated)
 }
 
+func assertTooManyRequests(t *testing.T, resp testkit.Response, maxRetry int) {
+	t.Helper()
+	assertCode(t, resp, http.StatusTooManyRequests, `{"code":"too_many_requests"}`)
+	retry, err := strconv.Atoi(resp.Header.Get("Retry-After"))
+	if err != nil || retry < 1 || retry > maxRetry {
+		t.Errorf("Retry-After: got %q, want 1 to %d seconds", resp.Header.Get("Retry-After"), maxRetry)
+	}
+}
+
+func TestLimits(t *testing.T) {
+	t.Parallel()
+
+	t.Run("login per IP", func(t *testing.T) {
+		t.Parallel()
+		srv, _ := newServer(t, func(c *identity.Config) { c.LoginIPLimit = ratelimit.Limit{Count: 2, Per: time.Minute} })
+		u := testkit.NewUser(t, srv)
+		testkit.AssertStatus(t, login(t, srv, credentials(u.Email, u.Password)), http.StatusCreated)
+		testkit.AssertStatus(t, login(t, srv, credentials("other@example.com", u.Password)), http.StatusUnauthorized)
+		// Any account, even with the right password.
+		assertTooManyRequests(t, login(t, srv, credentials(u.Email, u.Password)), 30)
+	})
+
+	t.Run("failed logins per account", func(t *testing.T) {
+		t.Parallel()
+		srv, _ := newServer(t, func(c *identity.Config) { c.LoginAccountLimit = ratelimit.Limit{Count: 2, Per: 15 * time.Minute} })
+		u := testkit.NewUser(t, srv)
+		other := testkit.NewUser(t, srv)
+
+		// Successful logins don't count.
+		for range 3 {
+			testkit.AssertStatus(t, login(t, srv, credentials(u.Email, u.Password)), http.StatusCreated)
+		}
+		for range 2 {
+			testkit.AssertStatus(t, login(t, srv, credentials(u.Email, "wrong password")), http.StatusUnauthorized)
+		}
+		// Refused before the password is checked, so even the right one.
+		assertTooManyRequests(t, login(t, srv, credentials(" "+strings.ToUpper(u.Email), u.Password)), 450)
+		// Other accounts are unaffected.
+		testkit.AssertStatus(t, login(t, srv, credentials(other.Email, other.Password)), http.StatusCreated)
+		// Unknown emails are counted as accounts of their own.
+		for range 2 {
+			testkit.AssertStatus(t, login(t, srv, credentials("nobody@example.com", "x")), http.StatusUnauthorized)
+		}
+		assertTooManyRequests(t, login(t, srv, credentials("nobody@example.com", "x")), 450)
+	})
+}
+
 // Sessions expire by the stored expiry, and a use after the touch interval
 // records itself and extends the expiry. Times are set in the database; the
 // unit tests in package sessions drive the same rules with a fake clock.
@@ -367,7 +420,7 @@ func TestSessionExpiry(t *testing.T) {
 
 	t.Run("an expired session is anonymous", func(t *testing.T) {
 		t.Parallel()
-		srv, db := newServer(t)
+		srv, db := newServer(t, nil)
 		u := testkit.NewUser(t, srv)
 		if _, err := db.ExecContext(t.Context(),
 			`UPDATE sessions SET last_seen_at = now() - interval '8 days', expires_at = now() - interval '1 day' WHERE user_id = $1`, u.ID,
@@ -379,7 +432,7 @@ func TestSessionExpiry(t *testing.T) {
 
 	t.Run("a use records itself at most once a minute", func(t *testing.T) {
 		t.Parallel()
-		srv, db := newServer(t)
+		srv, db := newServer(t, nil)
 		u := testkit.NewUser(t, srv)
 		times := func() (lastSeen, expires time.Time) {
 			if err := db.QueryRowContext(t.Context(),
@@ -412,7 +465,7 @@ func TestSessionExpiry(t *testing.T) {
 
 func TestCacheControl(t *testing.T) {
 	t.Parallel()
-	srv, _ := newServer(t)
+	srv, _ := newServer(t, nil)
 	u := testkit.NewUser(t, srv)
 
 	for _, resp := range []testkit.Response{

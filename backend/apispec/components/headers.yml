@@ -38,3 +38,10 @@ ExpireSessionCookie:
     type: string
     pattern: '^__Host-session=;.*Max-Age=0'
     example: __Host-session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+RetryAfter:
+  description: Whole seconds, rounded up, until the limit allows another request.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+    example: 42

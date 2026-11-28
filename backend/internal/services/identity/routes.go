@@ -17,6 +17,7 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/kit/authn"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/login"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/logout"
@@ -63,10 +64,12 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 		cleanupInterval: cfg.SessionCleanupInterval,
 		register:        register.NewHandler(register.NewStore(db), hasher, sm),
 		login: login.NewHandler(login.Deps{
-			Store:     login.NewStore(db),
-			Hasher:    hasher,
-			DummyHash: dummyHash,
-			Sessions:  sm,
+			Store:        login.NewStore(db),
+			Hasher:       hasher,
+			DummyHash:    dummyHash,
+			Sessions:     sm,
+			IPLimit:      ratelimit.NewKeyed(cfg.LoginIPLimit),
+			AccountLimit: ratelimit.NewKeyed(cfg.LoginAccountLimit),
 		}),
 		logout: logout.NewHandler(sm),
 		me:     me.NewHandler(me.NewStore(db)),
