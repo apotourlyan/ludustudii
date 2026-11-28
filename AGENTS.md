@@ -114,6 +114,11 @@ the reference slice.
    one call per method and path. Always include the method; GET also serves
    HEAD. The API turns the mux's 404 and 405 (with its `Allow`) into the JSON
    error shape. A new service registers in `internal/app/api/api.go`.
+   A route that needs a user is registered wrapped in `authn.Require`
+   (`internal/kit/authn`), which answers 401 `unauthenticated` without a
+   session, and its spec operation declares `security: [{sessionCookie: []}]`.
+   The handler reads the user with `authn.UserID` and passes it on
+   explicitly; services never import `identity`.
 6. Test each layer using the existing patterns:
    - `handler_test.go` (`//go:build unit`): isolate binding, validation and store
      behavior using the existing function fields and interfaces.
