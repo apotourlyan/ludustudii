@@ -3,23 +3,33 @@ HeadSuccess:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
 HeadInvalidInput:
   description: Invalid query parameters or card ID. No response body.
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
 HeadNotFound:
   description: No card exists with this ID. No response body.
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
 HeadPayloadTooLarge:
   description: Request body exceeds the 1 MiB limit. No response body.
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStoreUnlessEarly'
 HeadUnexpectedError:
   description: An unexpected server or storage error occurred. No response body.
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'

@@ -7,8 +7,16 @@ RequestId:
     maxLength: 128
     pattern: '^[A-Za-z0-9._-]+$'
 CacheControlNoStore:
-  description: Probe responses must not be cached.
+  description: The response must not be cached. Every /api response depends on who asks, and probe responses on the moment.
   required: true
+  schema:
+    type: string
+    enum: [no-store]
+CacheControlNoStoreUnlessEarly:
+  description: |
+    The response must not be cached. Sent by the API, so it is missing when the
+    shared front rejects a declared oversized body before the API sees it; a
+    413 isn't cacheable by default either.
   schema:
     type: string
     enum: [no-store]

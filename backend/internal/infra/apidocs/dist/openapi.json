@@ -2,8 +2,17 @@
   "components": {
     "headers": {
       "CacheControlNoStore": {
-        "description": "Probe responses must not be cached.",
+        "description": "The response must not be cached. Every /api response depends on who asks, and probe responses on the moment.",
         "required": true,
+        "schema": {
+          "enum": [
+            "no-store"
+          ],
+          "type": "string"
+        }
+      },
+      "CacheControlNoStoreUnlessEarly": {
+        "description": "The response must not be cached. Sent by the API, so it is missing when the\nshared front rejects a declared oversized body before the API sees it; a\n413 isn't cacheable by default either.\n",
         "schema": {
           "enum": [
             "no-store"
@@ -81,9 +90,33 @@
       }
     },
     "responses": {
+      "CrossOriginRequest": {
+        "content": {
+          "application/json": {
+            "example": {
+              "code": "cross_origin_request"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from\nanother origin, as Sec-Fetch-Site or Origin shows. Requests from the\nclient app's own origin and from non-browser clients pass.\n",
+        "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
       "HeadInvalidInput": {
         "description": "Invalid query parameters or card ID. No response body.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -92,6 +125,9 @@
       "HeadNotFound": {
         "description": "No card exists with this ID. No response body.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -100,6 +136,9 @@
       "HeadPayloadTooLarge": {
         "description": "Request body exceeds the 1 MiB limit. No response body.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStoreUnlessEarly"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -130,6 +169,9 @@
       "HeadSuccess": {
         "description": "The corresponding GET succeeded. No response body.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -138,6 +180,9 @@
       "HeadUnexpectedError": {
         "description": "An unexpected server or storage error occurred. No response body.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -162,6 +207,9 @@
         },
         "description": "Path ID is not a hyphenated UUIDv7 with the required variant.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -199,6 +247,9 @@
         },
         "description": "Malformed JSON, incompatible JSON types and unknown fields, including\nthe card's read-only created_at and updated_at, return bind_error. Empty\nbodies and invalid field values return validation_error.\n",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -223,6 +274,9 @@
         },
         "description": "Invalid query parameters return validation_error with field errors. Malformed or overflowing limits report invalid_integer; out-of-range limits report out_of_range; invalid cursor tokens report invalid_cursor.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -271,6 +325,9 @@
         },
         "description": "An invalid path ID returns validation_error with id/invalid_uuid7 before body binding. Malformed\nJSON, incompatible JSON types and unknown fields, including the card's\nread-only created_at and updated_at, return bind_error. Empty bodies and\ninvalid field values return validation_error.\n",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -289,6 +346,9 @@
         },
         "description": "No card exists with this ID.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -307,6 +367,9 @@
         },
         "description": "Request body exceeds the 1 MiB limit.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStoreUnlessEarly"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -367,6 +430,9 @@
         },
         "description": "An unexpected server or storage error occurred. Internal details are not returned.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -385,6 +451,9 @@
         },
         "description": "A nonempty request body was sent without Content-Type application/json.",
         "headers": {
+          "Cache-Control": {
+            "$ref": "#/components/headers/CacheControlNoStore"
+          },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestId"
           }
@@ -418,6 +487,7 @@
             "enum": [
               "bind_error",
               "validation_error",
+              "cross_origin_request",
               "not_found",
               "method_not_allowed",
               "payload_too_large",
@@ -570,7 +640,7 @@
     }
   },
   "info": {
-    "description": "Backend API for managing learning cards. No authentication is required.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles and descriptions are normalized\nto Unicode NFC and trimmed before validation and storage. Length limits\ncount Unicode code points after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
+    "description": "Backend API for managing learning cards. No authentication is required.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles and descriptions are normalized\nto Unicode NFC and trimmed before validation and storage. Length limits\ncount Unicode code points after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -615,6 +685,9 @@
             },
             "description": "A page of cards; items is an empty array when no cards match.",
             "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
               "X-Request-Id": {
                 "$ref": "#/components/headers/RequestId"
               }
@@ -686,6 +759,9 @@
             },
             "description": "Card created. The body contains its ID and Location contains its relative URL.",
             "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
               "Location": {
                 "description": "Relative URL of the newly created card.",
                 "required": true,
@@ -701,6 +777,9 @@
           },
           "400": {
             "$ref": "#/components/responses/InvalidCreateInput"
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
           },
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
@@ -725,6 +804,9 @@
           "204": {
             "description": "Card deleted successfully. No response body.",
             "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
               "X-Request-Id": {
                 "$ref": "#/components/headers/RequestId"
               }
@@ -732,6 +814,9 @@
           },
           "400": {
             "$ref": "#/components/responses/InvalidCardId"
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -761,6 +846,9 @@
             },
             "description": "The requested card.",
             "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
               "X-Request-Id": {
                 "$ref": "#/components/headers/RequestId"
               }
@@ -827,6 +915,9 @@
           "204": {
             "description": "Card updated successfully. No response body.",
             "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
               "X-Request-Id": {
                 "$ref": "#/components/headers/RequestId"
               }
@@ -834,6 +925,9 @@
           },
           "400": {
             "$ref": "#/components/responses/InvalidReplaceInput"
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"

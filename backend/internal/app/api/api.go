@@ -17,21 +17,27 @@ const Prefix = "/api"
 
 // Surface routes every path under Prefix to the services' API.
 type Surface struct {
-	api *httpkit.API
+	handler http.Handler
 }
 
 // New registers every service's routes on one API, reporting handler errors
-// to onError.
+// to onError. Every response is Cache-Control: no-store, and unsafe requests
+// from other origins get 403 cross_origin_request.
 func New(db *sql.DB, onError httpkit.ErrorHandler) *Surface {
 	api := httpkit.NewAPI(onError)
 	lcards.RegisterRoutes(api, db)
-	return &Surface{api: api}
+	return &Surface{
+		handler: httpkit.Chain(
+			httpkit.NoStore(),
+			httpkit.CrossOriginProtection(onError),
+		)(api),
+	}
 }
 
 // Mount sends every path under Prefix to the API, which answers unknown paths
 // and methods with JSON rather than leaving them to another surface. Both
 // patterns are needed, or the mux redirects Prefix to Prefix+"/".
 func (s *Surface) Mount(mux *http.ServeMux) {
-	mux.Handle(Prefix, s.api)
-	mux.Handle(Prefix+"/", s.api)
+	mux.Handle(Prefix, s.handler)
+	mux.Handle(Prefix+"/", s.handler)
 }

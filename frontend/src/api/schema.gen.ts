@@ -160,7 +160,7 @@ export interface components {
         };
         ErrorResponse: {
             /** @enum {string} */
-            code: "bind_error" | "validation_error" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
+            code: "bind_error" | "validation_error" | "cross_origin_request" | "not_found" | "method_not_allowed" | "payload_too_large" | "unsupported_media_type" | "unexpected_error";
             /** @description Per-field failures, included only for validation_error responses. */
             errors?: components["schemas"]["FieldError"][];
         };
@@ -232,9 +232,30 @@ export interface components {
         };
     };
     responses: {
+        /**
+         * @description A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from
+         *     another origin, as Sec-Fetch-Site or Origin shows. Requests from the
+         *     client app's own origin and from non-browser clients pass.
+         */
+        CrossOriginRequest: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": "cross_origin_request"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
         /** @description Invalid query parameters or card ID. No response body. */
         HeadInvalidInput: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -243,6 +264,7 @@ export interface components {
         /** @description No card exists with this ID. No response body. */
         HeadNotFound: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -251,6 +273,7 @@ export interface components {
         /** @description Request body exceeds the 1 MiB limit. No response body. */
         HeadPayloadTooLarge: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStoreUnlessEarly"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -277,6 +300,7 @@ export interface components {
         /** @description The corresponding GET succeeded. No response body. */
         HeadSuccess: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -285,6 +309,7 @@ export interface components {
         /** @description An unexpected server or storage error occurred. No response body. */
         HeadUnexpectedError: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -293,6 +318,7 @@ export interface components {
         /** @description Path ID is not a hyphenated UUIDv7 with the required variant. */
         InvalidCardId: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -318,6 +344,7 @@ export interface components {
          */
         InvalidCreateInput: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -328,6 +355,7 @@ export interface components {
         /** @description Invalid query parameters return validation_error with field errors. Malformed or overflowing limits report invalid_integer; out-of-range limits report out_of_range; invalid cursor tokens report invalid_cursor. */
         InvalidQuery: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -354,6 +382,7 @@ export interface components {
          */
         InvalidReplaceInput: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -364,6 +393,7 @@ export interface components {
         /** @description No card exists with this ID. */
         NotFound: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -379,6 +409,7 @@ export interface components {
         /** @description Request body exceeds the 1 MiB limit. */
         PayloadTooLarge: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStoreUnlessEarly"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -426,6 +457,7 @@ export interface components {
         /** @description An unexpected server or storage error occurred. Internal details are not returned. */
         UnexpectedError: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -441,6 +473,7 @@ export interface components {
         /** @description A nonempty request body was sent without Content-Type application/json. */
         UnsupportedMediaType: {
             headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 "X-Request-Id": components["headers"]["RequestId"];
                 [name: string]: unknown;
             };
@@ -491,8 +524,14 @@ export interface components {
         };
     };
     headers: {
-        /** @description Probe responses must not be cached. */
+        /** @description The response must not be cached. Every /api response depends on who asks, and probe responses on the moment. */
         CacheControlNoStore: "no-store";
+        /**
+         * @description The response must not be cached. Sent by the API, so it is missing when the
+         *     shared front rejects a declared oversized body before the API sees it; a
+         *     413 isn't cacheable by default either.
+         */
+        CacheControlNoStoreUnlessEarly: "no-store";
         /** @description Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid. */
         RequestId: string;
     };
@@ -526,6 +565,7 @@ export interface operations {
             /** @description A page of cards; items is an empty array when no cards match. */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
@@ -573,6 +613,7 @@ export interface operations {
             /** @description Card created. The body contains its ID and Location contains its relative URL. */
             201: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
                     /** @description Relative URL of the newly created card. */
                     Location: string;
                     "X-Request-Id": components["headers"]["RequestId"];
@@ -583,6 +624,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["InvalidCreateInput"];
+            403: components["responses"]["CrossOriginRequest"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             500: components["responses"]["UnexpectedError"];
@@ -641,6 +683,7 @@ export interface operations {
             /** @description The requested card. */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
@@ -678,12 +721,14 @@ export interface operations {
             /** @description Card updated successfully. No response body. */
             204: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
                 content?: never;
             };
             400: components["responses"]["InvalidReplaceInput"];
+            403: components["responses"]["CrossOriginRequest"];
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
@@ -714,12 +759,14 @@ export interface operations {
             /** @description Card deleted successfully. No response body. */
             204: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
                 };
                 content?: never;
             };
             400: components["responses"]["InvalidCardId"];
+            403: components["responses"]["CrossOriginRequest"];
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             500: components["responses"]["UnexpectedError"];

@@ -3,6 +3,8 @@ InvalidQuery:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -20,6 +22,8 @@ InvalidCreateInput:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -45,6 +49,8 @@ InvalidReplaceInput:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -72,6 +78,8 @@ InvalidCardId:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -86,6 +94,8 @@ NotFound:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -97,6 +107,8 @@ PayloadTooLarge:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStoreUnlessEarly'
   content:
     application/json:
       schema:
@@ -108,6 +120,8 @@ UnsupportedMediaType:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -119,9 +133,28 @@ UnexpectedError:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
         $ref: '../schemas/errors.yml#/ErrorResponse'
       example:
         code: unexpected_error
+
+CrossOriginRequest:
+  description: |
+    A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from
+    another origin, as Sec-Fetch-Site or Origin shows. Requests from the
+    client app's own origin and from non-browser clients pass.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: cross_origin_request

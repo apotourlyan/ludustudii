@@ -25,7 +25,9 @@ func TestMiddleware_PanicResponse(t *testing.T) {
 	onError := ErrorHandler(log)
 	api := httpkit.NewAPI(onError)
 	api.HandleFunc("GET /api/panic", func(http.ResponseWriter, *http.Request) error { panic("boom") })
-	srv := httptest.NewServer(withMiddleware(log, onError, nil, api))
+	// Like the API surface, the stand-in sets Cache-Control before its
+	// handlers run; the recovered 500 keeps it.
+	srv := httptest.NewServer(withMiddleware(log, onError, nil, httpkit.NoStore()(api)))
 	t.Cleanup(srv.Close)
 	resp := testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/panic"})
 	testkit.AssertStatus(t, resp, http.StatusInternalServerError)

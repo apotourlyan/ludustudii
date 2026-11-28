@@ -8,6 +8,7 @@ import (
 // Machine-readable error codes sent in ErrorResponse.Code.
 const (
 	CodeBinding              = "bind_error"
+	CodeCrossOriginRequest   = "cross_origin_request"
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
 	CodePayloadTooLarge      = "payload_too_large"
@@ -35,6 +36,14 @@ func New(code string) ErrorResponse {
 func Binding() ErrorResponse {
 	return ErrorResponse{
 		Code: CodeBinding,
+	}
+}
+
+// CrossOriginRequest returns the response for an unsafe request that another
+// origin sent.
+func CrossOriginRequest() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeCrossOriginRequest,
 	}
 }
 

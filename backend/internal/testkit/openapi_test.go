@@ -27,8 +27,9 @@ func TestCheckResponse(t *testing.T) {
 			panic("jsonHeaders: odd number of key/value arguments")
 		}
 		h := http.Header{
-			"Content-Type": {"application/json"},
-			"X-Request-Id": {"req-1"},
+			"Cache-Control": {"no-store"},
+			"Content-Type":  {"application/json"},
+			"X-Request-Id":  {"req-1"},
 		}
 		for i := 0; i < len(extra); i += 2 {
 			h.Set(extra[i], extra[i+1])
@@ -95,7 +96,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
-			headers: http.Header{"Content-Type": {"application/json"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"application/json"}},
 			body:    cardBody,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -113,7 +114,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 			body:    cardBody,
 			wantErr: `Content-Type has unexpected value: ""`,
 		},
@@ -148,7 +149,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodDelete,
 			path:    "/api/lcards/" + validID,
 			status:  http.StatusNoContent,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 			body:    `{}`,
 			wantErr: "status 204 declares no content",
 		},
@@ -157,14 +158,23 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
+		},
+		{
+			name:    "API response missing Cache-Control fails",
+			method:  http.MethodGet,
+			path:    "/api/lcards/" + validID,
+			status:  http.StatusOK,
+			headers: http.Header{"Content-Type": {"application/json"}, "X-Request-Id": {"req-1"}},
+			body:    cardBody,
+			wantErr: `header "Cache-Control" missing`,
 		},
 		{
 			name:    "HEAD missing X-Request-Id fails",
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusOK,
-			headers: http.Header{},
+			headers: http.Header{"Cache-Control": {"no-store"}},
 			wantErr: `header "X-Request-Id" missing`,
 		},
 		{
@@ -172,7 +182,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusOK,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 			body:    `x`,
 			wantErr: "status 200 declares no content",
 		},
@@ -215,7 +225,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"Content-Type": {"application/json"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"application/json"}},
 			body:    `{"code":"not_found"}`,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -224,14 +234,14 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 		},
 		{
 			name:    "undocumented API endpoint HEAD 404 with body fails",
 			method:  http.MethodHead,
 			path:    "/api/undocumented",
 			status:  http.StatusNotFound,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 			body:    `x`,
 			wantErr: "HEAD returned 1-byte body, want empty",
 		},
@@ -248,7 +258,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodPost,
 			path:    "/readyz",
 			status:  http.StatusMethodNotAllowed,
-			headers: http.Header{"Content-Type": {"text/plain; charset=utf-8"}, "Allow": {"GET, HEAD"}, "X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"text/plain; charset=utf-8"}, "Allow": {"GET, HEAD"}, "X-Request-Id": {"req-1"}},
 			body:    "Method Not Allowed\n",
 			wantErr: "body is not a single JSON value",
 		},
@@ -257,7 +267,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodPost,
 			path:    "/livez",
 			status:  http.StatusMethodNotAllowed,
-			headers: http.Header{"Content-Type": {"application/json"}, "Allow": {"GET, HEAD"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"application/json"}, "Allow": {"GET, HEAD"}},
 			body:    `{"code":"method_not_allowed"}`,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -354,7 +364,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodHead,
 			path:    "/api/lcards",
 			status:  http.StatusNotModified,
-			headers: http.Header{"X-Request-Id": {"req-1"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}},
 			wantErr: "status 304 is not documented",
 		},
 		{
@@ -397,7 +407,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/",
 			status:  http.StatusOK,
-			headers: http.Header{"Content-Type": {"text/html; charset=utf-8"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"text/html; charset=utf-8"}},
 			body:    `<!doctype html>`,
 		},
 		{
@@ -525,7 +535,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodPatch,
 			path:    "/api/lcards",
 			status:  http.StatusMethodNotAllowed,
-			headers: http.Header{"Content-Type": {"application/json"}, "Allow": {"GET, HEAD, POST"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"application/json"}, "Allow": {"GET, HEAD, POST"}},
 			body:    `{"code":"method_not_allowed"}`,
 			wantErr: `header "X-Request-Id" missing`,
 		},
@@ -534,7 +544,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/api",
 			status:  http.StatusOK,
-			headers: http.Header{"Content-Type": {"text/html; charset=utf-8"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"text/html; charset=utf-8"}},
 			body:    `<!doctype html>`,
 			wantErr: "undocumented API path returned 200",
 		},
@@ -543,7 +553,7 @@ func TestCheckResponse(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/apix",
 			status:  http.StatusOK,
-			headers: http.Header{"Content-Type": {"text/html; charset=utf-8"}},
+			headers: http.Header{"Cache-Control": {"no-store"}, "Content-Type": {"text/html; charset=utf-8"}},
 			body:    `<!doctype html>`,
 		},
 		{
@@ -611,10 +621,14 @@ func TestCheckUnmatchedRouteHEADMethodNotAllowed(t *testing.T) {
 		body    string
 		wantErr string
 	}{
-		{name: "valid", headers: http.Header{"Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}},
-		{name: "missing request ID", headers: http.Header{"Allow": {"GET, POST"}}, wantErr: `header "X-Request-Id" missing`},
-		{name: "missing Allow", headers: http.Header{"X-Request-Id": {"req-1"}}, wantErr: "405 response missing Allow header"},
-		{name: "body", headers: http.Header{"Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}, body: "x", wantErr: "HEAD returned 1-byte body, want empty"},
+		{name: "valid", headers: http.Header{"Allow": {"GET, POST"}, "Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}}},
+
+		{name: "missing request ID", headers: http.Header{"Allow": {"GET, POST"}, "Cache-Control": {"no-store"}}, wantErr: `header "X-Request-Id" missing`},
+
+		{name: "missing Cache-Control", headers: http.Header{"Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}, wantErr: `header "Cache-Control" missing`},
+
+		{name: "missing Allow", headers: http.Header{"Cache-Control": {"no-store"}, "X-Request-Id": {"req-1"}}, wantErr: "405 response missing Allow header"},
+		{name: "body", headers: http.Header{"Cache-Control": {"no-store"}, "Allow": {"GET, POST"}, "X-Request-Id": {"req-1"}}, body: "x", wantErr: "HEAD returned 1-byte body, want empty"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()

@@ -8,6 +8,7 @@ ErrorResponse:
       enum:
         - bind_error
         - validation_error
+        - cross_origin_request
         - not_found
         - method_not_allowed
         - payload_too_large
