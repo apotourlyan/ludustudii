@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 	"github.com/apotourlyan/ludustudii/internal/kit/validator"
@@ -34,33 +35,47 @@ type sessionStarter interface {
 	Start(ctx context.Context, w http.ResponseWriter, userID string) (sessions.Session, error)
 }
 
+type limiter interface {
+	Allow(key string, now time.Time) (bool, time.Duration)
+}
+
 // Handler serves the POST /api/users endpoint.
 type Handler struct {
 	store    creator
 	hasher   hasher
 	sessions sessionStarter
+	ipLimit  limiter
+	now      func() time.Time
 	bind     func(r *http.Request, i any) error
 	validate func(req request) error
 }
 
 // NewHandler returns a Handler that stores users in s, hashes passwords with
-// h and starts sessions with sm.
-func NewHandler(s creator, h hasher, sm sessionStarter) *Handler {
+// h, starts sessions with sm and limits registrations per client IP with
+// ipLimit.
+func NewHandler(s creator, h hasher, sm sessionStarter, ipLimit limiter) *Handler {
 	return &Handler{
 		store:    s,
 		hasher:   h,
 		sessions: sm,
+		ipLimit:  ipLimit,
+		now:      time.Now,
 		bind:     bind,
 		validate: validate,
 	}
 }
 
-// Handle registers a user: it canonicalizes and validates the JSON email and
+// Handle registers a user: past the per-IP limit it responds 429 with
+// Retry-After. Otherwise it canonicalizes and validates the JSON email and
 // password (400 for invalid ones, including an email that has an account),
 // stores the user with its password hash, starts a session and responds 201
 // with the user, its URL in Location and the session cookie.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+
+	if ok, wait := h.ipLimit.Allow(httpkit.ClientIP(r), h.now()); !ok {
+		return httpkit.TooManyRequests(wait)
+	}
 
 	var req request
 	if err := h.bind(r, &req); err != nil {

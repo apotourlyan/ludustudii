@@ -123,5 +123,6 @@ func identityConfig(ev *env.Vars) identity.Config {
 		SessionCleanupInterval: ev.AuthSessionCleanupInterval,
 		LoginIPLimit:           ev.AuthLoginIPLimit,
 		LoginAccountLimit:      ev.AuthLoginAccountLimit,
+		RegisterIPLimit:        ev.AuthRegisterIPLimit,
 	}
 }

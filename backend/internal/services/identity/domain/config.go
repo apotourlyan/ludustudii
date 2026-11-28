@@ -26,6 +26,8 @@ type Config struct {
 	LoginIPLimit ratelimit.Limit
 	// LoginAccountLimit limits failed logins per account (canonical email).
 	LoginAccountLimit ratelimit.Limit
+	// RegisterIPLimit limits registrations per client IP.
+	RegisterIPLimit ratelimit.Limit
 }
 
 // Validate reports every invalid setting.
@@ -40,6 +42,7 @@ func (c Config) Validate() error {
 	for name, l := range map[string]ratelimit.Limit{
 		"login IP limit":      c.LoginIPLimit,
 		"login account limit": c.LoginAccountLimit,
+		"register IP limit":   c.RegisterIPLimit,
 	} {
 		if err := l.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", name, err))

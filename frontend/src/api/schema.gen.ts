@@ -164,8 +164,9 @@ export interface paths {
         /**
          * Register a user
          * @description Creates an account and logs it in, as POST /api/sessions does: the
-         *     response sets the new session's cookie. The response reveals whether
-         *     an email has an account (taken).
+         *     response sets the new session's cookie. Registrations are limited per
+         *     client IP. The response reveals whether an email has an account
+         *     (taken); the limit slows down probing.
          */
         post: operations["registerUser"];
         delete?: never;
@@ -715,8 +716,8 @@ export interface components {
             };
         };
         /**
-         * @description The login is over a rate limit: per client IP, or per account (counting
-         *     failed logins). Limits slow requests down and clear with
+         * @description The request is over a rate limit: per client IP, or for login also per
+         *     account (counting failed logins). Limits slow requests down and clear with
          *     time; no account is locked.
          */
         TooManyRequests: {
@@ -1256,6 +1257,7 @@ export interface operations {
             403: components["responses"]["CrossOriginRequest"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            429: components["responses"]["TooManyRequests"];
             500: components["responses"]["UnexpectedError"];
         };
     };

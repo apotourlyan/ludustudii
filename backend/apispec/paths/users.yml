@@ -8,8 +8,9 @@ users:
     summary: Register a user
     description: |
       Creates an account and logs it in, as POST /api/sessions does: the
-      response sets the new session's cookie. The response reveals whether
-      an email has an account (taken).
+      response sets the new session's cookie. Registrations are limited per
+      client IP. The response reveals whether an email has an account
+      (taken); the limit slows down probing.
     requestBody:
       $ref: '../components/requestBodies.yml#/RegisterRequest'
     responses:
@@ -40,6 +41,8 @@ users:
         $ref: '../components/responses/errors.yml#/PayloadTooLarge'
       '415':
         $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
+      '429':
+        $ref: '../components/responses/errors.yml#/TooManyRequests'
       '500':
         $ref: '../components/responses/errors.yml#/UnexpectedError'
 me:

@@ -45,6 +45,7 @@ const (
 	EnvAuthSessionCleanupInterval = "AUTH_SESSION_CLEANUP_INTERVAL"
 	EnvAuthLoginIPLimit           = "AUTH_LOGIN_IP_LIMIT"
 	EnvAuthLoginAccountLimit      = "AUTH_LOGIN_ACCOUNT_LIMIT"
+	EnvAuthRegisterIPLimit        = "AUTH_REGISTER_IP_LIMIT"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -81,6 +82,7 @@ var (
 	DefaultAuthLoginIPLimit    = ratelimit.Limit{Count: 10, Per: time.Minute}
 	// DefaultAuthLoginAccountLimit counts failed logins only.
 	DefaultAuthLoginAccountLimit = ratelimit.Limit{Count: 5, Per: 15 * time.Minute}
+	DefaultAuthRegisterIPLimit   = ratelimit.Limit{Count: 5, Per: time.Hour}
 )
 
 // Vars holds the configuration read by Load. Field names mirror the Env
@@ -113,6 +115,7 @@ type Vars struct {
 	AuthSessionCleanupInterval time.Duration
 	AuthLoginIPLimit           ratelimit.Limit
 	AuthLoginAccountLimit      ratelimit.Limit
+	AuthRegisterIPLimit        ratelimit.Limit
 }
 
 // PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
@@ -223,10 +226,10 @@ func Load() (*Vars, error) {
 // authVars are the AUTH_ variables, loaded together so the argon2id
 // parameters can be checked as a whole.
 type authVars struct {
-	argon2                         password.Params
-	hashConcurrency                int
-	idle, absolute, touch, cleanup time.Duration
-	loginIP, loginAccount          ratelimit.Limit
+	argon2                          password.Params
+	hashConcurrency                 int
+	idle, absolute, touch, cleanup  time.Duration
+	loginIP, loginAccount, register ratelimit.Limit
 }
 
 func loadAuth() (authVars, error) {
@@ -273,6 +276,8 @@ func loadAuth() (authVars, error) {
 	errs = append(errs, err)
 	a.loginAccount, err = getEnvLimit(EnvAuthLoginAccountLimit, DefaultAuthLoginAccountLimit)
 	errs = append(errs, err)
+	a.register, err = getEnvLimit(EnvAuthRegisterIPLimit, DefaultAuthRegisterIPLimit)
+	errs = append(errs, err)
 
 	return a, errors.Join(errs...)
 }
@@ -290,6 +295,7 @@ func (a authVars) into(v *Vars) {
 	v.AuthSessionCleanupInterval = a.cleanup
 	v.AuthLoginIPLimit = a.loginIP
 	v.AuthLoginAccountLimit = a.loginAccount
+	v.AuthRegisterIPLimit = a.register
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -333,6 +339,7 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Duration(EnvAuthSessionCleanupInterval, v.AuthSessionCleanupInterval),
 		slog.String(EnvAuthLoginIPLimit, v.AuthLoginIPLimit.String()),
 		slog.String(EnvAuthLoginAccountLimit, v.AuthLoginAccountLimit.String()),
+		slog.String(EnvAuthRegisterIPLimit, v.AuthRegisterIPLimit.String()),
 	}
 }
 

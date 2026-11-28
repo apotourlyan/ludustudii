@@ -20,8 +20,8 @@ info:
 
     Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
     another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
-    cross_origin_request. Login is rate limited and
-    answers 429 with code too_many_requests and Retry-After when over a
+    cross_origin_request. Login and registration are rate limited and
+    answer 429 with code too_many_requests and Retry-After when over a
     limit. No /api response may be cached: every one carries
     Cache-Control: no-store.
 

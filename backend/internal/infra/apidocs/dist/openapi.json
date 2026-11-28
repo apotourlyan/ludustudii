@@ -604,7 +604,7 @@
             }
           }
         },
-        "description": "The login is over a rate limit: per client IP, or per account (counting\nfailed logins). Limits slow requests down and clear with\ntime; no account is locked.\n",
+        "description": "The request is over a rate limit: per client IP, or for login also per\naccount (counting failed logins). Limits slow requests down and clear with\ntime; no account is locked.\n",
         "headers": {
           "Cache-Control": {
             "$ref": "#/components/headers/CacheControlNoStore"
@@ -988,7 +988,7 @@
     }
   },
   "info": {
-    "description": "Backend API for accounts, sessions and learning cards.\n\nSessions are carried in the __Host-session cookie (HttpOnly, Secure,\nSameSite=Lax, Path=/), which registration (POST /api/users) and login\n(POST /api/sessions) set and logout (DELETE /api/sessions/current)\nexpires. The token never appears in a response body. An operation whose\nsecurity lists sessionCookie needs a valid session and answers 401 with\ncode unauthenticated without one; a failed login answers 401 with code\ninvalid_credentials. Neither sends WWW-Authenticate, since cookie\nsessions have no registered scheme. The learning card operations don't\nrequire a session yet.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. Login is rate limited and\nanswers 429 with code too_many_requests and Retry-After when over a\nlimit. No /api response may be cached: every one carries\nCache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
+    "description": "Backend API for accounts, sessions and learning cards.\n\nSessions are carried in the __Host-session cookie (HttpOnly, Secure,\nSameSite=Lax, Path=/), which registration (POST /api/users) and login\n(POST /api/sessions) set and logout (DELETE /api/sessions/current)\nexpires. The token never appears in a response body. An operation whose\nsecurity lists sessionCookie needs a valid session and answers 401 with\ncode unauthenticated without one; a failed login answers 401 with code\ninvalid_credentials. Neither sends WWW-Authenticate, since cookie\nsessions have no registered scheme. The learning card operations don't\nrequire a session yet.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. Login and registration are rate limited and\nanswer 429 with code too_many_requests and Retry-After when over a\nlimit. No /api response may be cached: every one carries\nCache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -1421,7 +1421,7 @@
         }
       ],
       "post": {
-        "description": "Creates an account and logs it in, as POST /api/sessions does: the\nresponse sets the new session's cookie. The response reveals whether\nan email has an account (taken).\n",
+        "description": "Creates an account and logs it in, as POST /api/sessions does: the\nresponse sets the new session's cookie. Registrations are limited per\nclient IP. The response reveals whether an email has an account\n(taken); the limit slows down probing.\n",
         "operationId": "registerUser",
         "requestBody": {
           "$ref": "#/components/requestBodies/RegisterRequest"
@@ -1469,6 +1469,9 @@
           },
           "415": {
             "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/UnexpectedError"

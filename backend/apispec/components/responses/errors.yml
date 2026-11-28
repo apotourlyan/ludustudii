@@ -250,8 +250,8 @@ CrossOriginRequest:
         code: cross_origin_request
 TooManyRequests:
   description: |
-    The login is over a rate limit: per client IP, or per account (counting
-    failed logins). Limits slow requests down and clear with
+    The request is over a rate limit: per client IP, or for login also per
+    account (counting failed logins). Limits slow requests down and clear with
     time; no account is locked.
   headers:
     X-Request-Id:

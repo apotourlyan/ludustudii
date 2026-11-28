@@ -62,7 +62,7 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 	return &Service{
 		sessions:        sm,
 		cleanupInterval: cfg.SessionCleanupInterval,
-		register:        register.NewHandler(register.NewStore(db), hasher, sm),
+		register:        register.NewHandler(register.NewStore(db), hasher, sm, ratelimit.NewKeyed(cfg.RegisterIPLimit)),
 		login: login.NewHandler(login.Deps{
 			Store:        login.NewStore(db),
 			Hasher:       hasher,

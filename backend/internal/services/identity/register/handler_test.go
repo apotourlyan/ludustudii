@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/kit/erresp"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
@@ -45,10 +46,19 @@ func (m *mockSessions) Start(ctx context.Context, w http.ResponseWriter, userID 
 	return m.startFn(ctx, w, userID)
 }
 
+type mockLimiter struct {
+	allowFn func(key string, now time.Time) (bool, time.Duration)
+}
+
+func (m *mockLimiter) Allow(key string, now time.Time) (bool, time.Duration) {
+	return m.allowFn(key, now)
+}
+
 type mocks struct {
 	store    *mockStore
 	hasher   *mockHasher
 	sessions *mockSessions
+	limiter  *mockLimiter
 }
 
 func testContext(t *testing.T, body string) (*http.Request, *httptest.ResponseRecorder) {
@@ -77,11 +87,14 @@ func testHandler(t *testing.T, setup func(*Handler, *mocks)) *Handler {
 			t.Fatal("unexpected call to startFn")
 			return sessions.Session{}, nil
 		}},
+		limiter: &mockLimiter{allowFn: func(string, time.Time) (bool, time.Duration) { return true, 0 }},
 	}
 	h := &Handler{
 		store:    m.store,
 		hasher:   m.hasher,
 		sessions: m.sessions,
+		ipLimit:  m.limiter,
+		now:      time.Now,
 		bind:     func(*http.Request, any) error { return nil },
 		validate: func(request) error { return nil },
 	}
@@ -112,6 +125,18 @@ func TestHandler_Handle(t *testing.T) {
 		wantErrCode string
 		wantField   string
 	}{
+		{
+			name: "over the limit",
+			setup: func(h *Handler, m *mocks) {
+				m.limiter.allowFn = func(string, time.Time) (bool, time.Duration) { return false, 90 * time.Second }
+				h.bind = func(*http.Request, any) error {
+					t.Fatal("bound a request over the limit")
+					return nil
+				}
+			},
+			wantCode:    http.StatusTooManyRequests,
+			wantErrCode: erresp.CodeTooManyRequests,
+		},
 		{
 			name: "binding error",
 			setup: func(h *Handler, _ *mocks) {
@@ -189,6 +214,9 @@ func TestHandler_Handle(t *testing.T) {
 			if !ok || se.Code != tt.wantCode || se.Response.Code != tt.wantErrCode {
 				t.Fatalf("returned error: got %#v, want %d %s", err, tt.wantCode, tt.wantErrCode)
 			}
+			if tt.wantCode == http.StatusTooManyRequests && se.Header.Get("Retry-After") != "90" {
+				t.Errorf("Retry-After: got %q, want 90", se.Header.Get("Retry-After"))
+			}
 			if tt.wantField != "" {
 				errs := se.Response.Errors
 				if len(errs) != 1 || errs[0].Field+"/"+errs[0].Code != tt.wantField {
@@ -227,11 +255,11 @@ func TestHandler_Success(t *testing.T) {
 
 // NewHandler wires the real binding, canonicalization and validation: the
 // email is stored canonical, the password hashed as typed apart from NFC, the
-// session started for the new user.
+// session started for the new user, and the client IP limited.
 func TestHandler_Wiring(t *testing.T) {
 	t.Parallel()
 
-	var hashed, startedFor string
+	var limitKey, hashed, startedFor string
 	var stored createParams
 	h := NewHandler(
 		&mockStore{createFn: func(_ context.Context, p createParams) (row, error) {
@@ -246,6 +274,10 @@ func TestHandler_Wiring(t *testing.T) {
 			startedFor = id
 			return sessions.Session{}, nil
 		}},
+		&mockLimiter{allowFn: func(key string, _ time.Time) (bool, time.Duration) {
+			limitKey = key
+			return true, 0
+		}},
 	)
 
 	body, _ := json.Marshal(request{
@@ -257,6 +289,9 @@ func TestHandler_Wiring(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if limitKey != "192.0.2.7" {
+		t.Errorf("limit key: got %q, want the client IP", limitKey)
+	}
 	if want := "  Café au lait, no sugar  "; hashed != want {
 		t.Errorf("hashed password: got %q, want %q", hashed, want)
 	}

@@ -324,7 +324,7 @@ var authNames = []string{
 	EnvAuthArgon2SaltLength, EnvAuthArgon2KeyLength, EnvAuthHashConcurrency,
 	EnvAuthSessionIdleTimeout, EnvAuthSessionAbsoluteTimeout,
 	EnvAuthSessionTouchInterval, EnvAuthSessionCleanupInterval,
-	EnvAuthLoginIPLimit, EnvAuthLoginAccountLimit,
+	EnvAuthLoginIPLimit, EnvAuthLoginAccountLimit, EnvAuthRegisterIPLimit,
 }
 
 // clearAuth unsets the AUTH_ variables, which the devcontainer sets to cheap
@@ -365,6 +365,7 @@ func TestLoad_AuthDefaults(t *testing.T) {
 	for name, tt := range map[string]struct{ got, want ratelimit.Limit }{
 		"login IP":      {v.AuthLoginIPLimit, ratelimit.Limit{Count: 10, Per: time.Minute}},
 		"login account": {v.AuthLoginAccountLimit, ratelimit.Limit{Count: 5, Per: 15 * time.Minute}},
+		"register IP":   {v.AuthRegisterIPLimit, ratelimit.Limit{Count: 5, Per: time.Hour}},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s limit: got %v, want %v", name, tt.got, tt.want)
@@ -388,6 +389,7 @@ func TestLoad_Auth(t *testing.T) {
 		EnvAuthSessionCleanupInterval: "10m",
 		EnvAuthLoginIPLimit:           "1000/1m",
 		EnvAuthLoginAccountLimit:      "100/1m",
+		EnvAuthRegisterIPLimit:        "50/1s",
 	} {
 		t.Setenv(name, value)
 	}
@@ -404,8 +406,9 @@ func TestLoad_Auth(t *testing.T) {
 		t.Errorf("sessions: got %+v", v)
 	}
 	if v.AuthLoginIPLimit != (ratelimit.Limit{Count: 1000, Per: time.Minute}) ||
-		v.AuthLoginAccountLimit != (ratelimit.Limit{Count: 100, Per: time.Minute}) {
-		t.Errorf("limits: got %v, %v", v.AuthLoginIPLimit, v.AuthLoginAccountLimit)
+		v.AuthLoginAccountLimit != (ratelimit.Limit{Count: 100, Per: time.Minute}) ||
+		v.AuthRegisterIPLimit != (ratelimit.Limit{Count: 50, Per: time.Second}) {
+		t.Errorf("limits: got %v, %v, %v", v.AuthLoginIPLimit, v.AuthLoginAccountLimit, v.AuthRegisterIPLimit)
 	}
 
 	attrs := map[string]string{}
@@ -438,6 +441,7 @@ func TestLoad_AuthErrors(t *testing.T) {
 		{EnvAuthSessionCleanupInterval, "0", EnvAuthSessionCleanupInterval},
 		{EnvAuthLoginIPLimit, "10", EnvAuthLoginIPLimit},
 		{EnvAuthLoginAccountLimit, "0/15m", EnvAuthLoginAccountLimit},
+		{EnvAuthRegisterIPLimit, "5/0s", EnvAuthRegisterIPLimit},
 	} {
 		t.Run(tt.name+"="+tt.value, func(t *testing.T) {
 			setRequired(t)

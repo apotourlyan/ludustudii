@@ -377,6 +377,15 @@ func assertTooManyRequests(t *testing.T, resp testkit.Response, maxRetry int) {
 func TestLimits(t *testing.T) {
 	t.Parallel()
 
+	t.Run("registration per IP", func(t *testing.T) {
+		t.Parallel()
+		srv, _ := newServer(t, func(c *identity.Config) { c.RegisterIPLimit = ratelimit.Limit{Count: 2, Per: time.Hour} })
+		testkit.NewUser(t, srv)
+		// A failed registration counts too.
+		testkit.AssertStatus(t, register(t, srv, credentials("nope", "short")), http.StatusBadRequest)
+		assertTooManyRequests(t, register(t, srv, credentials("c@example.com", "correct horse battery staple")), 1800)
+	})
+
 	t.Run("login per IP", func(t *testing.T) {
 		t.Parallel()
 		srv, _ := newServer(t, func(c *identity.Config) { c.LoginIPLimit = ratelimit.Limit{Count: 2, Per: time.Minute} })

@@ -31,6 +31,7 @@ func IdentityConfig() domain.Config {
 		SessionCleanupInterval: time.Hour,
 		LoginIPLimit:           generous,
 		LoginAccountLimit:      generous,
+		RegisterIPLimit:        generous,
 	}
 }
 
