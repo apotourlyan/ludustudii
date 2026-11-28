@@ -7,10 +7,13 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
+	"github.com/apotourlyan/ludustudii/internal/kit/password"
+	"github.com/apotourlyan/ludustudii/internal/kit/ratelimit"
 )
 
 // Names of the environment variables read by Load.
@@ -29,6 +32,20 @@ const (
 	EnvAppAPIDocs            = "APP_API_DOCS"
 	EnvLogLevel              = "LOG_LEVEL"
 	EnvLogFormat             = "LOG_FORMAT"
+
+	EnvAuthArgon2Memory           = "AUTH_ARGON2_MEMORY"
+	EnvAuthArgon2Iterations       = "AUTH_ARGON2_ITERATIONS"
+	EnvAuthArgon2Parallelism      = "AUTH_ARGON2_PARALLELISM"
+	EnvAuthArgon2SaltLength       = "AUTH_ARGON2_SALT_LENGTH"
+	EnvAuthArgon2KeyLength        = "AUTH_ARGON2_KEY_LENGTH"
+	EnvAuthHashConcurrency        = "AUTH_HASH_CONCURRENCY"
+	EnvAuthSessionIdleTimeout     = "AUTH_SESSION_IDLE_TIMEOUT"
+	EnvAuthSessionAbsoluteTimeout = "AUTH_SESSION_ABSOLUTE_TIMEOUT"
+	EnvAuthSessionTouchInterval   = "AUTH_SESSION_TOUCH_INTERVAL"
+	EnvAuthSessionCleanupInterval = "AUTH_SESSION_CLEANUP_INTERVAL"
+	EnvAuthLoginIPLimit           = "AUTH_LOGIN_IP_LIMIT"
+	EnvAuthLoginAccountLimit      = "AUTH_LOGIN_ACCOUNT_LIMIT"
+	EnvAuthRegisterIPLimit        = "AUTH_REGISTER_IP_LIMIT"
 )
 
 // Values Load uses for optional variables that are unset or empty.
@@ -45,6 +62,27 @@ const (
 	DefaultAppAPIDocs            = false
 	DefaultLogLevel              = slog.LevelInfo
 	DefaultLogFormat             = logging.FormatJSON
+
+	// The argon2id parameters are OWASP's minimum recommendation.
+	DefaultAuthArgon2Memory           = 19456 // KiB
+	DefaultAuthArgon2Iterations       = 2
+	DefaultAuthArgon2Parallelism      = 1
+	DefaultAuthArgon2SaltLength       = 16
+	DefaultAuthArgon2KeyLength        = 32
+	DefaultAuthSessionIdleTimeout     = 7 * 24 * time.Hour
+	DefaultAuthSessionAbsoluteTimeout = 30 * 24 * time.Hour
+	DefaultAuthSessionTouchInterval   = time.Minute
+	DefaultAuthSessionCleanupInterval = time.Hour
+)
+
+// Defaults Load uses for optional variables whose value isn't a constant.
+var (
+	// DefaultAuthHashConcurrency is the number of CPUs, read at startup.
+	DefaultAuthHashConcurrency = runtime.NumCPU()
+	DefaultAuthLoginIPLimit    = ratelimit.Limit{Count: 10, Per: time.Minute}
+	// DefaultAuthLoginAccountLimit counts failed logins only.
+	DefaultAuthLoginAccountLimit = ratelimit.Limit{Count: 5, Per: 15 * time.Minute}
+	DefaultAuthRegisterIPLimit   = ratelimit.Limit{Count: 5, Per: time.Hour}
 )
 
 // Vars holds the configuration read by Load. Field names mirror the Env
@@ -64,6 +102,32 @@ type Vars struct {
 	AppAPIDocs            bool
 	LogLevel              *slog.LevelVar
 	LogFormat             logging.Format
+
+	AuthArgon2Memory           uint32
+	AuthArgon2Iterations       uint32
+	AuthArgon2Parallelism      uint8
+	AuthArgon2SaltLength       uint32
+	AuthArgon2KeyLength        uint32
+	AuthHashConcurrency        int
+	AuthSessionIdleTimeout     time.Duration
+	AuthSessionAbsoluteTimeout time.Duration
+	AuthSessionTouchInterval   time.Duration
+	AuthSessionCleanupInterval time.Duration
+	AuthLoginIPLimit           ratelimit.Limit
+	AuthLoginAccountLimit      ratelimit.Limit
+	AuthRegisterIPLimit        ratelimit.Limit
+}
+
+// PasswordParams returns the argon2id parameters from the AUTH_ARGON2_
+// variables.
+func (v *Vars) PasswordParams() password.Params {
+	return password.Params{
+		Memory:      v.AuthArgon2Memory,
+		Iterations:  v.AuthArgon2Iterations,
+		Parallelism: v.AuthArgon2Parallelism,
+		SaltLength:  v.AuthArgon2SaltLength,
+		KeyLength:   v.AuthArgon2KeyLength,
+	}
 }
 
 // Load reads the configuration from the environment. DB_CONNECTION and
@@ -72,8 +136,11 @@ type Vars struct {
 // The other variables are optional and fall back to the Default constants.
 // Durations use time.ParseDuration syntax, booleans use
 // strconv.ParseBool syntax (such as "true" or "0"), LOG_LEVEL uses slog.Level
-// names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". Load
-// reports every invalid or missing variable, joined into one error.
+// names (such as "debug" or "warn") and LOG_FORMAT is "json" or "text". The
+// AUTH_ durations must be positive, AUTH_HASH_CONCURRENCY at least 1, the
+// argon2id parameters within the bounds of password.Params, and the limits
+// "<count>/<duration>", such as "10/1m". Load reports every invalid or
+// missing variable, joined into one error.
 func Load() (*Vars, error) {
 	var errs []error
 
@@ -129,11 +196,14 @@ func Load() (*Vars, error) {
 	logFormat, err := getEnvFormat(EnvLogFormat, DefaultLogFormat)
 	errs = append(errs, err)
 
+	auth, err := loadAuth()
+	errs = append(errs, err)
+
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 
-	return &Vars{
+	v := &Vars{
 		DBConnectionString:    dbConnectionString,
 		DBMaxOpenConns:        dbMaxOpenConns,
 		DBMaxIdleConns:        dbMaxIdleConns,
@@ -148,7 +218,84 @@ func Load() (*Vars, error) {
 		AppAPIDocs:            appAPIDocs,
 		LogLevel:              logLevel,
 		LogFormat:             logFormat,
-	}, nil
+	}
+	auth.into(v)
+	return v, nil
+}
+
+// authVars are the AUTH_ variables, loaded together so the argon2id
+// parameters can be checked as a whole.
+type authVars struct {
+	argon2                          password.Params
+	hashConcurrency                 int
+	idle, absolute, touch, cleanup  time.Duration
+	loginIP, loginAccount, register ratelimit.Limit
+}
+
+func loadAuth() (authVars, error) {
+	var a authVars
+	var errs []error
+	var err error
+
+	a.argon2.Memory, err = getEnvUint32(EnvAuthArgon2Memory, DefaultAuthArgon2Memory)
+	errs = append(errs, err)
+	a.argon2.Iterations, err = getEnvUint32(EnvAuthArgon2Iterations, DefaultAuthArgon2Iterations)
+	errs = append(errs, err)
+	parallelism, err := getEnvUint32(EnvAuthArgon2Parallelism, DefaultAuthArgon2Parallelism)
+	if err == nil && parallelism > 255 {
+		err = fmt.Errorf("parse env %s: must be at most 255", EnvAuthArgon2Parallelism)
+	}
+	errs = append(errs, err)
+	a.argon2.Parallelism = uint8(min(parallelism, 255)) // #nosec G115 -- Capped at 255 above.
+	a.argon2.SaltLength, err = getEnvUint32(EnvAuthArgon2SaltLength, DefaultAuthArgon2SaltLength)
+	errs = append(errs, err)
+	a.argon2.KeyLength, err = getEnvUint32(EnvAuthArgon2KeyLength, DefaultAuthArgon2KeyLength)
+	errs = append(errs, err)
+	if err := errors.Join(errs...); err == nil {
+		if err := a.argon2.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("env AUTH_ARGON2_*: %w", err))
+		}
+	}
+
+	a.hashConcurrency, err = getEnvInt(EnvAuthHashConcurrency, DefaultAuthHashConcurrency)
+	if err == nil && a.hashConcurrency < 1 {
+		err = fmt.Errorf("parse env %s: must be at least 1", EnvAuthHashConcurrency)
+	}
+	errs = append(errs, err)
+
+	a.idle, err = getEnvPositiveDuration(EnvAuthSessionIdleTimeout, DefaultAuthSessionIdleTimeout)
+	errs = append(errs, err)
+	a.absolute, err = getEnvPositiveDuration(EnvAuthSessionAbsoluteTimeout, DefaultAuthSessionAbsoluteTimeout)
+	errs = append(errs, err)
+	a.touch, err = getEnvPositiveDuration(EnvAuthSessionTouchInterval, DefaultAuthSessionTouchInterval)
+	errs = append(errs, err)
+	a.cleanup, err = getEnvPositiveDuration(EnvAuthSessionCleanupInterval, DefaultAuthSessionCleanupInterval)
+	errs = append(errs, err)
+
+	a.loginIP, err = getEnvLimit(EnvAuthLoginIPLimit, DefaultAuthLoginIPLimit)
+	errs = append(errs, err)
+	a.loginAccount, err = getEnvLimit(EnvAuthLoginAccountLimit, DefaultAuthLoginAccountLimit)
+	errs = append(errs, err)
+	a.register, err = getEnvLimit(EnvAuthRegisterIPLimit, DefaultAuthRegisterIPLimit)
+	errs = append(errs, err)
+
+	return a, errors.Join(errs...)
+}
+
+func (a authVars) into(v *Vars) {
+	v.AuthArgon2Memory = a.argon2.Memory
+	v.AuthArgon2Iterations = a.argon2.Iterations
+	v.AuthArgon2Parallelism = a.argon2.Parallelism
+	v.AuthArgon2SaltLength = a.argon2.SaltLength
+	v.AuthArgon2KeyLength = a.argon2.KeyLength
+	v.AuthHashConcurrency = a.hashConcurrency
+	v.AuthSessionIdleTimeout = a.idle
+	v.AuthSessionAbsoluteTimeout = a.absolute
+	v.AuthSessionTouchInterval = a.touch
+	v.AuthSessionCleanupInterval = a.cleanup
+	v.AuthLoginIPLimit = a.loginIP
+	v.AuthLoginAccountLimit = a.loginAccount
+	v.AuthRegisterIPLimit = a.register
 }
 
 // LogAttrs returns the loaded values as log attrs keyed by environment variable name. The
@@ -180,6 +327,19 @@ func (v *Vars) LogAttrs() []slog.Attr {
 		slog.Bool(EnvAppAPIDocs, v.AppAPIDocs),
 		slog.String(EnvLogLevel, v.LogLevel.Level().String()),
 		slog.String(EnvLogFormat, v.LogFormat.String()),
+		slog.Uint64(EnvAuthArgon2Memory, uint64(v.AuthArgon2Memory)),
+		slog.Uint64(EnvAuthArgon2Iterations, uint64(v.AuthArgon2Iterations)),
+		slog.Uint64(EnvAuthArgon2Parallelism, uint64(v.AuthArgon2Parallelism)),
+		slog.Uint64(EnvAuthArgon2SaltLength, uint64(v.AuthArgon2SaltLength)),
+		slog.Uint64(EnvAuthArgon2KeyLength, uint64(v.AuthArgon2KeyLength)),
+		slog.Int(EnvAuthHashConcurrency, v.AuthHashConcurrency),
+		slog.Duration(EnvAuthSessionIdleTimeout, v.AuthSessionIdleTimeout),
+		slog.Duration(EnvAuthSessionAbsoluteTimeout, v.AuthSessionAbsoluteTimeout),
+		slog.Duration(EnvAuthSessionTouchInterval, v.AuthSessionTouchInterval),
+		slog.Duration(EnvAuthSessionCleanupInterval, v.AuthSessionCleanupInterval),
+		slog.String(EnvAuthLoginIPLimit, v.AuthLoginIPLimit.String()),
+		slog.String(EnvAuthLoginAccountLimit, v.AuthLoginAccountLimit.String()),
+		slog.String(EnvAuthRegisterIPLimit, v.AuthRegisterIPLimit.String()),
 	}
 }
 
@@ -203,6 +363,38 @@ func getEnvInt(key string, defaultValue int) (int, error) {
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
 		return 0, fmt.Errorf("parse env %s: %w", key, err)
+	}
+	return value, nil
+}
+
+func getEnvUint32(key string, defaultValue uint32) (uint32, error) {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+	value, err := strconv.ParseUint(valueStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("parse env %s: %w", key, err)
+	}
+	return uint32(value), nil // #nosec G115 -- Parsed with a 32-bit limit.
+}
+
+func getEnvPositiveDuration(key string, defaultValue time.Duration) (time.Duration, error) {
+	value, err := getEnvDuration(key, defaultValue)
+	if err == nil && value <= 0 {
+		return 0, fmt.Errorf("parse env %s: must be positive", key)
+	}
+	return value, err
+}
+
+func getEnvLimit(key string, defaultValue ratelimit.Limit) (ratelimit.Limit, error) {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+	value, err := ratelimit.ParseLimit(valueStr)
+	if err != nil {
+		return ratelimit.Limit{}, fmt.Errorf("parse env %s: %w", key, err)
 	}
 	return value, nil
 }

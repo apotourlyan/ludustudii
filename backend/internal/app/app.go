@@ -22,6 +22,7 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/infra/logging"
 	"github.com/apotourlyan/ludustudii/internal/infra/rdb"
 	"github.com/apotourlyan/ludustudii/internal/infra/spa"
+	"github.com/apotourlyan/ludustudii/internal/services/identity"
 )
 
 // Run loads the environment and sets the default logger, loads the client app
@@ -82,17 +83,21 @@ func Run() (err error) {
 	}()
 
 	readiness := health.NewState(log, db)
-	handler := newHandler(log, parts{
+	s, err := newHandler(log, parts{
 		db:        db,
+		identity:  identityConfig(ev),
 		readiness: readiness,
 		clientApp: clientApp,
 		docs:      docs,
 	})
+	if err != nil {
+		return err
+	}
 
 	slog.Info("Starting HTTP server", "port", ev.AppPort)
 	return server.Run(&http.Server{
 		Addr:         net.JoinHostPort("", ev.AppPort),
-		Handler:      handler,
+		Handler:      s.handler,
 		ReadTimeout:  ev.AppReadTimeout,
 		WriteTimeout: ev.AppWriteTimeout,
 		IdleTimeout:  ev.AppIdleTimeout,
@@ -100,5 +105,24 @@ func Run() (err error) {
 		OnDrain:         readiness.MarkStopping,
 		DrainDelay:      ev.AppShutdownDrainDelay,
 		ShutdownTimeout: ev.AppShutdownTimeout,
+		Tasks:           s.tasks,
 	})
+}
+
+// identityConfig takes the identity service's part of the configuration, so
+// the API surface never sees the rest.
+func identityConfig(ev *env.Vars) identity.Config {
+	return identity.Config{
+		Password:        ev.PasswordParams(),
+		HashConcurrency: ev.AuthHashConcurrency,
+		Session: identity.SessionPolicy{
+			IdleTimeout:     ev.AuthSessionIdleTimeout,
+			AbsoluteTimeout: ev.AuthSessionAbsoluteTimeout,
+			TouchInterval:   ev.AuthSessionTouchInterval,
+		},
+		SessionCleanupInterval: ev.AuthSessionCleanupInterval,
+		LoginIPLimit:           ev.AuthLoginIPLimit,
+		LoginAccountLimit:      ev.AuthLoginAccountLimit,
+		RegisterIPLimit:        ev.AuthRegisterIPLimit,
+	}
 }

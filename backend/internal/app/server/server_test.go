@@ -5,6 +5,7 @@ package server
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -69,4 +70,37 @@ func TestShutdown_ServerError(t *testing.T) {
 	if !errors.Is(err, want) {
 		t.Fatalf("shutdown error: %v, want %v", err, want)
 	}
+}
+
+func TestStartTasks(t *testing.T) {
+	t.Parallel()
+
+	started := make(chan struct{}, 2)
+	var stopped atomic.Int32
+	task := func(ctx context.Context) {
+		started <- struct{}{}
+		<-ctx.Done()
+		time.Sleep(10 * time.Millisecond) // a task finishing its work
+		stopped.Add(1)
+	}
+	stop := startTasks([]func(context.Context){task, task})
+	for range 2 {
+		select {
+		case <-started:
+		case <-time.After(5 * time.Second):
+			t.Fatal("task didn't start")
+		}
+	}
+	if n := stopped.Load(); n != 0 {
+		t.Fatalf("tasks stopped before stop: %d", n)
+	}
+	stop()
+	if n := stopped.Load(); n != 2 {
+		t.Errorf("stop returned with %d of 2 tasks stopped", n)
+	}
+}
+
+func TestStartTasks_None(t *testing.T) {
+	t.Parallel()
+	startTasks(nil)()
 }

@@ -18,6 +18,8 @@ get:
       headers:
         X-Request-Id:
           $ref: '../components/headers.yml#/RequestId'
+        Cache-Control:
+          $ref: '../components/headers.yml#/CacheControlNoStore'
       content:
         application/json:
           schema:
@@ -65,6 +67,8 @@ post:
       headers:
         X-Request-Id:
           $ref: '../components/headers.yml#/RequestId'
+        Cache-Control:
+          $ref: '../components/headers.yml#/CacheControlNoStore'
         Location:
           description: Relative URL of the newly created card.
           required: true
@@ -77,6 +81,8 @@ post:
             $ref: '../components/schemas/lcard.yml#/CreatedLearningCard'
     '400':
       $ref: '../components/responses/errors.yml#/InvalidCreateInput'
+    '403':
+      $ref: '../components/responses/errors.yml#/CrossOriginRequest'
     '413':
       $ref: '../components/responses/errors.yml#/PayloadTooLarge'
     '415':

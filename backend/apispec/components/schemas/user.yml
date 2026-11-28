@@ -1,0 +1,68 @@
+UserId:
+  type: string
+  format: uuid
+  description: Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant.
+  pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  example: 019a0000-0000-7000-8000-0000000000aa
+Email:
+  type: string
+  minLength: 3
+  maxLength: 254
+  description: |
+    The account's email in canonical form: NFC, trimmed and lowercased, with
+    one @ and text on both sides. Length is counted in code points. It is
+    the login name, and it isn't verified.
+  example: armen@example.com
+RegisterRequest:
+  type: object
+  additionalProperties: false
+  description: |
+    Length constraints apply to the canonical form of each field, counted in
+    Unicode code points: the email NFC, trimmed and lowercased, the password
+    NFC only. Clients should validate that form; the server canonicalizes
+    before validating. Field errors: email reports required, max_length,
+    invalid_format or taken; password reports required, invalid_characters
+    (a control character or U+FFFD), min_length or max_length.
+  required: [email, password]
+  properties:
+    email:
+      type: string
+      minLength: 3
+      maxLength: 254
+      description: One @ with text on both sides. Must not belong to an account.
+      example: armen@example.com
+    password:
+      type: string
+      format: password
+      minLength: 15
+      maxLength: 128
+      description: Any printable characters, spaces included, from 15 to 128 code points. Kept as typed apart from NFC.
+      example: correct horse battery staple
+LoginRequest:
+  type: object
+  additionalProperties: false
+  description: |
+    Field errors: email and password report required or max_length.
+  required: [email, password]
+  properties:
+    email:
+      type: string
+      minLength: 1
+      maxLength: 254
+      example: armen@example.com
+    password:
+      type: string
+      format: password
+      minLength: 1
+      maxLength: 128
+      description: Checked only for being present and at most 128 code points, so a stricter rule for new passwords never locks out an account.
+      example: correct horse battery staple
+User:
+  type: object
+  additionalProperties: false
+  required: [id, email]
+  properties:
+    id:
+      $ref: '#/UserId'
+    email:
+      $ref: '#/Email'

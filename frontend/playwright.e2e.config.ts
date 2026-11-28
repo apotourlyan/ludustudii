@@ -32,6 +32,13 @@ export default defineConfig(baseConfig("e2e"), {
       APP_API_DOCS: "false",
       LOG_LEVEL: "error",
       LOG_FORMAT: "text",
+      // Cheap hashing, and limits no run reaches: every test registers
+      // and logs in from the same address (ADR 0048).
+      AUTH_ARGON2_MEMORY: "64",
+      AUTH_ARGON2_ITERATIONS: "1",
+      AUTH_LOGIN_IP_LIMIT: "100000/1m",
+      AUTH_LOGIN_ACCOUNT_LIMIT: "100000/1m",
+      AUTH_REGISTER_IP_LIMIT: "100000/1m",
     },
     // The server logs to stdout. At LOG_LEVEL=error, the expected 404s stay
     // quiet and only failures, 5xx responses among them, show in the output.

@@ -235,6 +235,50 @@ func TestRequired(t *testing.T) {
 	}
 }
 
+func TestMinLength(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		val      string
+		min      int
+		wantCode string
+	}{
+		{name: "at min", val: "abcde", min: 5},
+		{name: "over min", val: "abcdef", min: 5},
+		{name: "at min multi-byte", val: strings.Repeat("\u00E9", 5), min: 5},
+		{name: "empty", val: "", min: 5, wantCode: CodeMinLength},
+		{name: "under min", val: "abcd", min: 5, wantCode: CodeMinLength},
+		// Five bytes, but only three runes.
+		{name: "under min multi-byte", val: "a\u00E9\u00E9", min: 5, wantCode: CodeMinLength},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := MinLength("field", tt.val, tt.min)
+			if tt.wantCode == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+
+			fe, ok := errors.AsType[*FieldError](err)
+			if !ok {
+				t.Fatalf("error: got %v, want *FieldError", err)
+			}
+			if fe.Field != "field" || fe.Code != tt.wantCode {
+				t.Errorf("field error: got %s/%s, want field/%s", fe.Field, fe.Code, tt.wantCode)
+			}
+			if !errors.Is(err, ErrMinLength) {
+				t.Errorf("err: got %v, want %v", err, ErrMinLength)
+			}
+		})
+	}
+}
+
 func TestMaxLength(t *testing.T) {
 	t.Parallel()
 

@@ -17,7 +17,7 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-	for _, p := range []string{"/api/lcards", "/api/lcards/{id}", "/livez", "/readyz"} {
+	for _, p := range []string{"/api/lcards", "/api/lcards/{id}", "/api/users", "/api/users/me", "/api/sessions", "/api/sessions/current", "/livez", "/readyz"} {
 		if doc.Paths.Value(p) == nil {
 			t.Errorf("path %s not documented", p)
 		}

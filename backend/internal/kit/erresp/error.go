@@ -8,9 +8,13 @@ import (
 // Machine-readable error codes sent in ErrorResponse.Code.
 const (
 	CodeBinding              = "bind_error"
+	CodeCrossOriginRequest   = "cross_origin_request"
+	CodeInvalidCredentials   = "invalid_credentials" // #nosec G101 -- An error code, not a credential.
 	CodeMethodNotAllowed     = "method_not_allowed"
 	CodeNotFound             = "not_found"
 	CodePayloadTooLarge      = "payload_too_large"
+	CodeTooManyRequests      = "too_many_requests"
+	CodeUnauthenticated      = "unauthenticated"
 	CodeUnexpected           = "unexpected_error"
 	CodeValidation           = "validation_error"
 	CodeUnsupportedMediaType = "unsupported_media_type"
@@ -38,6 +42,22 @@ func Binding() ErrorResponse {
 	}
 }
 
+// CrossOriginRequest returns the response for an unsafe request that another
+// origin sent.
+func CrossOriginRequest() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeCrossOriginRequest,
+	}
+}
+
+// InvalidCredentials returns the response for a failed login, whatever the
+// reason.
+func InvalidCredentials() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeInvalidCredentials,
+	}
+}
+
 // MethodNotAllowed returns the response for a method the route does not support.
 func MethodNotAllowed() ErrorResponse {
 	return ErrorResponse{
@@ -56,6 +76,21 @@ func NotFound() ErrorResponse {
 func PayloadTooLarge() ErrorResponse {
 	return ErrorResponse{
 		Code: CodePayloadTooLarge,
+	}
+}
+
+// TooManyRequests returns the response for a request over a rate limit.
+func TooManyRequests() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeTooManyRequests,
+	}
+}
+
+// Unauthenticated returns the response for a request that needs a session
+// and carries none that is valid.
+func Unauthenticated() ErrorResponse {
+	return ErrorResponse{
+		Code: CodeUnauthenticated,
 	}
 }
 

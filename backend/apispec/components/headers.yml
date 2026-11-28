@@ -7,8 +7,41 @@ RequestId:
     maxLength: 128
     pattern: '^[A-Za-z0-9._-]+$'
 CacheControlNoStore:
-  description: Probe responses must not be cached.
+  description: The response must not be cached. Every /api response depends on who asks, and probe responses on the moment.
   required: true
   schema:
     type: string
     enum: [no-store]
+CacheControlNoStoreUnlessEarly:
+  description: |
+    The response must not be cached. Sent by the API, so it is missing when the
+    shared front rejects a declared oversized body before the API sees it; a
+    413 isn't cacheable by default either.
+  schema:
+    type: string
+    enum: [no-store]
+SetSessionCookie:
+  description: |
+    The new session's cookie: __Host-session=<token>; Path=/; Max-Age=<the
+    absolute session limit in seconds>; HttpOnly; Secure; SameSite=Lax. The
+    token is 32 random bytes in base64url without padding; it appears nowhere
+    else, and script can't read it.
+  required: true
+  schema:
+    type: string
+    pattern: '^__Host-session=[A-Za-z0-9_-]{43};'
+    example: __Host-session=q3Vb1x0tF6m8E3pO5yZr2HcL9wKdN7aJ4sGuViT0eXk; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax
+ExpireSessionCookie:
+  description: Expires the session cookie, whether or not the request carried one.
+  required: true
+  schema:
+    type: string
+    pattern: '^__Host-session=;.*Max-Age=0'
+    example: __Host-session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+RetryAfter:
+  description: Whole seconds, rounded up, until the limit allows another request.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+    example: 42

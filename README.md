@@ -41,8 +41,16 @@ backend/
     │   ├── router/        # shared HTTP front: root mux, middleware chain, central error handler
     │   └── server/        # process lifecycle: serve, drain, graceful shutdown
     ├── infra/             # env, health (probes), logging, rdb (Postgres), spa (client app), apidocs
-    ├── kit/               # helpers independent of app and infra: erresp, validator, sanitizer, staticfile, httpkit
+    ├── kit/               # helpers independent of app and infra: erresp, validator, sanitizer, staticfile,
+    │                      # httpkit, authn (the request's user), password (argon2id), ratelimit
     ├── services/
+    │   ├── identity/      # accounts and sessions: one subpackage per endpoint
+    │   │   ├── domain/    # shared rules, limits and configuration
+    │   │   ├── sessions/  # session tokens, cookie, authentication middleware, session store
+    │   │   ├── register/  # handler.go + store.go
+    │   │   ├── login/
+    │   │   ├── logout/    # handler.go only: it uses the session store
+    │   │   └── me/
     │   └── lcards/        # learning cards: one subpackage per endpoint
     │       ├── domain/    # shared rules, limits and constants
     │       ├── create/    # handler.go + store.go
@@ -50,7 +58,7 @@ backend/
     │       ├── list/
     │       ├── update/
     │       └── remove/
-    └── testkit/           # test-only helpers: isolated DBs, HTTP client, OpenAPI checks
+    └── testkit/           # test-only helpers: isolated DBs, HTTP client, OpenAPI checks, test users
 ```
 
 Each endpoint is a vertical slice with its own `Handler` and `Store`. A handler
@@ -61,6 +69,11 @@ Stores contain no inline SQL strings. Package boundaries are enforced by `depgua
 
 - `kit` must not import `infra`, `services` or `app`.
 - `services` must not import `infra` or `app`.
+- A service must not import another service, including from its tests
+  ([ADR 0001](docs/adr/0001-single-binary-services-as-packages.md)). Services
+  read the authenticated user through `kit/authn`, never through `identity`.
+- Only `kit/password` imports `golang.org/x/crypto`, and only `kit/ratelimit`
+  imports `golang.org/x/time`.
 - `app/router` and `app/server` must not import the rest of `app`, `services`,
   any surface (`health`, `spa`, `apidocs`) or `rdb`, including from their tests.
 - The surfaces (`app/api`, `health`, `spa`, `apidocs`) must not import the rest
@@ -75,7 +88,7 @@ patterns on one root `http.ServeMux` and needs only its own dependencies:
 | Surface | Patterns | Built by | Needs |
 | --- | --- | --- | --- |
 | Probes | `/livez`, `/readyz` | `health.NewProbes` | readiness state |
-| API | `/api`, `/api/` | `api.New` (`internal/app/api`) | database |
+| API | `/api`, `/api/` | `api.New` (`internal/app/api`) | database, `identity.Config` |
 | API reference | `GET /docs`, `GET /docs/{$}`, `GET /docs/openapi.json`, `GET /docs/scalar.js` | `apidocs.NewHandler`, only when enabled | embedded files |
 | Client app | `/` (catch-all) | `spa.NewHandler` | embedded files |
 
@@ -87,9 +100,14 @@ Every surface reports errors to the same `router.ErrorHandler`.
 
 `internal/app` is the composition root and the only package that knows every
 surface. `app.Run` loads the configuration, the client app, the optional
-reference and the database. `newHandler` (`internal/app/handler.go`) builds the
-surfaces and mounts them, and `server.Run` owns the process lifecycle:
-serving, draining and graceful shutdown. Tests compose only the surfaces they
+reference and the database, and takes the identity service's part of the
+configuration (`identity.Config`) for the API surface. `newHandler`
+(`internal/app/handler.go`) builds the surfaces and mounts them, and
+`server.Run` owns the process lifecycle: serving, draining and graceful
+shutdown. A surface's background work, such as the API's hourly deletion of
+expired sessions, is a function of a context (`api.Surface.Tasks`), which
+`server.Run` runs from before it listens until the server has stopped
+(`server.Options.Tasks`), knowing nothing of what it does. Tests compose only the surfaces they
 need. Service API tests mount the API surface alone, for example. A future
 binary that serves a subset of the surfaces needs a new composition root, not
 changes to the surfaces ([ADR 0001](docs/adr/0001-single-binary-services-as-packages.md)).
@@ -136,8 +154,8 @@ before routing, such as a `413` for a declared body over the limit.
 Handlers return failures to the app's central error handler, which writes the
 shared JSON error shape. `httpkit` request errors retain their causes and named
 responses; `kit.ErrNotFound` maps to 404.
-Status errors carry their own status and response body and are logged at debug
-level. All other errors are logged at error level and returned as a generic 500.
+Status errors carry their own status, response body and any headers, such as
+`Retry-After`, and are logged at debug level. All other errors are logged at error level and returned as a generic 500.
 Handler function fields remain the seams for isolating binding and validation
 in unit tests.
 
@@ -149,6 +167,10 @@ through `log/slog` (`fmt.Print*` and `log.*` are forbidden by the linter).
 
 | Method | Path | Description | Success |
 | --- | --- | --- | --- |
+| `POST` | `/api/users` | Register, which also logs in | `201` + `Location` + session cookie |
+| `GET` | `/api/users/me` | Get the current user (needs a session) | `200` |
+| `POST` | `/api/sessions` | Log in | `201` + `Location` + session cookie |
+| `DELETE` | `/api/sessions/current` | Log out, with or without a session | `204` + expired cookie |
 | `GET` | `/api/lcards` | List cards, newest first, keyset-paginated | `200` |
 | `POST` | `/api/lcards` | Create a card | `201` + `Location` header |
 | `GET` | `/api/lcards/{id}` | Get a card | `200` |
@@ -170,7 +192,9 @@ is the source of truth; the notes below summarize it.
   body with either timestamp gets `400 bind_error`, like any unknown field.
 - **Input** strings are normalized to Unicode NFC and trimmed before
   validation. Title is 1–200 and description 1–2000 code points; the database
-  enforces the same limits with `CHECK` constraints.
+  enforces the same limits with `CHECK` constraints. Emails are also
+  lowercased; passwords are normalized to NFC but never trimmed
+  ([Accounts and sessions](#accounts-and-sessions)).
 - **IDs** are hyphenated UUIDv7, accepted in any letter case.
 - **Concurrency**: the last write wins
   ([ADR 0039](docs/adr/0039-last-write-wins-for-user-edited-resources.md)).
@@ -204,15 +228,69 @@ is the source of truth; the notes below summarize it.
   | --- | --- | --- |
   | `bind_error` | 400 | Body could not be decoded |
   | `validation_error` | 400 | A body field, path parameter or query parameter failed validation |
+  | `unauthenticated` | 401 | The route needs a session, and the request carries no valid one |
+  | `invalid_credentials` | 401 | Login failed: unknown email or wrong password, never saying which |
+  | `cross_origin_request` | 403 | An unsafe method (POST, PUT, PATCH, DELETE) sent by a browser from another origin |
   | `not_found` | 404 | Unknown card or unknown `/api` path |
   | `method_not_allowed` | 405 | Unsupported method, with an `Allow` header |
   | `payload_too_large` | 413 | Body over 1 MiB |
   | `unsupported_media_type` | 415 | Body is not `application/json` |
+  | `too_many_requests` | 429 | Over a login or registration limit, with `Retry-After` in whole seconds, rounded up |
   | `unexpected_error` | 500 | Server-side failure; details are only logged |
 
-  Field error codes: `required`, `max_length`, `untrimmed`, `not_normalized`,
-  `invalid_integer`, `out_of_range`, `invalid_uuid7` (invalid path ID),
-  `invalid_cursor` (invalid pagination token).
+  Field error codes: `required`, `min_length`, `max_length`, `untrimmed`,
+  `not_normalized`, `invalid_integer`, `out_of_range`, `invalid_uuid7`
+  (invalid path ID), `invalid_cursor` (invalid pagination token),
+  `invalid_format` (an email without exactly one `@` with text on both
+  sides), `invalid_characters` (a password with a control character or
+  U+FFFD), `taken` (an email that has an account).
+- **Caching**: every `/api` response is `Cache-Control: no-store`, since it
+  depends on who asks. The API surface sets it in one place; a `413` that
+  the shared front sends for a declared oversized body, before the API sees
+  the request, is the exception.
+
+#### Accounts and sessions
+
+The `identity` service owns accounts and sessions
+([ADR 0046](docs/adr/0046-accounts-and-passwords.md),
+[ADR 0047](docs/adr/0047-cookie-sessions-and-cross-site-request-protection.md),
+[ADR 0048](docs/adr/0048-request-limits-for-login-and-registration.md)).
+The learning cards don't require a session yet.
+
+- **Accounts**: the email is the login name, stored NFC, trimmed and
+  lowercased under a unique constraint, at most 254 code points, with one
+  `@` and text on both sides. Passwords are 15–128 code points, any
+  printable characters, spaces included; they are normalized to NFC, never
+  trimmed, and stored as argon2id hashes in the PHC format. Login checks only
+  that a password is present and at most 128 code points. A login whose hash
+  has outdated parameters rehashes the password.
+- **The session cookie** is `__Host-session`: `HttpOnly; Secure;
+  SameSite=Lax; Path=/`, with `Max-Age` the absolute session limit. Its
+  value, 32 random bytes in base64url without padding, appears in no
+  response body; the database keeps its SHA-256. Registration and login set
+  it, logout expires it. A login deletes the session its request carried.
+- **Expiry**: a session expires 7 days after its last use, and 30 days after
+  its creation at the latest. The last use is written at most once a minute.
+  Expired sessions are deleted every hour.
+- **Authentication**: middleware resolves the cookie on every API route and
+  puts the user's ID in the request context; a missing, unknown or expired
+  session leaves the request anonymous. A route that needs a user is wrapped
+  in `authn.Require` and answers `401 unauthenticated` without one. A failed
+  login is `401 invalid_credentials`. Neither sends `WWW-Authenticate`.
+- **Cross-origin requests**: `http.CrossOriginProtection` answers an unsafe
+  method that a browser sent from another origin (by `Sec-Fetch-Site`, or
+  `Origin` against `Host`) with `403 cross_origin_request`. Requests without
+  either header, such as `curl`'s, pass. The API sends no CORS headers.
+- **Limits**: login is limited per client IP and failed logins per account
+  (the canonical email, checked before the password is), registration per
+  client IP. A limited request gets `429 too_many_requests` with
+  `Retry-After`; no account is ever locked. The client IP is the
+  connection's address: `X-Forwarded-For` is ignored until a list of trusted
+  proxies exists, so a deployment behind a proxy needs one first. The
+  counters live in memory, per instance.
+- **Logs** never hold a password, a token, the `Cookie` or `Set-Cookie`
+  header, or a request body: the request log records the method, route,
+  path, status and latency only.
 
 ### Probes
 
@@ -282,10 +360,29 @@ required ones.
 | `APP_API_DOCS` | `false` | Serve the API reference at `/docs` (`make dev` sets `true`) |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
 | `LOG_FORMAT` | `json` | `json` or `text` |
+| `AUTH_ARGON2_MEMORY` | `19456` | argon2id memory in KiB, from 8 per lane to 4194304 |
+| `AUTH_ARGON2_ITERATIONS` | `2` | argon2id iterations, 1–1024 |
+| `AUTH_ARGON2_PARALLELISM` | `1` | argon2id lanes, 1–255 |
+| `AUTH_ARGON2_SALT_LENGTH` | `16` | Salt bytes, 8–64 |
+| `AUTH_ARGON2_KEY_LENGTH` | `32` | Hash bytes, 16–64 |
+| `AUTH_HASH_CONCURRENCY` | number of CPUs | Password hashes computed at once; more wait |
+| `AUTH_SESSION_IDLE_TIMEOUT` | `168h` | A session expires this long after its last use |
+| `AUTH_SESSION_ABSOLUTE_TIMEOUT` | `720h` | ...and this long after its creation at the latest; also the cookie's `Max-Age` |
+| `AUTH_SESSION_TOUCH_INTERVAL` | `1m` | How often a session's last use is written, at most |
+| `AUTH_SESSION_CLEANUP_INTERVAL` | `1h` | How often expired sessions are deleted |
+| `AUTH_LOGIN_IP_LIMIT` | `10/1m` | Logins per client IP |
+| `AUTH_LOGIN_ACCOUNT_LIMIT` | `5/15m` | Failed logins per account |
+| `AUTH_REGISTER_IP_LIMIT` | `5/1h` | Registrations per client IP |
 | `DB_TEST_CONNECTION` | — | Test-only: server and role used by integration tests (needs `CREATEDB`) |
 
-Durations use Go's `time.ParseDuration` syntax. The connection string is
-logged at startup with its password redacted.
+Durations use Go's `time.ParseDuration` syntax, which has no days: 7 days is
+`168h`. A limit is `<count>/<duration>`: a bucket of `count` requests that
+refills over `duration`, so `10/1m` allows a burst of 10 and one more every
+6 seconds. The defaults are production values; the devcontainer, the
+end-to-end tests (`frontend/playwright.e2e.config.ts`) and `testkit`
+(`testkit.IdentityConfig`) set cheap hashing and generous limits, and tests
+of a limit set low ones. The connection string is logged at startup with its
+password redacted.
 
 ## Client app
 
@@ -1239,7 +1336,14 @@ func TestMain(m *testing.M) {
 
 Every response received through `testkit.Do` is validated against the OpenAPI
 spec (status, headers and body schema), so the implementation and the spec
-can't drift apart unnoticed.
+can't drift apart unnoticed. `DoOpts.Cookies` sends cookies, and
+`Response.Cookie` reads the ones a response set. `testkit.NewUser`
+registers a user with a unique email through the API and returns it with its
+session cookie; `testkit.IdentityConfig` is the identity configuration for
+tests. Two tests in `internal/app` read the operations from the spec instead
+of listing routes: every operation whose security requires `sessionCookie`
+answers `401 unauthenticated` without a cookie, and every POST, PUT, PATCH
+and DELETE answers `403 cross_origin_request` to a cross-site request.
 
 #### Frontend unit tests
 

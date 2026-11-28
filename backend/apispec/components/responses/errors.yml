@@ -3,6 +3,8 @@ InvalidQuery:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -20,6 +22,8 @@ InvalidCreateInput:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -45,6 +49,8 @@ InvalidReplaceInput:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -72,6 +78,8 @@ InvalidCardId:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -86,6 +94,8 @@ NotFound:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -97,6 +107,8 @@ PayloadTooLarge:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStoreUnlessEarly'
   content:
     application/json:
       schema:
@@ -108,6 +120,8 @@ UnsupportedMediaType:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
@@ -119,9 +133,136 @@ UnexpectedError:
   headers:
     X-Request-Id:
       $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
   content:
     application/json:
       schema:
         $ref: '../schemas/errors.yml#/ErrorResponse'
       example:
         code: unexpected_error
+
+InvalidRegistrationInput:
+  description: |
+    Malformed JSON, incompatible JSON types and unknown fields return
+    bind_error. Empty bodies and invalid field values return
+    validation_error: email reports required, max_length, invalid_format or
+    taken (an account has the email); password reports required,
+    invalid_characters, min_length or max_length.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      examples:
+        binding:
+          value:
+            code: bind_error
+        taken:
+          value:
+            code: validation_error
+            errors:
+              - field: email
+                code: taken
+        validation:
+          value:
+            code: validation_error
+            errors:
+              - field: email
+                code: invalid_format
+              - field: password
+                code: min_length
+InvalidLoginInput:
+  description: |
+    Malformed JSON, incompatible JSON types and unknown fields return
+    bind_error. A missing or overlong email or password returns
+    validation_error with required or max_length.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      examples:
+        binding:
+          value:
+            code: bind_error
+        validation:
+          value:
+            code: validation_error
+            errors:
+              - field: password
+                code: required
+Unauthenticated:
+  description: |
+    The request carries no valid session: no session cookie, or one whose
+    session is unknown, ended or expired. No WWW-Authenticate header is sent:
+    cookie sessions have no registered scheme.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: unauthenticated
+InvalidCredentials:
+  description: |
+    The email has no account or the password is wrong; the response doesn't
+    say which. Counts as a failed login for the email's per-account limit.
+    No WWW-Authenticate header is sent.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: invalid_credentials
+CrossOriginRequest:
+  description: |
+    A browser sent this unsafe request (POST, PUT, PATCH or DELETE) from
+    another origin, as Sec-Fetch-Site or Origin shows. Requests from the
+    client app's own origin and from non-browser clients pass.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: cross_origin_request
+TooManyRequests:
+  description: |
+    The request is over a rate limit: per client IP, or for login also per
+    account (counting failed logins). Limits slow requests down and clear with
+    time; no account is locked.
+  headers:
+    X-Request-Id:
+      $ref: '../headers.yml#/RequestId'
+    Cache-Control:
+      $ref: '../headers.yml#/CacheControlNoStore'
+    Retry-After:
+      $ref: '../headers.yml#/RetryAfter'
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/errors.yml#/ErrorResponse'
+      example:
+        code: too_many_requests

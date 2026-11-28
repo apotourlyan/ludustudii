@@ -133,3 +133,26 @@ func BodyLimit(limit int64, onError ErrorHandler) Middleware {
 		})
 	}
 }
+
+// NoStore sets Cache-Control: no-store on every response, before next runs.
+func NoStore() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// CrossOriginProtection rejects unsafe requests (any method but GET, HEAD and
+// OPTIONS) that a browser sent from another origin, as judged by
+// http.CrossOriginProtection from Sec-Fetch-Site or Origin, reporting
+// ErrCrossOriginRequest to onError. Requests without either header, such as
+// those of non-browser clients, pass. No origin is trusted.
+func CrossOriginProtection(onError ErrorHandler) Middleware {
+	protection := http.NewCrossOriginProtection()
+	protection.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		onError(w, r, ErrCrossOriginRequest)
+	}))
+	return protection.Handler
+}

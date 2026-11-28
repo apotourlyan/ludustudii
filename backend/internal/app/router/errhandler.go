@@ -3,14 +3,15 @@ package router
 import (
 	"errors"
 	"log/slog"
+	"maps"
 	"net/http"
 
 	"github.com/apotourlyan/ludustudii/internal/kit"
 	"github.com/apotourlyan/ludustudii/internal/kit/httpkit"
 )
 
-// httpErrorHandler sends status errors as supplied and logs unexpected errors
-// before returning a generic 500. HEAD responses omit the body and committed
+// httpErrorHandler sends status errors as supplied, with their headers, and
+// logs unexpected errors before returning a generic 500. HEAD responses omit the body and committed
 // responses are left alone.
 func httpErrorHandler(log *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
 	if httpkit.IsCommitted(w) {
@@ -25,6 +26,7 @@ func httpErrorHandler(log *slog.Logger, w http.ResponseWriter, r *http.Request, 
 		log.DebugContext(r.Context(), "Request failed", "error", err, "method", r.Method, "path", r.URL.Path)
 	}
 
+	maps.Copy(w.Header(), se.Header)
 	if r.Method == http.MethodHead {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(se.Code)

@@ -9,6 +9,7 @@ var (
 	ErrNormalized   = errors.New("is not normalized")
 	ErrRequired     = errors.New("is required")
 	ErrMaxLength    = errors.New("exceeds maximum length")
+	ErrMinLength    = errors.New("is below minimum length")
 	ErrOutOfRange   = errors.New("is out of range")
 )
 

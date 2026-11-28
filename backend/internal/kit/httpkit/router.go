@@ -10,17 +10,22 @@ import "net/http"
 type API struct {
 	mux     *http.ServeMux
 	onError ErrorHandler
+	route   Middleware
 }
 
 // NewAPI returns an API with an empty mux that reports errors to onError.
-func NewAPI(onError ErrorHandler) *API {
-	return &API{mux: http.NewServeMux(), onError: onError}
+// Every route runs behind routeMiddleware, in order, after the mux has
+// matched it, so a middleware that passes on a new request, such as one with
+// a richer context, keeps the route's pattern on the request that request
+// logging reads. Unmatched requests don't run it.
+func NewAPI(onError ErrorHandler, routeMiddleware ...Middleware) *API {
+	return &API{mux: http.NewServeMux(), onError: onError, route: Chain(routeMiddleware...)}
 }
 
 // HandleFunc registers h for an http.ServeMux pattern, routing its errors to
 // the API's ErrorHandler. A GET pattern also serves HEAD.
 func (a *API) HandleFunc(pattern string, h HandlerFunc) {
-	a.mux.Handle(pattern, Adapt(h, a.onError))
+	a.mux.Handle(pattern, a.route(Adapt(h, a.onError)))
 }
 
 // ServeHTTP dispatches the request through the mux, which sets the matched

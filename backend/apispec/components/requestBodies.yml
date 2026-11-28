@@ -13,3 +13,31 @@ LearningCardInput:
       example:
         title: OpenAPI
         description: A specification for describing HTTP APIs.
+RegisterRequest:
+  required: true
+  description: |
+    The new account's email and password. The email is normalized to NFC,
+    trimmed and lowercased; the password is normalized to NFC but never
+    trimmed. Omitted or null fields are treated as empty and fail validation.
+    Unknown JSON properties are rejected with bind_error.
+  content:
+    application/json:
+      schema:
+        $ref: 'schemas/user.yml#/RegisterRequest'
+      example:
+        email: armen@example.com
+        password: correct horse battery staple
+LoginRequest:
+  required: true
+  description: |
+    The account's email and password, canonicalized as at registration. Only
+    their presence and maximum lengths are validated; anything else that
+    doesn't match an account is invalid_credentials. Unknown JSON properties
+    are rejected with bind_error.
+  content:
+    application/json:
+      schema:
+        $ref: 'schemas/user.yml#/LoginRequest'
+      example:
+        email: armen@example.com
+        password: correct horse battery staple

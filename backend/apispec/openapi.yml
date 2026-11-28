@@ -6,14 +6,33 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   description: |
-    Backend API for managing learning cards. No authentication is required.
+    Backend API for accounts, sessions and learning cards.
+
+    Sessions are carried in the __Host-session cookie (HttpOnly, Secure,
+    SameSite=Lax, Path=/), which registration (POST /api/users) and login
+    (POST /api/sessions) set and logout (DELETE /api/sessions/current)
+    expires. The token never appears in a response body. An operation whose
+    security lists sessionCookie needs a valid session and answers 401 with
+    code unauthenticated without one; a failed login answers 401 with code
+    invalid_credentials. Neither sends WWW-Authenticate, since cookie
+    sessions have no registered scheme. The learning card operations don't
+    require a session yet.
+
+    Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
+    another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
+    cross_origin_request. Login and registration are rate limited and
+    answer 429 with code too_many_requests and Retry-After when over a
+    limit. No /api response may be cached: every one carries
+    Cache-Control: no-store.
 
     Requests with JSON bodies must use Content-Type: application/json
     (type and subtype are case-insensitive; media-type parameters are accepted).
     Other or missing Content-Types on a
-    nonempty body return 415 with code unsupported_media_type. Titles and descriptions are normalized
-    to Unicode NFC and trimmed before validation and storage. Length limits
-    count Unicode code points after this sanitization.
+    nonempty body return 415 with code unsupported_media_type. Titles,
+    descriptions and emails are normalized to Unicode NFC and trimmed
+    before validation and storage, and emails are lowercased; passwords are
+    normalized to NFC but never trimmed. Length limits count Unicode code
+    points after this sanitization.
 
     Request bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies
     return 413 with code payload_too_large, whether the size is declared in
@@ -30,6 +49,8 @@ servers:
     description: Current backend origin
 security: []
 tags:
+  - name: Identity
+    description: Register, log in and out, and read the current user.
   - name: Learning cards
     description: Create, read, replace, and delete learning cards.
   - name: Operations
@@ -39,11 +60,27 @@ paths:
     $ref: './paths/livez.yml'
   /readyz:
     $ref: './paths/readyz.yml'
+  /api/users:
+    $ref: './paths/users.yml#/users'
+  /api/users/me:
+    $ref: './paths/users.yml#/me'
+  /api/sessions:
+    $ref: './paths/sessions.yml#/sessions'
+  /api/sessions/current:
+    $ref: './paths/sessions.yml#/current'
   /api/lcards:
     $ref: './paths/lcards.yml'
   /api/lcards/{id}:
     $ref: './paths/lcard_by_id.yml'
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-session
+      description: |
+        The session token that registration and login set. The browser sends
+        it; script can't read it.
   parameters:
     CardId:
       $ref: './components/parameters.yml#/CardId'
@@ -56,11 +93,23 @@ components:
   headers:
     CacheControlNoStore:
       $ref: './components/headers.yml#/CacheControlNoStore'
+    CacheControlNoStoreUnlessEarly:
+      $ref: './components/headers.yml#/CacheControlNoStoreUnlessEarly'
     RequestId:
       $ref: './components/headers.yml#/RequestId'
+    SetSessionCookie:
+      $ref: './components/headers.yml#/SetSessionCookie'
+    ExpireSessionCookie:
+      $ref: './components/headers.yml#/ExpireSessionCookie'
+    RetryAfter:
+      $ref: './components/headers.yml#/RetryAfter'
   requestBodies:
     LearningCardInput:
       $ref: './components/requestBodies.yml#/LearningCardInput'
+    RegisterRequest:
+      $ref: './components/requestBodies.yml#/RegisterRequest'
+    LoginRequest:
+      $ref: './components/requestBodies.yml#/LoginRequest'
   schemas:
     ProbeStatus:
       $ref: './components/schemas/probe.yml#/ProbeStatus'
@@ -74,6 +123,20 @@ components:
       $ref: './components/schemas/lcard.yml#/CreatedLearningCard'
     LearningCardPage:
       $ref: './components/schemas/lcard.yml#/LearningCardPage'
+    UserId:
+      $ref: './components/schemas/user.yml#/UserId'
+    Email:
+      $ref: './components/schemas/user.yml#/Email'
+    RegisterRequest:
+      $ref: './components/schemas/user.yml#/RegisterRequest'
+    LoginRequest:
+      $ref: './components/schemas/user.yml#/LoginRequest'
+    User:
+      $ref: './components/schemas/user.yml#/User'
+    SessionId:
+      $ref: './components/schemas/session.yml#/SessionId'
+    Session:
+      $ref: './components/schemas/session.yml#/Session'
     ErrorResponse:
       $ref: './components/schemas/errors.yml#/ErrorResponse'
     FieldError:
@@ -95,6 +158,18 @@ components:
       $ref: './components/responses/errors.yml#/InvalidReplaceInput'
     InvalidCardId:
       $ref: './components/responses/errors.yml#/InvalidCardId'
+    InvalidRegistrationInput:
+      $ref: './components/responses/errors.yml#/InvalidRegistrationInput'
+    InvalidLoginInput:
+      $ref: './components/responses/errors.yml#/InvalidLoginInput'
+    Unauthenticated:
+      $ref: './components/responses/errors.yml#/Unauthenticated'
+    InvalidCredentials:
+      $ref: './components/responses/errors.yml#/InvalidCredentials'
+    CrossOriginRequest:
+      $ref: './components/responses/errors.yml#/CrossOriginRequest'
+    TooManyRequests:
+      $ref: './components/responses/errors.yml#/TooManyRequests'
     NotFound:
       $ref: './components/responses/errors.yml#/NotFound'
     PayloadTooLarge:
@@ -109,6 +184,8 @@ components:
       $ref: './components/responses/head.yml#/HeadInvalidInput'
     HeadNotFound:
       $ref: './components/responses/head.yml#/HeadNotFound'
+    HeadUnauthenticated:
+      $ref: './components/responses/head.yml#/HeadUnauthenticated'
     HeadPayloadTooLarge:
       $ref: './components/responses/head.yml#/HeadPayloadTooLarge'
     HeadUnexpectedError:

@@ -38,3 +38,29 @@ func TestString(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalize(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		val  string
+		want string
+	}{
+		{name: "empty", val: "", want: ""},
+		{name: "spaces kept", val: "  pass word  ", want: "  pass word  "},
+		{name: "whitespace only kept", val: " \t\n ", want: " \t\n "},
+		{name: "precomposed kept", val: "Caf\u00E9", want: "Caf\u00E9"},
+		{name: "decomposed composed", val: " Cafe\u0301 ", want: " Caf\u00E9 "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := Normalize(tt.val); got != tt.want {
+				t.Errorf("Normalize(%q): got %q, want %q", tt.val, got, tt.want)
+			}
+		})
+	}
+}

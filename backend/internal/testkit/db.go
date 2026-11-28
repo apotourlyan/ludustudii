@@ -18,7 +18,9 @@ import (
 // PostgreSQL SQLSTATE codes for use with AssertPgCode.
 const (
 	PgCodeCheckViolation            = "23514"
+	PgCodeForeignKeyViolation       = "23503"
 	PgCodeInvalidTextRepresentation = "22P02"
+	PgCodeUniqueViolation           = "23505"
 )
 
 var getTemplate func() (*Template, error)

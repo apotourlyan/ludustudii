@@ -11,6 +11,8 @@ get:
       headers:
         X-Request-Id:
           $ref: '../components/headers.yml#/RequestId'
+        Cache-Control:
+          $ref: '../components/headers.yml#/CacheControlNoStore'
       content:
         application/json:
           schema:
@@ -52,10 +54,14 @@ put:
       headers:
         X-Request-Id:
           $ref: '../components/headers.yml#/RequestId'
+        Cache-Control:
+          $ref: '../components/headers.yml#/CacheControlNoStore'
     '400':
       $ref: '../components/responses/errors.yml#/InvalidReplaceInput'
     '404':
       $ref: '../components/responses/errors.yml#/NotFound'
+    '403':
+      $ref: '../components/responses/errors.yml#/CrossOriginRequest'
     '413':
       $ref: '../components/responses/errors.yml#/PayloadTooLarge'
     '415':
@@ -72,10 +78,14 @@ delete:
       headers:
         X-Request-Id:
           $ref: '../components/headers.yml#/RequestId'
+        Cache-Control:
+          $ref: '../components/headers.yml#/CacheControlNoStore'
     '400':
       $ref: '../components/responses/errors.yml#/InvalidCardId'
     '404':
       $ref: '../components/responses/errors.yml#/NotFound'
+    '403':
+      $ref: '../components/responses/errors.yml#/CrossOriginRequest'
     '413':
       $ref: '../components/responses/errors.yml#/PayloadTooLarge'
     '500':

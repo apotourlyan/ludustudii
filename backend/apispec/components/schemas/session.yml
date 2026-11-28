@@ -1,0 +1,26 @@
+SessionId:
+  type: string
+  format: uuid
+  description: |
+    Canonical lowercase, hyphenated UUIDv7 with the RFC 9562 variant. It names
+    the session; only the token in the session cookie authenticates.
+  pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  example: 019a0000-0000-7000-8000-0000000000bb
+Session:
+  type: object
+  additionalProperties: false
+  required: [id, expires_at, user]
+  properties:
+    id:
+      $ref: '#/SessionId'
+    expires_at:
+      type: string
+      format: date-time
+      readOnly: true
+      description: |
+        When the session expires unless it is used, as an RFC 3339 timestamp in
+        UTC. Each use extends it by the idle timeout, up to the absolute limit
+        after the session's creation.
+      example: '2026-12-05T09:30:00.123456Z'
+    user:
+      $ref: 'user.yml#/User'
