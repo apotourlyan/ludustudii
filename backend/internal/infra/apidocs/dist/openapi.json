@@ -20,6 +20,15 @@
           "type": "string"
         }
       },
+      "ExpireSessionCookie": {
+        "description": "Expires the session cookie, whether or not the request carried one.",
+        "required": true,
+        "schema": {
+          "example": "__Host-session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax",
+          "pattern": "^__Host-session=;.*Max-Age=0",
+          "type": "string"
+        }
+      },
       "RequestId": {
         "description": "Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid.",
         "required": true,
@@ -945,7 +954,7 @@
     }
   },
   "info": {
-    "description": "Backend API for accounts, sessions and learning cards.\n\nSessions are carried in the __Host-session cookie (HttpOnly, Secure,\nSameSite=Lax, Path=/), which registration (POST /api/users) and login\n(POST /api/sessions) set. The token never appears in a response body.\nAn operation whose security lists sessionCookie needs a valid session\nand answers 401 with code unauthenticated without one; a failed login\nanswers 401 with code invalid_credentials. Neither sends\nWWW-Authenticate, since cookie sessions have no registered scheme. The\nlearning card operations don't require a session yet.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
+    "description": "Backend API for accounts, sessions and learning cards.\n\nSessions are carried in the __Host-session cookie (HttpOnly, Secure,\nSameSite=Lax, Path=/), which registration (POST /api/users) and login\n(POST /api/sessions) set and logout (DELETE /api/sessions/current)\nexpires. The token never appears in a response body. An operation whose\nsecurity lists sessionCookie needs a valid session and answers 401 with\ncode unauthenticated without one; a failed login answers 401 with code\ninvalid_credentials. Neither sends WWW-Authenticate, since cookie\nsessions have no registered scheme. The learning card operations don't\nrequire a session yet.\n\nUnsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from\nanother origin, judged by Sec-Fetch-Site or Origin, return 403 with code\ncross_origin_request. No /api response may be cached: every one\ncarries Cache-Control: no-store.\n\nRequests with JSON bodies must use Content-Type: application/json\n(type and subtype are case-insensitive; media-type parameters are accepted).\nOther or missing Content-Types on a\nnonempty body return 415 with code unsupported_media_type. Titles,\ndescriptions and emails are normalized to Unicode NFC and trimmed\nbefore validation and storage, and emails are lowercased; passwords are\nnormalized to NFC but never trimmed. Length limits count Unicode code\npoints after this sanitization.\n\nRequest bodies are limited to 1,048,576 bytes (1 MiB). Oversized bodies\nreturn 413 with code payload_too_large, whether the size is declared in\nContent-Length or only discovered while reading a chunked body.\n\nEvery response includes X-Request-Id, reusing the incoming header when\nprovided or generating an ID otherwise. /api and unknown /api/* paths return 404\nwith code not_found. Unsupported methods on the collection return 405\nwith code method_not_allowed and Allow: GET, HEAD, POST; unsupported methods\non an individual card return 405 with Allow: DELETE, GET, HEAD, PUT.\nDeeper paths below a card return 404.\n",
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
@@ -1274,10 +1283,20 @@
                 }
               }
             },
-            "description": "Logged in. The body is the session.",
+            "description": "Logged in. The body is the session; Location is the current session's URL.",
             "headers": {
               "Cache-Control": {
                 "$ref": "#/components/headers/CacheControlNoStore"
+              },
+              "Location": {
+                "description": "URL of the current session.",
+                "required": true,
+                "schema": {
+                  "enum": [
+                    "/api/sessions/current"
+                  ],
+                  "type": "string"
+                }
               },
               "Set-Cookie": {
                 "$ref": "#/components/headers/SetSessionCookie"
@@ -1311,6 +1330,52 @@
           "Identity"
         ]
       }
+    },
+    "/api/sessions/current": {
+      "delete": {
+        "description": "Deletes the session the request carries and expires the session cookie.\nSucceeds without a session too.\n",
+        "operationId": "deleteCurrentSession",
+        "responses": {
+          "204": {
+            "description": "Logged out. No response body.",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControlNoStore"
+              },
+              "Set-Cookie": {
+                "$ref": "#/components/headers/ExpireSessionCookie"
+              },
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/CrossOriginRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedError"
+          }
+        },
+        "security": [
+          {},
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Log out",
+        "tags": [
+          "Identity"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
     },
     "/api/users": {
       "parameters": [
@@ -1549,7 +1614,7 @@
   ],
   "tags": [
     {
-      "description": "Register, log in, and read the current user.",
+      "description": "Register, log in and out, and read the current user.",
       "name": "Identity"
     },
     {

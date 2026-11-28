@@ -17,6 +17,7 @@ import (
 	"github.com/apotourlyan/ludustudii/internal/kit/password"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/domain"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/login"
+	"github.com/apotourlyan/ludustudii/internal/services/identity/logout"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/me"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/register"
 	"github.com/apotourlyan/ludustudii/internal/services/identity/sessions"
@@ -34,6 +35,7 @@ type Service struct {
 	sessions *sessions.Manager
 	register *register.Handler
 	login    *login.Handler
+	logout   *logout.Handler
 	me       *me.Handler
 }
 
@@ -62,21 +64,24 @@ func New(db *sql.DB, cfg Config) (*Service, error) {
 			DummyHash: dummyHash,
 			Sessions:  sm,
 		}),
-		me: me.NewHandler(me.NewStore(db)),
+		logout: logout.NewHandler(sm),
+		me:     me.NewHandler(me.NewStore(db)),
 	}, nil
 }
 
 // RegisterRoutes registers the identity endpoints:
 //
-//	POST /api/users     register and log in (register)
-//	GET  /api/users/me  the current user (me), with a session only
-//	POST /api/sessions  log in (login)
+//	POST   /api/users            register and log in (register)
+//	GET    /api/users/me         the current user (me), with a session only
+//	POST   /api/sessions         log in (login)
+//	DELETE /api/sessions/current log out (logout)
 //
 // GET also serves HEAD.
 func (s *Service) RegisterRoutes(api *httpkit.API) {
 	api.HandleFunc("POST "+domain.UsersPath, s.register.Handle)
 	api.HandleFunc("GET "+domain.CurrentUserPath, authn.Require(s.me.Handle))
 	api.HandleFunc("POST "+domain.SessionsPath, s.login.Handle)
+	api.HandleFunc("DELETE "+domain.CurrentSessionPath, s.logout.Handle)
 }
 
 // Authenticate returns the middleware that resolves the session cookie of

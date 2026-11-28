@@ -223,7 +223,7 @@ func TestHandler_Failures(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected returned error")
 			}
-			if rec.Body.Len() != 0 {
+			if rec.Body.Len() != 0 || rec.Header().Get("Location") != "" {
 				t.Fatalf("response written: %v %s", rec.Header(), rec.Body.String())
 			}
 			if tt.wantCode == http.StatusInternalServerError {
@@ -278,6 +278,9 @@ func TestHandler_Success(t *testing.T) {
 	}
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201", rec.Code)
+	}
+	if got := rec.Header().Get("Location"); got != "/api/sessions/current" {
+		t.Errorf("Location: got %q", got)
 	}
 	if replacedFor != userID {
 		t.Errorf("session replaced for %q, want %q", replacedFor, userID)

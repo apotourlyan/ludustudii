@@ -1,4 +1,4 @@
-// Package sessions issues and resolves the identity service's cookie
+// Package sessions issues, resolves and ends the identity service's cookie
 // sessions (ADR 0047). A session's token is 32 random bytes, sent to the
 // browser in the session cookie as base64url without padding; the Store keeps
 // only its SHA-256 hash. The endpoints use a Manager; the Store behind it is
@@ -25,8 +25,8 @@ const tokenBytes = 32
 
 var tokenEncoding = base64.RawURLEncoding.Strict()
 
-// Manager starts sessions and resolves the session a request carries, under a
-// SessionPolicy and a clock.
+// Manager starts and ends sessions and resolves the session a request
+// carries, under a SessionPolicy and a clock.
 type Manager struct {
 	store  Store
 	policy domain.SessionPolicy
@@ -65,6 +65,18 @@ func (m *Manager) Replace(ctx context.Context, w http.ResponseWriter, r *http.Re
 		}
 	}
 	return m.Start(ctx, w, userID)
+}
+
+// End expires the session cookie on w and deletes the session r carries, if
+// any.
+func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	expired := m.cookie("") // #nosec G124 -- cookie sets Secure, HttpOnly and SameSite=Lax.
+	expired.MaxAge = -1     // Sent as Max-Age=0.
+	http.SetCookie(w, expired)
+	if hash, ok := carriedTokenHash(r); ok {
+		return m.store.Delete(ctx, hash)
+	}
+	return nil
 }
 
 // Authenticate returns middleware that resolves the session cookie: for a

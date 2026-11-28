@@ -450,3 +450,44 @@ func TestManager_Replace(t *testing.T) {
 		t.Errorf("deleted without a cookie: %v", store.deleted)
 	}
 }
+
+func TestManager_End(t *testing.T) {
+	t.Parallel()
+
+	for _, withSession := range []bool{true, false} {
+		m, store, _ := newTestManager(t)
+		r := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/api/sessions/current", nil)
+		var cookie *http.Cookie
+		if withSession {
+			cookie = startSession(t, m)
+			r.AddCookie(cookie)
+		}
+		rec := httptest.NewRecorder()
+		if err := m.End(t.Context(), rec, r); err != nil {
+			t.Fatal(err)
+		}
+		header := rec.Header().Get("Set-Cookie")
+		for _, want := range []string{"__Host-session=;", "Path=/", "Max-Age=0", "HttpOnly", "Secure", "SameSite=Lax"} {
+			if !strings.Contains(header, want) {
+				t.Errorf("with session %v: Set-Cookie %q lacks %q", withSession, header, want)
+			}
+		}
+		if withSession {
+			if user, _ := authenticate(t, m, cookie); user != "" {
+				t.Error("the ended session still works")
+			}
+		} else if len(store.deleted) != 0 {
+			t.Errorf("deleted without a cookie: %v", store.deleted)
+		}
+	}
+
+	// A failed delete still expires the cookie.
+	m, store, _ := newTestManager(t)
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/api/sessions/current", nil)
+	r.AddCookie(startSession(t, m))
+	store.err = errors.New("boom")
+	rec := httptest.NewRecorder()
+	if err := m.End(t.Context(), rec, r); err == nil || !strings.Contains(rec.Header().Get("Set-Cookie"), "Max-Age=0") {
+		t.Errorf("failed delete: got %v and Set-Cookie %q", err, rec.Header().Get("Set-Cookie"))
+	}
+}

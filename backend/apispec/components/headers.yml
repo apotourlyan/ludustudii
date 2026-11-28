@@ -31,3 +31,10 @@ SetSessionCookie:
     type: string
     pattern: '^__Host-session=[A-Za-z0-9_-]{43};'
     example: __Host-session=q3Vb1x0tF6m8E3pO5yZr2HcL9wKdN7aJ4sGuViT0eXk; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax
+ExpireSessionCookie:
+  description: Expires the session cookie, whether or not the request carried one.
+  required: true
+  schema:
+    type: string
+    pattern: '^__Host-session=;.*Max-Age=0'
+    example: __Host-session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax

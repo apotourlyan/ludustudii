@@ -3,6 +3,7 @@
 package identity_test
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -67,6 +69,11 @@ func login(t *testing.T, srv *httptest.Server, body string, cookies ...*http.Coo
 func me(t *testing.T, srv *httptest.Server, cookies ...*http.Cookie) testkit.Response {
 	t.Helper()
 	return testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/users/me", Cookies: cookies})
+}
+
+func logout(t *testing.T, srv *httptest.Server, cookies ...*http.Cookie) testkit.Response {
+	t.Helper()
+	return testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodDelete, Path: "/api/sessions/current", Cookies: cookies})
 }
 
 // assertSessionCookie checks the attributes of a session cookie set by resp
@@ -129,6 +136,18 @@ func TestLifecycle(t *testing.T) {
 	resp = me(t, srv, session)
 	testkit.AssertStatus(t, resp, http.StatusOK)
 	testkit.AssertJSON(t, resp.Body, `{"id":"`+user.ID+`","email":"armen@example.com"}`)
+
+	resp = logout(t, srv, session)
+	testkit.AssertStatus(t, resp, http.StatusNoContent)
+	if expired := resp.Cookie(cookieName); expired == nil || expired.MaxAge != -1 || expired.Value != "" {
+		t.Errorf("logout cookie: %q, want it expired", resp.Header.Get("Set-Cookie"))
+	}
+
+	assertUnauthenticated(t, me(t, srv, session))
+
+	// Logging out again, or without a session, still succeeds.
+	testkit.AssertStatus(t, logout(t, srv, session), http.StatusNoContent)
+	testkit.AssertStatus(t, logout(t, srv), http.StatusNoContent)
 }
 
 func TestMe(t *testing.T) {
@@ -232,6 +251,9 @@ func TestLogin(t *testing.T) {
 	before := time.Now()
 	resp := login(t, srv, credentials(" "+strings.ToUpper(u.Email)+" ", u.Password))
 	testkit.AssertStatus(t, resp, http.StatusCreated)
+	if got := resp.Header.Get("Location"); got != "/api/sessions/current" {
+		t.Errorf("Location: got %q", got)
+	}
 	var s struct {
 		ID        string    `json:"id"`
 		ExpiresAt time.Time `json:"expires_at"`
@@ -386,4 +408,82 @@ func TestSessionExpiry(t *testing.T) {
 			t.Errorf("after a touch: last seen %v, expires %v", lastSeen, expires)
 		}
 	})
+}
+
+func TestCacheControl(t *testing.T) {
+	t.Parallel()
+	srv, _ := newServer(t)
+	u := testkit.NewUser(t, srv)
+
+	for _, resp := range []testkit.Response{
+		me(t, srv, u.Session),
+		me(t, srv),
+		login(t, srv, credentials(u.Email, u.Password)),
+		logout(t, srv),
+		testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/nope"}),
+		testkit.Do(t, srv, testkit.DoOpts{Method: http.MethodGet, Path: "/api/lcards"}),
+	} {
+		if got := resp.Header.Get("Cache-Control"); got != "no-store" {
+			t.Errorf("%d response: Cache-Control %q, want no-store", resp.StatusCode, got)
+		}
+	}
+}
+
+// syncBuffer is a bytes.Buffer safe for the server's goroutines.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+// Nothing the router logs, at any level, carries a password, a session
+// token or the cookie headers, also when a request fails.
+func TestLogsHoldNoSecrets(t *testing.T) {
+	t.Parallel()
+
+	var logs syncBuffer
+	log := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	onError := router.ErrorHandler(log)
+	surface, err := api.New(testkit.NewDB(t), testkit.IdentityConfig(), onError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(router.New(log, onError, surface))
+	t.Cleanup(srv.Close)
+
+	const pw = "secret horse battery staple"
+	resp := register(t, srv, credentials("logs@example.com", pw))
+	testkit.AssertStatus(t, resp, http.StatusCreated)
+	session := resp.Cookie(cookieName)
+
+	register(t, srv, credentials("logs@example.com", pw))                 // taken
+	register(t, srv, credentials("logs2@example.com", "secret\thorse"))   // invalid characters
+	register(t, srv, `{"email":"logs3@example.com","password":12345678}`) // bind error
+	login(t, srv, credentials("logs@example.com", "secret wrong password"), session)
+	resp = login(t, srv, credentials("logs@example.com", pw), session)
+	fresh := resp.Cookie(cookieName)
+	me(t, srv, fresh)
+	me(t, srv, session)
+	logout(t, srv, fresh)
+
+	out := logs.String()
+	if !strings.Contains(out, `"msg":"request"`) {
+		t.Fatalf("captured no request logs:\n%s", out)
+	}
+	for _, secret := range []string{pw, "secret wrong password", "secret\\thorse", "12345678", session.Value, fresh.Value, "Cookie", cookieName} {
+		if strings.Contains(out, secret) {
+			t.Errorf("logs contain %q:\n%s", secret, out)
+		}
+	}
 }

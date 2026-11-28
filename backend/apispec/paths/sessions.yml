@@ -1,4 +1,4 @@
-# One path item so far: /api/sessions (sessions).
+# Two path items: /api/sessions (sessions) and /api/sessions/current (current).
 sessions:
   parameters:
     - $ref: '../components/parameters.yml#/RequestId'
@@ -15,12 +15,18 @@ sessions:
       $ref: '../components/requestBodies.yml#/LoginRequest'
     responses:
       '201':
-        description: Logged in. The body is the session.
+        description: Logged in. The body is the session; Location is the current session's URL.
         headers:
           X-Request-Id:
             $ref: '../components/headers.yml#/RequestId'
           Cache-Control:
             $ref: '../components/headers.yml#/CacheControlNoStore'
+          Location:
+            description: URL of the current session.
+            required: true
+            schema:
+              type: string
+              enum: [/api/sessions/current]
           Set-Cookie:
             $ref: '../components/headers.yml#/SetSessionCookie'
         content:
@@ -37,5 +43,34 @@ sessions:
         $ref: '../components/responses/errors.yml#/PayloadTooLarge'
       '415':
         $ref: '../components/responses/errors.yml#/UnsupportedMediaType'
+      '500':
+        $ref: '../components/responses/errors.yml#/UnexpectedError'
+current:
+  parameters:
+    - $ref: '../components/parameters.yml#/RequestId'
+  delete:
+    tags: [Identity]
+    operationId: deleteCurrentSession
+    summary: Log out
+    description: |
+      Deletes the session the request carries and expires the session cookie.
+      Succeeds without a session too.
+    security:
+      - {}
+      - sessionCookie: []
+    responses:
+      '204':
+        description: Logged out. No response body.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers.yml#/RequestId'
+          Cache-Control:
+            $ref: '../components/headers.yml#/CacheControlNoStore'
+          Set-Cookie:
+            $ref: '../components/headers.yml#/ExpireSessionCookie'
+      '403':
+        $ref: '../components/responses/errors.yml#/CrossOriginRequest'
+      '413':
+        $ref: '../components/responses/errors.yml#/PayloadTooLarge'
       '500':
         $ref: '../components/responses/errors.yml#/UnexpectedError'

@@ -111,6 +111,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sessions/current": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Log out
+         * @description Deletes the session the request carries and expires the session cookie.
+         *     Succeeds without a session too.
+         */
+        delete: operations["deleteCurrentSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users": {
         parameters: {
             query?: never;
@@ -813,6 +843,8 @@ export interface components {
          *     413 isn't cacheable by default either.
          */
         CacheControlNoStoreUnlessEarly: "no-store";
+        /** @description Expires the session cookie, whether or not the request carried one. */
+        ExpireSessionCookie: string;
         /** @description Valid first incoming X-Request-Id value, or a random base32 ID when missing, empty or invalid. */
         RequestId: string;
         /**
@@ -1106,10 +1138,12 @@ export interface operations {
         };
         requestBody: components["requestBodies"]["LoginRequest"];
         responses: {
-            /** @description Logged in. The body is the session. */
+            /** @description Logged in. The body is the session; Location is the current session's URL. */
             201: {
                 headers: {
                     "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    /** @description URL of the current session. */
+                    Location: "/api/sessions/current";
                     "Set-Cookie": components["headers"]["SetSessionCookie"];
                     "X-Request-Id": components["headers"]["RequestId"];
                     [name: string]: unknown;
@@ -1123,6 +1157,39 @@ export interface operations {
             403: components["responses"]["CrossOriginRequest"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            500: components["responses"]["UnexpectedError"];
+        };
+    };
+    deleteCurrentSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional client-supplied request ID. The first value is reused unchanged only
+                 *     if it contains 1–128 ASCII letters, digits, dots, underscores or hyphens.
+                 *     Missing, empty or invalid values are replaced with a random base32 ID without
+                 *     rejecting the request. The selected ID is echoed in the X-Request-Id response
+                 *     header and included in server logs.
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logged out. No response body. */
+            204: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    "Set-Cookie": components["headers"]["ExpireSessionCookie"];
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["CrossOriginRequest"];
+            413: components["responses"]["PayloadTooLarge"];
             500: components["responses"]["UnexpectedError"];
         };
     };

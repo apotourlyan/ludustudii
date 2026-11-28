@@ -10,12 +10,13 @@ info:
 
     Sessions are carried in the __Host-session cookie (HttpOnly, Secure,
     SameSite=Lax, Path=/), which registration (POST /api/users) and login
-    (POST /api/sessions) set. The token never appears in a response body.
-    An operation whose security lists sessionCookie needs a valid session
-    and answers 401 with code unauthenticated without one; a failed login
-    answers 401 with code invalid_credentials. Neither sends
-    WWW-Authenticate, since cookie sessions have no registered scheme. The
-    learning card operations don't require a session yet.
+    (POST /api/sessions) set and logout (DELETE /api/sessions/current)
+    expires. The token never appears in a response body. An operation whose
+    security lists sessionCookie needs a valid session and answers 401 with
+    code unauthenticated without one; a failed login answers 401 with code
+    invalid_credentials. Neither sends WWW-Authenticate, since cookie
+    sessions have no registered scheme. The learning card operations don't
+    require a session yet.
 
     Unsafe requests (POST, PUT, PATCH, DELETE) that a browser sends from
     another origin, judged by Sec-Fetch-Site or Origin, return 403 with code
@@ -47,7 +48,7 @@ servers:
 security: []
 tags:
   - name: Identity
-    description: Register, log in, and read the current user.
+    description: Register, log in and out, and read the current user.
   - name: Learning cards
     description: Create, read, replace, and delete learning cards.
   - name: Operations
@@ -63,6 +64,8 @@ paths:
     $ref: './paths/users.yml#/me'
   /api/sessions:
     $ref: './paths/sessions.yml#/sessions'
+  /api/sessions/current:
+    $ref: './paths/sessions.yml#/current'
   /api/lcards:
     $ref: './paths/lcards.yml'
   /api/lcards/{id}:
@@ -94,6 +97,8 @@ components:
       $ref: './components/headers.yml#/RequestId'
     SetSessionCookie:
       $ref: './components/headers.yml#/SetSessionCookie'
+    ExpireSessionCookie:
+      $ref: './components/headers.yml#/ExpireSessionCookie'
   requestBodies:
     LearningCardInput:
       $ref: './components/requestBodies.yml#/LearningCardInput'

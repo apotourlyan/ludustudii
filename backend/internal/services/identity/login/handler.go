@@ -83,7 +83,7 @@ func NewHandler(d Deps) *Handler {
 // the dummy hash. On success it
 // rehashes a password whose hash has outdated parameters, replaces the
 // session the request carried with a new one and responds 201 with the
-// session and the session cookie.
+// session, its URL in Location and the session cookie.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
@@ -124,6 +124,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.Header().Set("Location", domain.CurrentSessionPath)
 	return httpkit.JSON(w, http.StatusCreated, response{
 		ID:        s.ID,
 		ExpiresAt: s.ExpiresAt.UTC(),
